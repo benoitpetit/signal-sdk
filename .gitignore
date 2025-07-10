@@ -43,3 +43,6 @@ bin/bin/signal-cli
 # log files
 logs/
 *.log
+
+# Ignore npm package files
+*.tgz
