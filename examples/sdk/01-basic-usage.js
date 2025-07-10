@@ -37,7 +37,7 @@ async function basicUsageExample() {
     }
 
     // Initialize the SDK
-    const signalCli = new SignalCli(undefined, phoneNumber);
+    const signalCli = new SignalCli(phoneNumber);
 
     try {
         // 1. Connect to signal-cli

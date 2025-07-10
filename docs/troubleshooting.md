@@ -16,7 +16,7 @@ java --version
 # Check if device is linked
 node -e "
 const { SignalCli } = require('./dist');
-const signal = new SignalCli(undefined, process.env.SIGNAL_PHONE_NUMBER);
+const signal = new SignalCli(process.env.SIGNAL_PHONE_NUMBER);
 signal.connect().then(() => signal.listDevices()).then(devices => {
     console.log(devices.length > 0 ? 'Device linked' : 'Device not linked');
     process.exit(0);

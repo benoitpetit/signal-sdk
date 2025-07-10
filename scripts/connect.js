@@ -19,14 +19,14 @@
 const { SignalCli } = require('../dist/SignalCli');
 
 async function connectDevice() {
-    console.log('🔗 Signal SDK - Device Connection');
+    console.log('Signal SDK - Device Connection');
     console.log('==================================\n');
 
     // Get device name from command line arguments
     const deviceName = process.argv[2] || 'Signal SDK Device';
-    
-    console.log(`📱 Device name: ${deviceName}`);
-    console.log('⏳ Generating QR code for device linking...\n');
+
+    console.log(`Device name: ${deviceName}`);
+    console.log('Generating QR code for device linking...\n');
 
     // Initialize the SDK without an account (for linking)
     const signalCli = new SignalCli();
@@ -40,34 +40,34 @@ async function connectDevice() {
 
         if (linkingResult.success) {
             if (linkingResult.isLinked) {
-                console.log('✅ Device successfully linked!');
-                console.log(`📱 Device name: ${linkingResult.deviceName}`);
-                console.log('\n🎉 You can now use this device to send and receive Signal messages.');
-                console.log('\n💡 Next steps:');
+                console.log('Device successfully linked!');
+                console.log(`Device name: ${linkingResult.deviceName}`);
+                console.log('\nYou can now use this device to send and receive Signal messages.');
+                console.log('\nNext steps:');
                 console.log('   1. Import SignalCli in your Node.js project');
                 console.log('   2. Initialize with your phone number');
                 console.log('   3. Start sending and receiving messages');
-                console.log('\n📖 Example usage:');
+                console.log('\nExample usage:');
                 console.log('   const { SignalCli } = require("signal-sdk");');
-                console.log('   const signalCli = new SignalCli(undefined, "+YourPhoneNumber");');
+                console.log('   const signalCli = new SignalCli("+YourPhoneNumber");');
                 console.log('   await signalCli.connect();');
             } else {
-                console.log('📋 QR code generated successfully!');
-                console.log('📱 Scan the QR code above with your Signal app to link this device.');
-                console.log('\n📝 Instructions:');
+                console.log('QR code generated successfully!');
+                console.log('Scan the QR code above with your Signal app to link this device.');
+                console.log('\nInstructions:');
                 console.log('   1. Open Signal on your phone');
                 console.log('   2. Go to Settings > Linked devices');
                 console.log('   3. Tap "Link new device"');
                 console.log('   4. Scan the QR code displayed above');
-                console.log('\n⏳ Waiting for device linking...');
+                console.log('\nWaiting for device linking...');
                 console.log('   (This process may take a few moments)');
             }
         } else {
-            console.error('❌ Device linking failed');
+            console.error('Device linking failed');
             if (linkingResult.error) {
                 console.error(`   Error: ${linkingResult.error}`);
             }
-            console.error('\n🔧 Troubleshooting:');
+            console.error('\nTroubleshooting:');
             console.error('   • Make sure signal-cli is properly installed');
             console.error('   • Check your internet connection');
             console.error('   • Ensure your Signal app is up to date');
@@ -75,8 +75,8 @@ async function connectDevice() {
             process.exit(1);
         }
     } catch (error) {
-        console.error('❌ Fatal error during device linking:', error.message);
-        console.error('\n🔧 Common solutions:');
+        console.error('Fatal error during device linking:', error.message);
+        console.error('\nCommon solutions:');
         console.error('   • Install signal-cli: https://github.com/AsamK/signal-cli');
         console.error('   • Make sure Java is installed and accessible');
         console.error('   • Check that signal-cli is in your PATH');
@@ -87,12 +87,12 @@ async function connectDevice() {
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {
-    console.log('\n\n⏹️  Device linking cancelled by user.');
+    console.log('\n\nDevice linking cancelled by user.');
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-    console.log('\n\n⏹️  Device linking terminated.');
+    console.log('\n\nDevice linking terminated.');
     process.exit(0);
 });
 

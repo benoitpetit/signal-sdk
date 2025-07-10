@@ -13,6 +13,7 @@ Welcome to the complete documentation for the Signal SDK - a comprehensive TypeS
 ### API Documentation
 
 - [Complete API Reference](./api-reference.md) - Full SignalCli and SignalBot API documentation
+- [CLI Reference](./cli-reference.md) - Command-line interface documentation
 - [Examples Guide](./examples-guide.md) - Walkthrough of all examples with explanations
 
 ### Framework Guides
@@ -74,7 +75,7 @@ When things don't work as expected:
 npm install signal-sdk
 
 # 2. Link device (mandatory first step)
-node examples/sdk/00-device-linking.js
+npx signal-sdk connect
 
 # 3. Set your phone number
 echo 'SIGNAL_PHONE_NUMBER="+33111111111"' > .env
@@ -93,7 +94,7 @@ The Signal SDK provides two main classes:
 
 ```javascript
 const { SignalCli } = require("signal-sdk");
-const signal = new SignalCli(undefined, "+33111111111");
+const signal = new SignalCli("+33111111111");
 
 await signal.connect();
 await signal.sendMessage("+33000000000", "Hello from Signal SDK!");

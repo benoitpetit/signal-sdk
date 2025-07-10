@@ -42,7 +42,7 @@ async function fileHandlingExample() {
     }
 
     // Initialize SDK
-    const signal = new SignalCli(undefined, phoneNumber);
+    const signal = new SignalCli(phoneNumber);
 
     // Track temporary files for cleanup
     const tempFiles = [];

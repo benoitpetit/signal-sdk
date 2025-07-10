@@ -36,7 +36,7 @@ async function quickStart() {
     }
 
     // Initialize SDK
-    const signal = new SignalCli(undefined, phoneNumber);
+    const signal = new SignalCli(phoneNumber);
 
     try {
         // Step 1: Connect

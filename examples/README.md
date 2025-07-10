@@ -50,6 +50,10 @@ examples/
    Before using any examples, link this device to your Signal account:
 
    ```bash
+   # Quick method using CLI
+   npx signal-sdk connect
+
+   # Or run the example script
    node examples/sdk/00-device-linking.js
    ```
 
@@ -277,7 +281,7 @@ echo '{"jsonrpc": "2.0", "method": "version", "id": "test"}' | signal-cli -a +33
 
 ```javascript
 const { SignalCli } = require("./dist/SignalCli");
-const signal = new SignalCli(undefined, "+33111111111");
+const signal = new SignalCli("+33111111111");
 await signal.connect();
 await signal.sendMessage("+33000000000", "Hello from Signal SDK!");
 ```

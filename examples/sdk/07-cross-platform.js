@@ -92,7 +92,7 @@ async function testBasicFunctionality() {
         return;
     }
 
-    const signal = new SignalCli(undefined, process.env.SIGNAL_PHONE_NUMBER);
+    const signal = new SignalCli(process.env.SIGNAL_PHONE_NUMBER);
 
     try {
         console.log('- Testing connection...');
@@ -129,7 +129,7 @@ function showUsageExamples() {
     console.log(`
 // Basic usage (works on all platforms)
 const { SignalCli } = require('signal-cli-sdk');
-const signal = new SignalCli(undefined, '+1234567890');
+const signal = new SignalCli('+1234567890');
 
 await signal.connect();
 await signal.sendMessage('+0987654321', 'Hello from ${process.platform}!');

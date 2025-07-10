@@ -235,18 +235,18 @@ describe('SignalCli', () => {
       
       // Mock Windows
       Object.defineProperty(process, 'platform', { value: 'win32' });
-      const windowsSignal = new SignalCli(undefined, '+1234567890');
+      const windowsSignal = new SignalCli('+1234567890');
       expect((windowsSignal as any).signalCliPath).toContain('signal-cli.bat');
       
       // Mock Linux
       Object.defineProperty(process, 'platform', { value: 'linux' });
-      const linuxSignal = new SignalCli(undefined, '+1234567890');
+      const linuxSignal = new SignalCli('+1234567890');
       expect((linuxSignal as any).signalCliPath).toContain('signal-cli');
       expect((linuxSignal as any).signalCliPath).not.toContain('.bat');
       
       // Mock macOS
       Object.defineProperty(process, 'platform', { value: 'darwin' });
-      const macSignal = new SignalCli(undefined, '+1234567890');
+      const macSignal = new SignalCli('+1234567890');
       expect((macSignal as any).signalCliPath).toContain('signal-cli');
       expect((macSignal as any).signalCliPath).not.toContain('.bat');
       

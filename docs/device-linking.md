@@ -8,15 +8,30 @@ Device linking connects your application to your existing Signal account by gene
 
 ## Quick Start - Link Your Device
 
-### Step 1: Run the Device Linking Script
+### Method 1: Using the CLI (Recommended)
 
-The SDK provides a convenient script to handle the entire linking process:
+The SDK provides a CLI tool for easy device linking:
+
+```bash
+# Link device with default name
+npx signal-sdk connect
+
+# Link device with custom name
+npx signal-sdk connect "My Bot Device"
+
+# Get help and see available commands
+npx signal-sdk --help
+```
+
+### Method 2: Using the Example Script
+
+Alternatively, you can use the provided example script:
 
 ```bash
 node examples/sdk/00-device-linking.js
 ```
 
-This script will:
+Both methods will:
 
 - Generate a QR code in your terminal
 - Display linking instructions

@@ -12,7 +12,7 @@ Remove contacts from your Signal account with different levels of data removal.
 
 ```javascript
 const { SignalCli } = require("./src");
-const signal = new SignalCli(undefined, "+1234567890");
+const signal = new SignalCli("+1234567890");
 
 await signal.connect();
 
@@ -279,7 +279,7 @@ class SignalPool {
 
     // Create connections if needed
     if (pool.connections.length < this.poolSize) {
-      const signal = new SignalCli(undefined, phoneNumber);
+      const signal = new SignalCli(phoneNumber);
       await signal.connect();
       pool.connections.push(signal);
     }
@@ -588,7 +588,7 @@ class SignalWebSocketBridge {
 
   async start() {
     // Initialize Signal
-    this.signal = new SignalCli(undefined, this.phoneNumber);
+    this.signal = new SignalCli(this.phoneNumber);
     await this.signal.connect();
 
     // Setup WebSocket server

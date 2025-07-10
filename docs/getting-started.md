@@ -18,8 +18,14 @@ Before you begin, ensure you have completed:
 ### 1. Link Your Device (One-time setup)
 
 ```bash
-# Run the device linking script
+# Run the CLI device linking command (recommended)
+npx signal-sdk connect
+
+# Or use the example script
 node examples/sdk/00-device-linking.js
+
+# Get help on available commands
+npx signal-sdk --help
 ```
 
 Follow the on-screen instructions to scan the QR code with your Signal app.
@@ -41,7 +47,7 @@ require("dotenv").config();
 const { SignalCli } = require("signal-sdk");
 
 async function sendFirstMessage() {
-  const signal = new SignalCli(undefined, process.env.SIGNAL_PHONE_NUMBER);
+  const signal = new SignalCli(process.env.SIGNAL_PHONE_NUMBER);
 
   await signal.connect();
   await signal.sendMessage("+33000000000", "Hello from Signal SDK!");
@@ -66,7 +72,7 @@ node test.js
 ```javascript
 const { SignalCli } = require("signal-sdk");
 
-const signal = new SignalCli(undefined, "+33111111111");
+const signal = new SignalCli("+33111111111");
 
 await signal.connect();
 
@@ -174,7 +180,7 @@ Now, in your Signal group, you can type `/hello` and the bot will respond!
 const { SignalCli } = require("signal-sdk");
 
 async function sendNotification(recipient, message) {
-  const signal = new SignalCli(undefined, process.env.SIGNAL_PHONE_NUMBER);
+  const signal = new SignalCli(process.env.SIGNAL_PHONE_NUMBER);
   await signal.connect();
   await signal.sendMessage(recipient, message);
   await signal.gracefulShutdown();

@@ -13,7 +13,7 @@
 const { SignalCli } = require('../../dist');
 
 async function demonstrateAdvancedFeatures() {
-    const signal = new SignalCli(undefined, process.env.SIGNAL_PHONE_NUMBER);
+    const signal = new SignalCli(process.env.SIGNAL_PHONE_NUMBER);
 
     try {
         console.log('Connecting to Signal CLI...');

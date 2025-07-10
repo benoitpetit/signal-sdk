@@ -38,7 +38,7 @@ async function groupManagementExample() {
     }
 
     // Initialize SDK
-    const signal = new SignalCli(undefined, phoneNumber);
+    const signal = new SignalCli(phoneNumber);
 
     try {
         // Step 1: Connect

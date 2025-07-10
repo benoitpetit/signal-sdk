@@ -48,16 +48,32 @@ A comprehensive TypeScript SDK for interacting with [signal-cli](https://github.
 ### Installation
 
 ```bash
-npm install
+npm install signal-sdk
 ```
 
 ### Prerequisites
 
 1. **Node.js** (version 16 or later)
 2. **Java Runtime Environment** (required by signal-cli)
-3. **signal-cli** - Download and setup instructions available in [installation guide](./docs/installation.md)
+
+**Note:** signal-cli binaries are included with the SDK - no separate installation required.
 
 [Detailed installation guide](./docs/installation.md)
+
+### CLI Commands
+
+The SDK includes a command-line interface for common operations:
+
+```bash
+# View all available commands
+npx signal-sdk --help
+
+# Link a new device to your Signal account
+npx signal-sdk connect
+
+# Link with a custom device name
+npx signal-sdk connect "My Custom Device Name"
+```
 
 ### Device Linking
 
@@ -70,15 +86,15 @@ npx signal-sdk connect
 # Or with a custom device name
 npx signal-sdk connect "My Bot Device"
 
-# Or using npm script after installation
-cd node_modules/signal-sdk
-npm run connect
+# Get help for the CLI
+npx signal-sdk --help
 ```
 
 This command will:
-1. 🔗 Generate a QR code in your terminal
-2. 📱 Display instructions for scanning with your Signal app
-3. ✅ Complete the device linking process
+
+1. Generate a QR code in your terminal
+2. Display instructions for scanning with your Signal app
+3. Complete the device linking process
 
 **Note:** You only need to do this once per device. After linking, your device will be permanently connected to your Signal account.
 
@@ -88,7 +104,7 @@ This command will:
 const { SignalCli } = require("signal-sdk");
 
 // Initialize SignalCli with phone number
-const signal = new SignalCli(undefined, "+1234567890");
+const signal = new SignalCli("+1234567890");
 
 // Connect to signal-cli daemon
 await signal.connect();
@@ -192,7 +208,7 @@ Your bot will automatically:
 
 ```javascript
 const { SignalCli } = require("signal-sdk");
-const signal = new SignalCli(undefined, "+1234567890");
+const signal = new SignalCli("+1234567890");
 
 await signal.connect();
 await signal.sendMessage("+0987654321", "Hello World!");

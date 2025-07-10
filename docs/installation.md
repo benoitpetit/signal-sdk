@@ -64,17 +64,27 @@ npm run build
 
 ## Post-Installation Setup
 
-The Signal SDK automatically downloads and manages signal-cli for you, but you need to link your device first.
+### Signal CLI Integration
 
-### Automatic signal-cli Download
+The Signal SDK includes signal-cli binaries and handles the setup automatically. You don't need to install signal-cli separately.
 
-When you first use the SDK, it will automatically:
+**What's included:**
 
-- Download the latest compatible signal-cli version
-- Extract it to `./bin/signal-cli`
-- Set up proper permissions
+- signal-cli v0.13.17 binaries (located in `bin/` directory)
+- All required Java libraries
+- Cross-platform compatibility (Windows, macOS, Linux)
 
-No manual signal-cli installation required!
+### First Steps
+
+After installation, you need to link your device to Signal:
+
+```bash
+# Link your device using the CLI
+npx signal-sdk connect
+
+# Or run the example script
+node node_modules/signal-sdk/examples/sdk/00-device-linking.js
+```
 
 ## Verification
 
@@ -85,7 +95,7 @@ const { SignalCli } = require("signal-sdk");
 
 console.log("Signal SDK installed successfully!");
 console.log("Next step: Link your device with QR code");
-console.log("Run: node examples/sdk/00-device-linking.js");
+console.log("Run: npx signal-sdk connect");
 ```
 
 ## Environment Setup
