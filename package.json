@@ -1,0 +1,43 @@
+{
+  "name": "signal-sdk",
+  "version": "0.0.1",
+  "description": "A comprehensive TypeScript SDK for Signal CLI with native JSON-RPC support, providing high-performance messaging, bot framework, and full signal-cli integration.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "postinstall": "node scripts/install.js",
+    "signal:connect": "node examples/sdk/00-device-linking.js",
+    "example:basic": "node examples/sdk/01-basic-usage.js",
+    "example:quick-start": "node examples/sdk/02-quick-start.js",
+    "example:group-management": "node examples/sdk/03-group-management.js",
+    "example:contact-management": "node examples/sdk/04-contact-management.js",
+    "example:file-handling": "node examples/sdk/05-file-handling.js",
+    "example:minimal-bot": "node examples/bot/01-minimal-bot.js",
+    "example:advanced-bot": "node examples/bot/02-advanced-bot.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.0.10",
+    "@types/qrcode-terminal": "^0.12.2",
+    "@types/uuid": "^9.0.8",
+    "jest": "^30.0.4",
+    "ts-jest": "^29.4.0",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "axios": "^1.10.0",
+    "dotenv": "^16.4.5",
+    "duckduckgo-chat-interface": "^1.1.5",
+    "events": "^3.3.0",
+    "qrcode": "^1.5.3",
+    "qrcode-terminal": "^0.12.0",
+    "tar": "^7.4.3",
+    "uuid": "^9.0.1"
+  }
+}
