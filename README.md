@@ -59,6 +59,29 @@ npm install
 
 [Detailed installation guide](./docs/installation.md)
 
+### Device Linking
+
+Before using the SDK, you need to link a device to your Signal account:
+
+```bash
+# Using npx (recommended)
+npx signal-sdk connect
+
+# Or with a custom device name
+npx signal-sdk connect "My Bot Device"
+
+# Or using npm script after installation
+cd node_modules/signal-sdk
+npm run connect
+```
+
+This command will:
+1. 🔗 Generate a QR code in your terminal
+2. 📱 Display instructions for scanning with your Signal app
+3. ✅ Complete the device linking process
+
+**Note:** You only need to do this once per device. After linking, your device will be permanently connected to your Signal account.
+
 ### Basic Usage
 
 ```javascript
