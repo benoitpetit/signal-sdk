@@ -11,7 +11,7 @@ Please read and follow our [Code of Conduct](./CODE_OF_CONDUCT.md) to foster an 
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally
    ```bash
-   git clone https://github.com/YOUR-USERNAME/signal-sdk.git
+   git clone https://github.com/benoitpetit/signal-sdk.git
    cd signal-sdk
    ```
 3. **Install dependencies**

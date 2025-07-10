@@ -42,7 +42,15 @@ import {
     SendRequestParams,
     SendResponse,
     GroupInfo,
-    JsonAttachment
+    JsonAttachment,
+    RemoveContactOptions,
+    UserStatusResult,
+    PaymentNotificationData,
+    StickerPackManifest,
+    StickerPackUploadResult,
+    RateLimitChallengeResult,
+    ChangeNumberSession,
+    UploadProgress
 } from './interfaces';
 import { EventEmitter } from 'events';
 import * as path from 'path';
@@ -60,7 +68,8 @@ export class SignalCli extends EventEmitter {
         if (process.platform === 'win32') {
             defaultPath = path.join(__dirname, '..', 'bin', 'bin', 'signal-cli.bat');
         } else {
-            defaultPath = path.join(__dirname, '..', 'bin', 'signal-cli');
+            // For Unix/Linux systems, use the shell script
+            defaultPath = path.join(__dirname, '..', 'bin', 'bin', 'signal-cli');
         }
         this.signalCliPath = signalCliPath || defaultPath;
         this.account = account;
@@ -569,5 +578,208 @@ export class SignalCli extends EventEmitter {
     stopDaemon(): void {
         console.warn("stopDaemon is deprecated. Use gracefulShutdown() or disconnect() instead.");
         this.gracefulShutdown();
+    }
+
+    // ############# NEW FEATURES - Missing signal-cli Commands #############
+
+    /**
+     * Remove a contact from the contact list.
+     * @param number - The phone number of the contact to remove
+     * @param options - Options for how to remove the contact
+     */
+    async removeContact(number: string, options: RemoveContactOptions = {}): Promise<void> {
+        const params: any = { 
+            account: this.account, 
+            recipient: number 
+        };
+        
+        if (options.hide) params.hide = true;
+        if (options.forget) params.forget = true;
+        
+        await this.sendJsonRpcRequest('removeContact', params);
+    }
+
+    /**
+     * Check if phone numbers are registered with Signal.
+     * @param numbers - Array of phone numbers to check
+     * @param usernames - Optional array of usernames to check
+     * @returns Array of user status results
+     */
+    async getUserStatus(numbers: string[] = [], usernames: string[] = []): Promise<UserStatusResult[]> {
+        const params: any = { account: this.account };
+        
+        if (numbers.length > 0) params.recipients = numbers;
+        if (usernames.length > 0) params.usernames = usernames;
+        
+        const result = await this.sendJsonRpcRequest('getUserStatus', params);
+        
+        // Transform the result to match our interface
+        const statusResults: UserStatusResult[] = [];
+        
+        if (result.recipients) {
+            result.recipients.forEach((recipient: any) => {
+                statusResults.push({
+                    number: recipient.number,
+                    isRegistered: recipient.isRegistered || false,
+                    uuid: recipient.uuid,
+                    username: recipient.username
+                });
+            });
+        }
+        
+        return statusResults;
+    }
+
+    /**
+     * Send a payment notification to a recipient.
+     * @param recipient - Phone number or group ID to send the notification to
+     * @param paymentData - Payment notification data including receipt
+     * @returns Send response with timestamp and other details
+     */
+    async sendPaymentNotification(
+        recipient: string, 
+        paymentData: PaymentNotificationData
+    ): Promise<SendResponse> {
+        const params: any = {
+            receipt: paymentData.receipt,
+            account: this.account
+        };
+        
+        if (paymentData.note) {
+            params.note = paymentData.note;
+        }
+        
+        if (this.isGroupId(recipient)) {
+            params.groupId = recipient;
+        } else {
+            params.recipient = recipient;
+        }
+        
+        return this.sendJsonRpcRequest('sendPaymentNotification', params);
+    }
+
+    /**
+     * Upload a custom sticker pack to Signal.
+     * @param manifest - Sticker pack manifest information
+     * @returns Upload result with pack ID and key
+     */
+    async uploadStickerPack(manifest: StickerPackManifest): Promise<StickerPackUploadResult> {
+        const params = {
+            account: this.account,
+            path: manifest.path
+        };
+        
+        const result = await this.sendJsonRpcRequest('uploadStickerPack', params);
+        
+        return {
+            packId: result.packId,
+            packKey: result.packKey,
+            installUrl: result.installUrl
+        };
+    }
+
+    /**
+     * Submit a rate limit challenge to lift rate limiting.
+     * @param challenge - Challenge token from the proof required error
+     * @param captcha - Captcha token from solved captcha
+     * @returns Challenge result indicating success/failure
+     */
+    async submitRateLimitChallenge(
+        challenge: string, 
+        captcha: string
+    ): Promise<RateLimitChallengeResult> {
+        const params = {
+            account: this.account,
+            challenge,
+            captcha
+        };
+        
+        const result = await this.sendJsonRpcRequest('submitRateLimitChallenge', params);
+        
+        return {
+            success: result.success || false,
+            retryAfter: result.retryAfter,
+            message: result.message
+        };
+    }
+
+    /**
+     * Start the process of changing phone number.
+     * @param newNumber - The new phone number to change to
+     * @param voice - Whether to use voice verification instead of SMS
+     * @param captcha - Captcha token if required
+     * @returns Change number session information
+     */
+    async startChangeNumber(
+        newNumber: string, 
+        voice: boolean = false, 
+        captcha?: string
+    ): Promise<ChangeNumberSession> {
+        const params: any = {
+            account: this.account,
+            number: newNumber,
+            voice
+        };
+        
+        if (captcha) params.captcha = captcha;
+        
+        const result = await this.sendJsonRpcRequest('startChangeNumber', params);
+        
+        return {
+            session: result.session,
+            newNumber,
+            challenge: result.challenge
+        };
+    }
+
+    /**
+     * Finish the phone number change process with verification code.
+     * @param verificationCode - The verification code received via SMS/voice
+     * @param pin - Registration lock PIN if enabled
+     */
+    async finishChangeNumber(verificationCode: string, pin?: string): Promise<void> {
+        const params: any = {
+            account: this.account,
+            code: verificationCode
+        };
+        
+        if (pin) params.pin = pin;
+        
+        await this.sendJsonRpcRequest('finishChangeNumber', params);
+    }
+
+    /**
+     * Enhanced send message with progress callback support.
+     * @param recipient - Phone number or group ID
+     * @param message - Message text
+     * @param options - Send options including progress callback
+     * @returns Send response
+     */
+    async sendMessageWithProgress(
+        recipient: string, 
+        message: string, 
+        options: SendMessageOptions & { 
+            onProgress?: (progress: UploadProgress) => void 
+        } = {}
+    ): Promise<SendResponse> {
+        // For now, this is the same as sendMessage since signal-cli doesn't provide
+        // native progress callbacks. This is a placeholder for future enhancement.
+        const { onProgress, ...sendOptions } = options;
+        
+        // Simulate progress for large attachments
+        if (onProgress && sendOptions.attachments && sendOptions.attachments.length > 0) {
+            // Simulate upload progress
+            for (let i = 0; i <= 100; i += 10) {
+                onProgress({
+                    total: 100,
+                    uploaded: i,
+                    percentage: i
+                });
+                // Small delay to simulate upload
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+        }
+        
+        return this.sendMessage(recipient, message, sendOptions);
     }
 }

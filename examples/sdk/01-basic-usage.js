@@ -41,74 +41,74 @@ async function basicUsageExample() {
 
     try {
         // 1. Connect to signal-cli
-        console.log('1. 🔗 Connecting to signal-cli...');
+        console.log('1. Connecting to signal-cli...');
         await signalCli.connect();
-        console.log('   ✅ Connected successfully!\n');
+        console.log('   - Connected successfully!\n');
 
         // 2. Get version information
-        console.log('2. 📋 Getting version information...');
+        console.log('2. Getting version information...');
         const version = await signalCli.getVersion();
-        console.log(`   ✅ signal-cli version: ${version.version}\n`);
+        console.log(`   - signal-cli version: ${version.version}\n`);
 
         // 3. List contacts
-        console.log('3. 👥 Listing contacts...');
+        console.log('3. Listing contacts...');
         const contacts = await signalCli.listContacts();
-        console.log(`   ✅ Found ${contacts.length} contacts`);
+        console.log(`   - Found ${contacts.length} contacts`);
         if (contacts.length > 0) {
-            console.log('   📞 Sample contacts:');
+            console.log('   - Sample contacts:');
             contacts.slice(0, 3).forEach(contact => {
-                console.log(`     • ${contact.name || 'Unknown'} (${contact.number})`);
+                console.log(`     - ${contact.name || 'Unknown'} (${contact.number})`);
             });
         }
         console.log();
 
         // 4. List groups
-        console.log('4. 👥 Listing groups...');
+        console.log('4. Listing groups...');
         const groups = await signalCli.listGroups();
-        console.log(`   ✅ Found ${groups.length} groups`);
+        console.log(`   - Found ${groups.length} groups`);
         if (groups.length > 0) {
-            console.log('   📱 Sample groups:');
+            console.log('   - Sample groups:');
             groups.slice(0, 3).forEach(group => {
                 const memberCount = group.members ? group.members.length : 0;
-                console.log(`     • ${group.name} (${memberCount} members)`);
+                console.log(`     - ${group.name} (${memberCount} members)`);
             });
         }
         console.log();
 
         // 5. Send a test message
-        console.log('5. 📤 Sending test message...');
-        const testMessage = `🚀 Signal SDK Test Message\n\nSent at: ${new Date().toISOString()}\nFrom: Basic Usage Example`;
-        
+        console.log('5. Sending test message...');
+        const testMessage = `Signal SDK Test Message\n\nSent at: ${new Date().toISOString()}\nFrom: Basic Usage Example`;
+
         const sendResult = await signalCli.sendMessage(recipientNumber, testMessage);
-        console.log('   ✅ Message sent successfully!');
-        console.log(`   📧 Message ID: ${sendResult.timestamp || 'N/A'}\n`);
+        console.log('   - Message sent successfully!');
+        console.log(`   - Message ID: ${sendResult.timestamp || 'N/A'}\n`);
 
         // 6. Send a reaction to the message we just sent
         if (sendResult.timestamp) {
-            console.log('6. 😊 Sending reaction to our message...');
+            console.log('6. Sending reaction to our message...');
             await signalCli.sendReaction(recipientNumber, phoneNumber, sendResult.timestamp, '✅');
-            console.log('   ✅ Reaction sent successfully!\n');
+            console.log('   - Reaction sent successfully!\n');
         }
 
         // 7. Send typing indicator
-        console.log('7. ⌨️ Sending typing indicator...');
+        console.log('7. Sending typing indicator...');
         await signalCli.sendTyping(recipientNumber, false); // Start typing
         await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
         await signalCli.sendTyping(recipientNumber, true); // Stop typing
-        console.log('   ✅ Typing indicator sent!\n');
+        console.log('   - Typing indicator sent!\n');
 
         // 8. Listen for messages for 10 seconds
-        console.log('8. 👂 Listening for messages (10 seconds)...');
-        
+        console.log('8. Listening for messages (10 seconds)...');
+
         let messageCount = 0;
         const messageHandler = (message) => {
             messageCount++;
-            console.log(`   📩 Message ${messageCount} received from ${message.envelope.sourceNumber || 'Unknown'}`);
-            
+            console.log(`   - Message ${messageCount} received from ${message.envelope.sourceNumber || 'Unknown'}`);
+
             // Log message content if available
             if (message.envelope.dataMessage?.message) {
                 const text = message.envelope.dataMessage.message;
-                console.log(`      💬 "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
+                console.log(`      - "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
             }
         };
 
@@ -121,21 +121,21 @@ async function basicUsageExample() {
         signalCli.off('message', messageHandler);
 
         if (messageCount === 0) {
-            console.log('   ℹ️ No messages received during listening period');
+            console.log('   - No messages received during listening period');
         }
         console.log();
 
         // 9. Send a final confirmation message
-        console.log('9. 📤 Sending completion message...');
-        const finalMessage = `✅ Basic Usage Example Completed!\n\n` +
-                           `📊 Summary:\n` +
-                           `• Contacts: ${contacts.length}\n` +
-                           `• Groups: ${groups.length}\n` +
-                           `• Messages received: ${messageCount}\n` +
-                           `• Time: ${new Date().toLocaleString()}`;
+        console.log('9. Sending completion message...');
+        const finalMessage = `Basic Usage Example Completed!\n\n` +
+            `Summary:\n` +
+            `- Contacts: ${contacts.length}\n` +
+            `- Groups: ${groups.length}\n` +
+            `- Messages received: ${messageCount}\n` +
+            `- Time: ${new Date().toLocaleString()}`;
 
         await signalCli.sendMessage(recipientNumber, finalMessage);
-        console.log('   ✅ Completion message sent!\n');
+        console.log('   - Completion message sent!\n');
 
     } catch (error) {
         console.error('ERROR: Error occurred:', error.message);
@@ -149,18 +149,18 @@ async function basicUsageExample() {
         // Clean up connection
         console.log('🔌 Disconnecting from signal-cli...');
         await signalCli.gracefulShutdown();
-        console.log('✅ Disconnected successfully!');
+        console.log('Disconnected successfully!');
     }
 }
 
 // Handle process termination gracefully
 process.on('SIGINT', async () => {
-    console.log('\n🛑 Received SIGINT, shutting down gracefully...');
+    console.log('\nReceived SIGINT, shutting down gracefully...');
     process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
-    console.log('\n🛑 Received SIGTERM, shutting down gracefully...');
+    console.log('\nReceived SIGTERM, shutting down gracefully...');
     process.exit(0);
 });
 

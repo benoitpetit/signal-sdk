@@ -850,3 +850,186 @@ export interface BotStats {
   lastActivity: number;
   activeUsers: number;
 }
+
+// ===== ADDITIONAL SIGNAL-CLI FEATURES =====
+
+/**
+ * Parameters for removing contacts
+ */
+export interface RemoveContactOptions {
+  /** Hide the contact in the contact list, but keep the data */
+  hide?: boolean;
+  /** Delete all data associated with this contact, including identity keys and sessions */
+  forget?: boolean;
+}
+
+/**
+ * Parameters for the 'removeContact' JSON-RPC method
+ */
+export interface JsonRpcRemoveContactParams {
+  recipient: string;
+  hide?: boolean;
+  forget?: boolean;
+}
+
+/**
+ * User registration status result
+ */
+export interface UserStatusResult {
+  /** Phone number that was checked */
+  number: string;
+  /** Whether the user is registered on Signal */
+  isRegistered: boolean;
+  /** User's Signal UUID if registered */
+  uuid?: string;
+  /** Username if available */
+  username?: string;
+}
+
+/**
+ * Parameters for the 'getUserStatus' JSON-RPC method
+ */
+export interface JsonRpcGetUserStatusParams {
+  /** Phone numbers to check */
+  recipients?: string[];
+  /** Usernames to check */
+  usernames?: string[];
+}
+
+/**
+ * Payment notification data
+ */
+export interface PaymentNotificationData {
+  /** Base64 encoded receipt blob */
+  receipt: string;
+  /** Optional note for the payment notification */
+  note?: string;
+}
+
+/**
+ * Parameters for the 'sendPaymentNotification' JSON-RPC method
+ */
+export interface JsonRpcSendPaymentNotificationParams {
+  /** Recipient phone number */
+  recipient?: string;
+  /** Group ID for group payments */
+  groupId?: string;
+  /** Base64 encoded receipt blob */
+  receipt: string;
+  /** Optional note for the payment notification */
+  note?: string;
+}
+
+/**
+ * Sticker pack manifest information
+ */
+export interface StickerPackManifest {
+  /** Path to the manifest.json file or zip file */
+  path: string;
+  /** Sticker pack title */
+  title?: string;
+  /** Sticker pack author */
+  author?: string;
+  /** Cover sticker information */
+  cover?: {
+    id: number;
+    emoji: string;
+  };
+  /** List of stickers in the pack */
+  stickers?: Array<{
+    id: number;
+    emoji: string;
+  }>;
+}
+
+/**
+ * Result of sticker pack upload
+ */
+export interface StickerPackUploadResult {
+  /** Unique pack ID */
+  packId: string;
+  /** Pack encryption key */
+  packKey: string;
+  /** Installation URL for the sticker pack */
+  installUrl?: string;
+}
+
+/**
+ * Parameters for the 'uploadStickerPack' JSON-RPC method
+ */
+export interface JsonRpcUploadStickerPackParams {
+  /** Path to manifest.json or zip file */
+  path: string;
+}
+
+/**
+ * Rate limit challenge result
+ */
+export interface RateLimitChallengeResult {
+  /** Whether the challenge was successful */
+  success: boolean;
+  /** Time to wait before retry (in seconds) */
+  retryAfter?: number;
+  /** Additional message from the server */
+  message?: string;
+}
+
+/**
+ * Parameters for the 'submitRateLimitChallenge' JSON-RPC method
+ */
+export interface JsonRpcSubmitRateLimitChallengeParams {
+  /** Challenge token from the proof required error */
+  challenge: string;
+  /** Captcha token from solved captcha */
+  captcha: string;
+}
+
+/**
+ * Phone number change session information
+ */
+export interface ChangeNumberSession {
+  /** Session identifier */
+  session: string;
+  /** New phone number */
+  newNumber: string;
+  /** Challenge token if required */
+  challenge?: string;
+}
+
+/**
+ * Parameters for starting phone number change
+ */
+export interface JsonRpcStartChangeNumberParams {
+  /** New phone number */
+  number: string;
+  /** Whether to use voice verification */
+  voice?: boolean;
+  /** Captcha token if required */
+  captcha?: string;
+}
+
+/**
+ * Parameters for finishing phone number change
+ */
+export interface JsonRpcFinishChangeNumberParams {
+  /** Verification code from SMS/voice */
+  code: string;
+  /** PIN if registration lock is enabled */
+  pin?: string;
+}
+
+/**
+ * Upload progress information
+ */
+export interface UploadProgress {
+  /** Total bytes to upload */
+  total: number;
+  /** Bytes uploaded so far */
+  uploaded: number;
+  /** Upload percentage (0-100) */
+  percentage: number;
+  /** Upload speed in bytes per second */
+  speed?: number;
+  /** Estimated time remaining in seconds */
+  timeRemaining?: number;
+}

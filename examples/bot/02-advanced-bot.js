@@ -284,7 +284,7 @@ async function startAdvancedBot() {
             const city = args.join(' ') || 'Paris';
 
             // Simulated weather data
-            const conditions = ['☀️ sunny', '🌧️ rainy', '⛅ cloudy', '🌨️ snowy', '🌩️ stormy'];
+            const conditions = ['sunny', 'rainy', 'cloudy', 'snowy', 'stormy'];
             const temp = Math.floor(Math.random() * 30) + 5;
             const condition = conditions[Math.floor(Math.random() * conditions.length)];
             const humidity = Math.floor(Math.random() * 50) + 30;
@@ -336,7 +336,7 @@ async function startAdvancedBot() {
             ];
 
             const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-            return `💡 Inspirational Quote:\n\n${randomQuote}`;
+            return `- Inspirational Quote:\n\n${randomQuote}`;
         }
     });
 
@@ -363,7 +363,7 @@ async function startAdvancedBot() {
                     message.source;
 
                 await bot.sendMessageWithAttachment(recipient,
-                    `📎 Here's your file: ${filename}`,
+                    `- Here's your file: ${filename}`,
                     [filePath]
                 );
 
@@ -379,10 +379,10 @@ async function startAdvancedBot() {
 
     bot.on('ready', () => {
         console.log('Advanced bot is ready!');
-        console.log(`- 📱 Phone: ${phoneNumber}`);
-        console.log(`- 👑 Admin: ${adminNumber}`);
-        console.log(`- 👥 Group: ${groupName}`);
-        console.log(`- 💬 Send /help to see all commands`);
+        console.log(`- Phone: ${phoneNumber}`);
+        console.log(`- Admin: ${adminNumber}`);
+        console.log(`- Group: ${groupName}`);
+        console.log(`- Send /help to see all commands`);
         console.log('');
     });
 
@@ -417,7 +417,7 @@ async function startAdvancedBot() {
 
     bot.on('command', (data) => {
         botState.commandCount++;
-        console.log(`- ⚡ Command: /${data.command} by ${data.user}`);
+        console.log(`- Command: /${data.command} by ${data.user}`);
     });
 
     bot.on('error', (error) => {
