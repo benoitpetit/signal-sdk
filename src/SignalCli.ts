@@ -61,8 +61,25 @@ export class SignalCli extends EventEmitter {
     private cliProcess: ChildProcess | null = null;
     private requestPromises = new Map<string, { resolve: (value: any) => void; reject: (reason?: any) => void }>();
 
-    constructor(signalCliPath?: string, account?: string) {
+    constructor(accountOrPath?: string, account?: string) {
         super();
+        
+        let signalCliPath: string | undefined;
+        let phoneNumber: string | undefined;
+        
+        // Smart parameter detection
+        if (typeof accountOrPath === 'string') {
+            if (accountOrPath.startsWith('+')) {
+                // First parameter is a phone number
+                phoneNumber = accountOrPath;
+                signalCliPath = undefined;
+            } else {
+                // First parameter is a path, second is phone number
+                signalCliPath = accountOrPath;
+                phoneNumber = account;
+            }
+        }
+        
         // Determine the correct signal-cli path based on platform
         let defaultPath;
         if (process.platform === 'win32') {
@@ -71,8 +88,9 @@ export class SignalCli extends EventEmitter {
             // For Unix/Linux systems, use the shell script
             defaultPath = path.join(__dirname, '..', 'bin', 'bin', 'signal-cli');
         }
+        
         this.signalCliPath = signalCliPath || defaultPath;
-        this.account = account;
+        this.account = phoneNumber;
     }
 
     public async connect(): Promise<void> {
