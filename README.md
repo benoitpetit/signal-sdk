@@ -1,4 +1,4 @@
-# Signal CLI SDK - TypeScript Wrapper for Signal CLI
+# Signal SDK - TypeScript SDK for Signal Messenger
 
 A comprehensive TypeScript SDK for interacting with [signal-cli](https://github.com/AsamK/signal-cli), providing JSON-RPC communication and a powerful bot framework.
 
