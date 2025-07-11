@@ -7,6 +7,8 @@ A comprehensive TypeScript SDK for interacting with [signal-cli](https://github.
 [![signal-cli](https://img.shields.io/badge/signal--cli-v0.13.17-blue.svg)](https://github.com/AsamK/signal-cli)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg)](https://nodejs.org/)
+<img src="https://img.shields.io/liberapay/patrons/devbyben.svg?logo=liberapay">
+
 
 ## Features
 
