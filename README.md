@@ -1,13 +1,25 @@
 # Signal SDK - TypeScript SDK for Signal Messenger
 
-A comprehensive TypeScript SDK for interacting with [signal-cli](https://github.com/AsamK/signal-cli), providing JSON-RPC communication and a powerful bot framework.
+  <div align="center">
+    <img src="logo.png" alt="Signal SDK Logo" width="200"/>
+  </div>
 
-[![npm version](https://badge.fury.io/js/signal-sdk.svg)](https://badge.fury.io/js/signal-sdk)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![signal-cli](https://img.shields.io/badge/signal--cli-v0.13.17-blue.svg)](https://github.com/AsamK/signal-cli)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue.svg)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg)](https://nodejs.org/)
-[![Donate on Liberapay](https://img.shields.io/badge/Liberapay-Donate-yellow.svg)](https://liberapay.com/devbyben/donate)
+  <div align="center">
+    <p>
+      A comprehensive TypeScript SDK for interacting with 
+      <a href="https://github.com/AsamK/signal-cli" target="_blank">signal-cli</a>
+      <br>
+      providing JSON-RPC communication and a powerful bot framework.
+    </p>
+
+  [![npm version](https://badge.fury.io/js/signal-sdk.svg)](https://badge.fury.io/js/signal-sdk)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+  [![signal-cli](https://img.shields.io/badge/signal--cli-v0.13.17-blue.svg)](https://github.com/AsamK/signal-cli)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue.svg)](https://www.typescriptlang.org/)
+  [![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg)](https://nodejs.org/)
+  [![Donate on Liberapay](https://img.shields.io/badge/Liberapay-Donate-yellow.svg)](https://liberapay.com/devbyben/donate)
+
+  </div>
 
 
 ## Features
@@ -444,26 +456,6 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 ---
 
-## Development Status
-
-### Current Coverage: 39/39 signal-cli commands (100%) ✅
-
-The SDK now provides **complete feature parity** with signal-cli, implementing all available commands and functionality.
-
-**Latest Updates:**
-
-- ✅ **Contact Management**: Complete removal with options (hide/forget)
-- ✅ **User Status**: Check Signal registration status
-- ✅ **Payment Notifications**: Send payment receipts and notes
-- ✅ **Custom Stickers**: Upload and manage sticker packs
-- ✅ **Rate Limit Recovery**: Handle rate limiting with captcha challenges
-- ✅ **Phone Number Changes**: Change registered phone numbers
-- ✅ **Enhanced Messaging**: Progress tracking for large file uploads
-
-[**View Complete Feature Coverage Analysis →**](./FEATURE_COVERAGE.md)  
-[**View Implementation Details →**](./IMPLEMENTATION_PLAN.md)
-
----
 
 ## API Methods
 
@@ -494,3 +486,17 @@ Compatible with signal-cli v0.13.17 - **100% Feature Coverage**
 |               | `sendMessageWithProgress`  | Enhanced messaging with progress   | ✅     |
 
 [Complete API documentation](./docs/api-reference.md)
+
+---
+
+### Support the Project
+
+If you find signal sdk useful, consider supporting its development:
+
+[![Donate on Liberapay](https://img.shields.io/badge/Liberapay-Donate-yellow.svg)](https://liberapay.com/devbyben/donate)
+
+Your support helps maintain and improve signal-sdk
+
+---
+
+Made with ❤️ for the Signal community
