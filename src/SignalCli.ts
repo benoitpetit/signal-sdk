@@ -2,47 +2,25 @@ import { spawn, ChildProcess } from 'child_process';
 import { v4 as uuidv4 } from 'uuid';
 import * as qrcodeTerminal from 'qrcode-terminal';
 import { 
-    Group, 
-    Message, 
+    Message,
     Contact, 
     GroupUpdateOptions, 
     SendMessageOptions, 
-    Profile, 
     ContactUpdateOptions, 
     AccountConfiguration, 
-    AccountUpdateOptions,
     Device, 
     ReceiptType, 
     StickerPack, 
-    TypingAction, 
-    MessageType, 
-    ReceiveOptions, 
-    PinConfiguration, 
     IdentityKey, 
-    UserStatus,
-    Mention,
-    TextStyle,
-    Sticker,
-    CaptchaChallenge,
-    RateLimitChallenge,
     LinkingOptions,
     QRCodeData,
     LinkingResult,
-    SyncOptions,
-    ContactsSyncResult,
     MessageRequestResponseType,
-    MessageRequestResponseOptions,
-    PaymentNotification,
-    RegistrationOptions,
-    VerificationOptions,
-    ListContactsOptions,
     JsonRpcRequest,
     JsonRpcResponse,
     JsonRpcNotification,
-    SendRequestParams,
     SendResponse,
     GroupInfo,
-    JsonAttachment,
     RemoveContactOptions,
     UserStatusResult,
     PaymentNotificationData,
@@ -83,10 +61,10 @@ export class SignalCli extends EventEmitter {
         // Determine the correct signal-cli path based on platform
         let defaultPath;
         if (process.platform === 'win32') {
-            defaultPath = path.join(__dirname, '..', 'bin', 'bin', 'signal-cli.bat');
+            defaultPath = path.join(__dirname, '..', 'bin', 'signal-cli.bat');
         } else {
             // For Unix/Linux systems, use the shell script
-            defaultPath = path.join(__dirname, '..', 'bin', 'bin', 'signal-cli');
+            defaultPath = path.join(__dirname, '..', 'bin', 'signal-cli');
         }
         
         this.signalCliPath = signalCliPath || defaultPath;

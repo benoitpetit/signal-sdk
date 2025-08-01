@@ -1,9 +1,9 @@
 const axios = require('axios');
-const tar = require('tar');
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
-const VERSION = '0.13.17';
+const VERSION = '0.13.18';
 const BASE_URL = `https://github.com/AsamK/signal-cli/releases/download/v${VERSION}`;
 
 const platform = process.platform;
@@ -21,7 +21,7 @@ async function install() {
   const response = await axios({
     url,
     method: 'GET',
-    responseType: 'stream'
+    responseType: 'arraybuffer'
   });
 
   const binDir = path.join(__dirname, '..', 'bin');
@@ -29,13 +29,26 @@ async function install() {
     fs.mkdirSync(binDir, { recursive: true });
   }
 
-  response.data.pipe(tar.x({ C: binDir, strip: 1 }));
+  // Write tar file temporarily
+  const tempFile = path.join(binDir, 'signal-cli.tar.gz');
+  fs.writeFileSync(tempFile, response.data);
+
+  // Extract using system tar command
+  try {
+    execSync(`tar -xzf "${tempFile}" -C "${binDir}"`, { stdio: 'inherit' });
+  } catch (error) {
+    console.error('Failed to extract archive:', error.message);
+    throw error;
+  }
+
+  // Remove temp file
+  fs.unlinkSync(tempFile);
 
   console.log('signal-cli downloaded and extracted successfully.');
 
   // Set executable permissions on Unix/Linux systems
   if (platform !== 'win32') {
-    const signalCliExecutable = path.join(binDir, 'bin', 'signal-cli');
+    const signalCliExecutable = path.join(binDir, 'signal-cli');
     if (fs.existsSync(signalCliExecutable)) {
       try {
         fs.chmodSync(signalCliExecutable, '755');
@@ -48,13 +61,13 @@ async function install() {
 
   if (platform === 'win32') {
     console.log('Windows detected. Make sure you have Java installed and signal-cli.bat is executable.');
-    console.log('signal-cli.bat is located at: ' + path.join(binDir, 'bin', 'signal-cli.bat'));
+    console.log('signal-cli.bat is located at: ' + path.join(binDir, 'signal-cli.bat'));
   } else if (platform === 'linux') {
     console.log('Linux detected. signal-cli executable is ready.');
-    console.log('signal-cli is located at: ' + path.join(binDir, 'bin', 'signal-cli'));
+    console.log('signal-cli is located at: ' + path.join(binDir, 'signal-cli'));
   } else {
     console.log('Please ensure you have Java installed on your system for signal-cli to work.');
-    console.log('signal-cli is located at: ' + path.join(binDir, 'bin', 'signal-cli'));
+    console.log('signal-cli is located at: ' + path.join(binDir, 'signal-cli'));
   }
 }
 
