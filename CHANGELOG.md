@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.7]
+
+### Updated
+- **Updated signal-cli compatibility to v0.13.22**
+- Enhanced JSON-RPC handling for file lock conflicts (improved stability)
+- Added support for `isExpirationUpdate` field in message serialization
+
+### Fixed
+- Updated installation script to download signal-cli v0.13.22 binaries
+
+### Technical Changes
+- Updated bundled signal-cli binaries to v0.13.22
+- Added `isExpirationUpdate?: boolean` to Message interface for complete JSON-RPC compatibility
+- Improved error handling for concurrent access scenarios
+
+### Compatibility
+- Maintains 100% feature coverage with signal-cli v0.13.22
+- All existing APIs remain functional and compatible
+- Backward compatible with previous versions
+
 ## [0.0.6]
 
 ### Updated

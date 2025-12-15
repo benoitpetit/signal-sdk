@@ -1,6 +1,6 @@
 {
   "name": "signal-sdk",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "A comprehensive TypeScript SDK for Signal Messenger with native JSON-RPC support, providing high-performance messaging, bot framework, and full signal-cli integration.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

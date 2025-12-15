@@ -363,6 +363,7 @@ export interface Message {
   expiresInSeconds?: number;
   isViewOnce?: boolean;
   remoteDelete?: boolean;
+  isExpirationUpdate?: boolean;
 }
 
 /**

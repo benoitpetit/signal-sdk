@@ -46,3 +46,6 @@ logs/
 
 # Ignore npm package files
 *.tgz
+
+# Ignore todo lists
+todo.md

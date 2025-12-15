@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const VERSION = '0.13.18';
+const VERSION = '0.13.22';
 const BASE_URL = `https://github.com/AsamK/signal-cli/releases/download/v${VERSION}`;
 
 const platform = process.platform;
