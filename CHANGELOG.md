@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Updated installation script to download signal-cli v0.13.22 binaries
+- Improved Windows compatibility by using npm tar package instead of system tar command (fixes long path issues)
 
 ### Technical Changes
 - Updated bundled signal-cli binaries to v0.13.22

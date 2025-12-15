@@ -1,7 +1,7 @@
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const tar = require('tar');
 
 const VERSION = '0.13.22';
 const BASE_URL = `https://github.com/AsamK/signal-cli/releases/download/v${VERSION}`;
@@ -33,9 +33,14 @@ async function install() {
   const tempFile = path.join(binDir, 'signal-cli.tar.gz');
   fs.writeFileSync(tempFile, response.data);
 
-  // Extract using system tar command
+  // Extract the archive. Using the tar npm package instead of the system tar
+  // command ensures the extraction works reliably on Windows where the
+  // built-in tar command struggles with long paths.
   try {
-    execSync(`tar -xzf "${tempFile}" -C "${binDir}"`, { stdio: 'inherit' });
+    await tar.x({
+      file: tempFile,
+      cwd: binDir
+    });
   } catch (error) {
     console.error('Failed to extract archive:', error.message);
     throw error;
