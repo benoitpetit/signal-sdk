@@ -75,14 +75,14 @@ export class SignalCli extends EventEmitter {
         const args = this.account ? ['-a', this.account, 'jsonRpc'] : ['jsonRpc'];
         
         if (process.platform === 'win32') {
-            // On Windows, use cmd.exe to run the batch file
-            this.cliProcess = spawn('cmd.exe', ['/c', this.signalCliPath, ...args]);
+            // On Windows, use cmd.exe to run the batch file with proper quoting for paths with spaces
+            this.cliProcess = spawn('cmd.exe', ['/c', `"${this.signalCliPath}"`, ...args]);
         } else {
             this.cliProcess = spawn(this.signalCliPath, args);
         }
 
-        this.cliProcess.stdout?.on('data', (data) => this.handleRpcResponse(data.toString()));
-        this.cliProcess.stderr?.on('data', (data) => this.handleStderrData(data.toString()));
+        this.cliProcess.stdout?.on('data', (data) => this.handleRpcResponse(data.toString('utf8')));
+        this.cliProcess.stderr?.on('data', (data) => this.handleStderrData(data.toString('utf8')));
         this.cliProcess.on('close', (code) => {
             this.emit('close', code);
             this.cliProcess = null;
@@ -420,8 +420,8 @@ export class SignalCli extends EventEmitter {
             // Spawn signal-cli link command
             let linkProcess;
             if (process.platform === 'win32') {
-                // On Windows, use cmd.exe to run the batch file
-                linkProcess = spawn('cmd.exe', ['/c', this.signalCliPath, 'link', '--name', deviceName], {
+                // On Windows, use cmd.exe to run the batch file with proper quoting for paths with spaces
+                linkProcess = spawn('cmd.exe', ['/c', `"${this.signalCliPath}"`, 'link', '--name', deviceName], {
                     stdio: ['pipe', 'pipe', 'pipe']
                 });
             } else {
@@ -436,7 +436,7 @@ export class SignalCli extends EventEmitter {
             
             // Handle stdout (where QR code URI will be)
             linkProcess.stdout.on('data', (data) => {
-                const output = data.toString().trim();
+                const output = data.toString('utf8').trim();
                 
                 // Look for QR code URI (starts with sgnl://)
                 if (output.includes('sgnl://')) {
@@ -466,7 +466,7 @@ export class SignalCli extends EventEmitter {
             
             // Handle stderr for errors
             linkProcess.stderr.on('data', (data) => {
-                const error = data.toString().trim();
+                const error = data.toString('utf8').trim();
                 
                 // Filter out informational messages
                 if (!error.includes('INFO') && !error.includes('DEBUG') && error.length > 0) {

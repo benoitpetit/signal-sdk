@@ -12,15 +12,14 @@
       providing JSON-RPC communication and a powerful bot framework.
     </p>
 
-  [![npm version](https://badge.fury.io/js/signal-sdk.svg)](https://badge.fury.io/js/signal-sdk)
-  [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-  [![signal-cli](https://img.shields.io/badge/signal--cli-v0.13.22-blue.svg)](https://github.com/AsamK/signal-cli)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue.svg)](https://www.typescriptlang.org/)
-  [![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg)](https://nodejs.org/)
-  [![Donate on Liberapay](https://img.shields.io/badge/Liberapay-Donate-yellow.svg)](https://liberapay.com/devbyben/donate)
+[![npm version](https://badge.fury.io/js/signal-sdk.svg)](https://badge.fury.io/js/signal-sdk)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![signal-cli](https://img.shields.io/badge/signal--cli-v0.13.22-blue.svg)](https://github.com/AsamK/signal-cli)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue.svg)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg)](https://nodejs.org/)
+[![Donate on Liberapay](https://img.shields.io/badge/Liberapay-Donate-yellow.svg)](https://liberapay.com/devbyben/donate)
 
   </div>
-
 
 ## Features
 
@@ -455,7 +454,6 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 **Built with TypeScript for the Signal community**
 
 ---
-
 
 ## API Methods
 

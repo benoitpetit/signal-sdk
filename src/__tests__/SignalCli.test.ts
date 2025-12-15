@@ -270,7 +270,7 @@ describe('SignalCli', () => {
       const windowsCalls = (spawn as jest.MockedFunction<typeof spawn>).mock.calls;
       const lastCall = windowsCalls[windowsCalls.length - 1];
       expect(lastCall[0]).toBe('cmd.exe');
-      expect(lastCall[1]).toEqual(['/c', 'test-path.bat', '-a', '+1234567890', 'jsonRpc']);
+      expect(lastCall[1]).toEqual(['/c', '"test-path.bat"', '-a', '+1234567890', 'jsonRpc']);
       
       // Test Unix spawning
       Object.defineProperty(process, 'platform', { value: 'linux' });
