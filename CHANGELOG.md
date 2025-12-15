@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.8]
+
+### Fixed
+- **Windows Path Handling**: Fixed execution issues on Windows when signal-cli path contains spaces by properly quoting paths in cmd.exe calls
+- **UTF-8 Encoding**: Fixed character encoding issues for non-ASCII characters (accents, emojis) in messages by explicitly using UTF-8 encoding for data streams
+- **Device Linking**: Improved Windows compatibility for device linking process
+- **Cross-platform Compatibility**: Enhanced reliability across Windows, macOS, and Linux platforms
+
+### Technical Changes
+- Updated spawn calls to use quoted paths on Windows: `spawn('cmd.exe', ['/c', '"path with spaces"'])`
+- Changed data stream handling to use UTF-8 encoding: `data.toString('utf8')`
+- Updated unit tests to reflect Windows path quoting behavior
+
 ## [0.0.7]
 
 ### Updated
