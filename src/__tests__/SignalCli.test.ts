@@ -287,4 +287,294 @@ describe('SignalCli', () => {
       Object.defineProperty(process, 'platform', { value: originalPlatform });
     });
   });
+
+  // Test v0.1.0 features: Polls
+  describe('Poll Management', () => {
+    beforeEach(() => {
+      jest.spyOn(signalCli as any, 'sendJsonRpcRequest').mockResolvedValue({});
+    });
+
+    it('should create a poll', async () => {
+      const mockResponse = { timestamp: 123456789 };
+      const sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest')
+        .mockResolvedValue(mockResponse);
+
+      const result = await signalCli.sendPollCreate({
+        recipients: ['+1234567890'],
+        question: 'What is your favorite color?',
+        options: ['Red', 'Blue', 'Green']
+      });
+
+      expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('sendPollCreate', {
+        account: '+1234567890',
+        recipients: ['+1234567890'],
+        question: 'What is your favorite color?',
+        options: ['Red', 'Blue', 'Green']
+      });
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should create a group poll', async () => {
+      const mockResponse = { timestamp: 123456789 };
+      const sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest')
+        .mockResolvedValue(mockResponse);
+
+      const result = await signalCli.sendPollCreate({
+        groupId: 'group-123',
+        question: 'Best meeting time?',
+        options: ['9 AM', '2 PM', '4 PM']
+      });
+
+      expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('sendPollCreate', {
+        account: '+1234567890',
+        groupId: 'group-123',
+        question: 'Best meeting time?',
+        options: ['9 AM', '2 PM', '4 PM']
+      });
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should vote on a poll', async () => {
+      const mockResponse = { timestamp: 123456790 };
+      const sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest')
+        .mockResolvedValue(mockResponse);
+
+      const result = await signalCli.sendPollVote('+1234567890', {
+        pollAuthor: '+9876543210',
+        pollTimestamp: 123456789,
+        optionIndexes: [0, 1]
+      });
+
+      expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('sendPollVote', {
+        account: '+1234567890',
+        recipient: '+1234567890',
+        pollAuthor: '+9876543210',
+        pollTimestamp: 123456789,
+        options: [0, 1]
+      });
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should terminate a poll', async () => {
+      const mockResponse = { timestamp: 123456791 };
+      const sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest')
+        .mockResolvedValue(mockResponse);
+
+      const result = await signalCli.sendPollTerminate('+1234567890', {
+        pollTimestamp: 123456789
+      });
+
+      expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('sendPollTerminate', {
+        account: '+1234567890',
+        recipient: '+1234567890',
+        pollTimestamp: 123456789
+      });
+      expect(result).toEqual(mockResponse);
+    });
+  });
+
+  // Test v0.1.0 features: Attachment Retrieval
+  describe('Attachment Retrieval', () => {
+    beforeEach(() => {
+      jest.spyOn(signalCli as any, 'sendJsonRpcRequest').mockResolvedValue({});
+    });
+
+    it('should get attachment by ID', async () => {
+      const mockBase64 = 'base64-encoded-data';
+      const sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest')
+        .mockResolvedValue(mockBase64);
+
+      const result = await signalCli.getAttachment({
+        id: 'attachment-123'
+      });
+
+      expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('getAttachment', {
+        account: '+1234567890',
+        id: 'attachment-123'
+      });
+      expect(result).toBe(mockBase64);
+    });
+
+    it('should get contact avatar', async () => {
+      const mockBase64 = 'base64-avatar-data';
+      const sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest')
+        .mockResolvedValue(mockBase64);
+
+      const result = await signalCli.getAvatar({
+        contact: '+9876543210'
+      });
+
+      expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('getAvatar', {
+        account: '+1234567890',
+        contact: '+9876543210'
+      });
+      expect(result).toBe(mockBase64);
+    });
+
+    it('should get profile avatar', async () => {
+      const mockBase64 = 'base64-profile-avatar';
+      const sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest')
+        .mockResolvedValue(mockBase64);
+
+      const result = await signalCli.getAvatar({
+        profile: '+1234567890'
+      });
+
+      expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('getAvatar', {
+        account: '+1234567890',
+        profile: '+1234567890'
+      });
+      expect(result).toBe(mockBase64);
+    });
+
+    it('should get group avatar', async () => {
+      const mockBase64 = 'base64-group-avatar';
+      const sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest')
+        .mockResolvedValue(mockBase64);
+
+      const result = await signalCli.getAvatar({
+        groupId: 'group-123'
+      });
+
+      expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('getAvatar', {
+        account: '+1234567890',
+        groupId: 'group-123'
+      });
+      expect(result).toBe(mockBase64);
+    });
+
+    it('should get sticker data', async () => {
+      const mockBase64 = 'base64-sticker-data';
+      const sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest')
+        .mockResolvedValue(mockBase64);
+
+      const result = await signalCli.getSticker({
+        packId: 'pack-123',
+        stickerId: 5
+      });
+
+      expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('getSticker', {
+        account: '+1234567890',
+        packId: 'pack-123',
+        stickerId: 5
+      });
+      expect(result).toBe(mockBase64);
+    });
+  });
+
+  // Test v0.1.0 features: Account Management
+  describe('Account Management', () => {
+    beforeEach(() => {
+      jest.spyOn(signalCli as any, 'sendJsonRpcRequest').mockResolvedValue({});
+    });
+
+    it('should update account settings', async () => {
+      const mockResponse = {
+        username: 'myusername',
+        usernameLink: 'https://signal.me/#myusername'
+      };
+      const sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest')
+        .mockResolvedValue(mockResponse);
+
+      const result = await signalCli.updateAccount({
+        deviceName: 'My Device',
+        username: 'myusername'
+      });
+
+      expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('updateAccount', {
+        account: '+1234567890',
+        deviceName: 'My Device',
+        username: 'myusername'
+      });
+      expect(result.success).toBe(true);
+      expect(result.username).toBe('myusername');
+    });
+
+    it('should list accounts with details', async () => {
+      const mockResponse = {
+        accounts: [
+          { number: '+1234567890', name: 'Account 1', uuid: 'uuid-1' },
+          { number: '+9876543210', name: 'Account 2', uuid: 'uuid-2' }
+        ]
+      };
+      const sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest')
+        .mockResolvedValue(mockResponse);
+
+      const result = await signalCli.listAccountsDetailed();
+
+      expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('listAccounts');
+      expect(result).toEqual(mockResponse.accounts);
+    });
+  });
+
+  // Test v0.1.0 features: Synchronization
+  describe('Synchronization', () => {
+    beforeEach(() => {
+      jest.spyOn(signalCli as any, 'sendJsonRpcRequest').mockResolvedValue({});
+    });
+
+    it('should send contacts to linked devices', async () => {
+      const sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest')
+        .mockResolvedValue({});
+
+      await signalCli.sendContacts();
+
+      expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('sendContacts', {
+        account: '+1234567890'
+      });
+    });
+
+    it('should list groups with detailed information', async () => {
+      const mockGroups = [
+        {
+          id: 'group-1',
+          name: 'Test Group 1',
+          members: ['+1111111111', '+2222222222'],
+          groupType: 'GROUP_V2'
+        },
+        {
+          id: 'group-2',
+          name: 'Test Group 2',
+          members: ['+3333333333'],
+          groupType: 'GROUP_V2'
+        }
+      ];
+      const sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest')
+        .mockResolvedValue(mockGroups);
+
+      const result = await signalCli.listGroupsDetailed({
+        detailed: true
+      });
+
+      expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('listGroups', {
+        account: '+1234567890',
+        detailed: true
+      });
+      expect(result).toEqual(mockGroups);
+    });
+
+    it('should filter groups by ID', async () => {
+      const mockGroups = [
+        {
+          id: 'group-1',
+          name: 'Specific Group',
+          members: ['+1111111111']
+        }
+      ];
+      const sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest')
+        .mockResolvedValue(mockGroups);
+
+      const result = await signalCli.listGroupsDetailed({
+        groupIds: ['group-1'],
+        detailed: true
+      });
+
+      expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('listGroups', {
+        account: '+1234567890',
+        detailed: true,
+        groupId: ['group-1']
+      });
+      expect(result).toEqual(mockGroups);
+    });
+  });
 });

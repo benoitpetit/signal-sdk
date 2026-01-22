@@ -6,7 +6,7 @@ This guide will help you quickly get up and running with the Signal SDK. In just
 
 Before you begin, ensure you have completed:
 
-- [Node.js installed](./installation.md#system-requirements) (v16+)
+- [Node.js installed](./installation.md#system-requirements) (v18+)
 - [Java JRE installed](./installation.md#java-installation-by-platform)
 - [Signal SDK installed](./installation.md#installation)
 - [Device linked with QR code](./device-linking.md) **REQUIRED**
@@ -97,6 +97,48 @@ await signal.sendMessage("+33000000000", "Here are some files:", {
 await signal.sendMessage("+33000000000", "Check out this photo!", {
   attachments: ["vacation.jpg"],
 });
+```
+
+### Create and Vote on Polls
+
+```javascript
+// Create a poll
+await signal.sendPollCreate("+33000000000", "What's for lunch?", {
+  answers: ["Pizza", "Sushi", "Burger", "Salad"],
+  multipleAnswers: false,
+});
+
+// Vote on a poll (use timestamp from poll message)
+await signal.sendPollVote(
+  "+33000000000",
+  1705843200000, // Poll message timestamp
+  { votes: [0] }, // Vote for first option
+);
+```
+
+### Advanced Configuration
+
+```javascript
+const { SignalCli, Logger } = require("signal-sdk");
+
+// Configure for reliability with retry, rate limiting, and logging
+const signal = new SignalCli("+33111111111", undefined, {
+  retryConfig: {
+    maxAttempts: 5,
+    initialDelay: 1000,
+    backoffMultiplier: 2,
+  },
+  rateLimiter: {
+    maxConcurrent: 5,
+    minInterval: 200,
+  },
+  logger: new Logger("info"),
+});
+
+await signal.connect();
+
+// Operations now have automatic retry and rate limiting
+await signal.sendMessage("+33000000000", "Reliable messaging!");
 ```
 
 ### Receive Messages
@@ -219,7 +261,7 @@ bot.start();
 ```javascript
 const signal = new SignalCli(
   "/path/to/signal-cli/config", // Optional: path to signal-cli config
-  "+33111111111" // Required: your Signal phone number
+  "+33111111111", // Required: your Signal phone number
 );
 ```
 

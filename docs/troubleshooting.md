@@ -7,7 +7,7 @@ Common issues and solutions for the Signal SDK.
 Before diving into specific issues, run these quick diagnostic commands:
 
 ```bash
-# Check Node.js version (should be 16+)
+# Check Node.js version (should be 18+)
 node --version
 
 # Check Java installation (required by signal-cli)

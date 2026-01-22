@@ -132,7 +132,7 @@ const { SignalCli } = require('signal-cli-sdk');
 const signal = new SignalCli('+1234567890');
 
 await signal.connect();
-await signal.sendMessage('+0987654321', 'Hello from ${process.platform}!');
+await signal.sendMessage('+9876543210', 'Hello from ${process.platform}!');
 await signal.gracefulShutdown();
 
 // Custom path (if needed)

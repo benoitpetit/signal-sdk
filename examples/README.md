@@ -6,22 +6,24 @@ This directory contains comprehensive examples demonstrating how to use the Sign
 
 ```
 examples/
-├── sdk/                          # Pure SDK examples
-│   ├── 00-device-linking.js      # Device linking with QR code
-│   ├── 01-basic-usage.js         # Basic SDK functionality
-│   ├── 02-quick-start.js         # Quick start guide
-│   ├── 03-group-management.js    # Group operations
-│   ├── 04-contact-management.js  # Contact operations
-│   └── 05-file-handling.js       # File operations
-├── bot/                          # SignalBot framework examples
-│   ├── 01-minimal-bot.js         # Minimal bot implementation
-│   └── 02-advanced-bot.js        # Advanced bot with full features
-├── advanced/                     # Advanced examples (coming soon)
-│   ├── 01-custom-commands.js     # Custom command system
-│   ├── 02-state-management.js    # Persistent state
-│   ├── 03-webhook-integration.js # Webhook integration
-│   └── 04-multi-account.js       # Multiple accounts
-└── README.md                     # This file
+├── sdk/                           # Pure SDK examples
+│   ├── 00-device-linking.js       # Device linking with QR code
+│   ├── 01-basic-usage.js          # Basic SDK functionality
+│   ├── 02-quick-start.js          # Quick start guide
+│   ├── 03-group-management.js     # Group operations
+│   ├── 04-contact-management.js   # Contact operations
+│   ├── 05-file-handling.js        # File operations
+│   ├── 06-advanced-features.js    # Advanced features (payments, stickers, etc.)
+│   ├── 07-cross-platform.js       # Cross-platform compatibility
+│   ├── 08-polls.js                # Poll creation and management
+│   ├── 09-attachments.js          # Attachment retrieval (avatars, stickers)
+│   ├── 10-account-management.js   # Account settings and management
+│   └── 11-synchronization.js      # Multi-device synchronization
+├── bot/                           # SignalBot framework examples
+│   ├── 01-minimal-bot.js          # Minimal bot implementation
+│   ├── 02-advanced-bot.js         # Advanced bot with full features
+│   └── 03-advanced-bot.js         # Production-ready bot
+└── README.md                      # This file
 ```
 
 ## Getting Started
@@ -32,8 +34,7 @@ examples/
    **Good news!** signal-cli is automatically downloaded and managed by the SDK!
 
    You only need:
-
-   - **Node.js** (version 16+)
+   - **Node.js** (version 18+)
    - **Java Runtime Environment** (signal-cli requirement)
 
    Install Java if needed:
@@ -192,6 +193,121 @@ node examples/sdk/04-contact-management.js
 node examples/sdk/05-file-handling.js
 ```
 
+### 6. Advanced Features (`sdk/06-advanced-features.js`)
+
+**Perfect for:** Advanced Signal features, payment notifications, stickers
+
+**Features:**
+
+- Contact removal and management
+- User status checking
+- Payment notifications
+- Custom sticker pack upload
+- Rate limit challenge handling
+- Phone number change process
+
+**Run:**
+
+```bash
+node examples/sdk/06-advanced-features.js
+```
+
+### 7. Cross-Platform (`sdk/07-cross-platform.js`)
+
+**Perfect for:** Understanding cross-platform compatibility
+
+**Features:**
+
+- Platform detection
+- Windows-specific configurations
+- Unix/Linux compatibility
+- Path handling
+- Environment setup
+
+**Run:**
+
+```bash
+node examples/sdk/07-cross-platform.js
+```
+
+### 8. Polls (`sdk/08-polls.js`)
+
+**Perfect for:** Interactive messaging, surveys, team decisions
+
+**Features:**
+
+- Create polls with multiple options
+- Vote on existing polls
+- Terminate polls
+- Group polls
+- Multiple choice polls
+- Poll best practices
+
+**Run:**
+
+```bash
+node examples/sdk/08-polls.js
+```
+
+### 9. Attachments Retrieval (`sdk/09-attachments.js`)
+
+**Perfect for:** Working with media, avatars, and stickers
+
+**Features:**
+
+- Retrieve attachments in base64
+- Get contact avatars
+- Get profile avatars
+- Get group avatars
+- Retrieve sticker data
+- Save retrieved data to files
+
+**Run:**
+
+```bash
+node examples/sdk/09-attachments.js
+```
+
+### 10. Account Management (`sdk/10-account-management.js`)
+
+**Perfect for:** Account configuration, security settings
+
+**Features:**
+
+- List all local accounts
+- Update profile information
+- Account settings management
+- PIN management
+- Linked devices management
+- Identity verification
+- Account privacy settings
+
+**Run:**
+
+```bash
+node examples/sdk/10-account-management.js
+```
+
+### 11. Synchronization (`sdk/11-synchronization.js`)
+
+**Perfect for:** Multi-device setups, data synchronization
+
+**Features:**
+
+- Check linked devices
+- Send sync requests
+- Sync contacts with devices
+- List groups with details
+- Filter groups by ID
+- Device linking process
+- Monitor sync status
+
+**Run:**
+
+```bash
+node examples/sdk/11-synchronization.js
+```
+
 ## Bot Examples
 
 ### 1. Minimal Bot (`bot/01-minimal-bot.js`)
@@ -259,6 +375,7 @@ node examples/bot/02-advanced-bot.js
 | `SIGNAL_TEST_MEMBER`      | Test group member        | Groups only   | `"+33000000000"` |
 | `SIGNAL_TEST_CONTACT`     | Test contact             | Contacts only | `"+33000000000"` |
 | `SIGNAL_GROUP_NAME`       | Bot group name           | Bots only     | `"My Bot Group"` |
+| `SIGNAL_TEST_GROUP_ID`    | Test group ID            | Optional      | `"group-id..."`  |
 
 ### signal-cli Configuration
 
@@ -314,7 +431,6 @@ await signal.sendMessage("+33000000000", "Here is a file:", {
 ### Common Issues
 
 1. **"signal-cli not found"**
-
    - Install signal-cli from [official releases](https://github.com/AsamK/signal-cli/releases)
    - Add to PATH or use full path
 
@@ -326,12 +442,10 @@ await signal.sendMessage("+33000000000", "Here is a file:", {
    ```
 
 3. **"Permission denied"**
-
    - Check file permissions
    - Verify signal-cli has proper permissions
 
 4. **"Connection failed"**
-
    - Check internet connection
    - Verify signal-cli is working: `signal-cli --version`
    - Try manual JSON-RPC test
@@ -361,13 +475,20 @@ echo '{"jsonrpc": "2.0", "method": "listGroups", "id": "test"}' | signal-cli -a 
 
 ## Learning Path
 
-1. **Start with:** `sdk/01-basic-usage.js` - Learn core concepts
-2. **Then try:** `sdk/02-quick-start.js` - Understand simplified usage
-3. **Explore:** `sdk/03-group-management.js` - Group operations
-4. **Advanced:** `sdk/04-contact-management.js` - Contact operations
-5. **Files:** `sdk/05-file-handling.js` - File operations
-6. **Bots:** `bot/01-minimal-bot.js` - Basic bot framework
-7. **Production:** `bot/02-advanced-bot.js` - Advanced bot features
+1. **Start with:** `sdk/00-device-linking.js` - Device setup (REQUIRED FIRST)
+2. **Then try:** `sdk/01-basic-usage.js` - Learn core concepts
+3. **Quick test:** `sdk/02-quick-start.js` - Understand simplified usage
+4. **Groups:** `sdk/03-group-management.js` - Group operations
+5. **Contacts:** `sdk/04-contact-management.js` - Contact operations
+6. **Files:** `sdk/05-file-handling.js` - File operations
+7. **Advanced:** `sdk/06-advanced-features.js` - Payments, stickers, advanced features
+8. **Platform:** `sdk/07-cross-platform.js` - Cross-platform compatibility
+9. **Polls:** `sdk/08-polls.js` - Interactive polls
+10. **Media:** `sdk/09-attachments.js` - Attachment retrieval
+11. **Account:** `sdk/10-account-management.js` - Account settings
+12. **Sync:** `sdk/11-synchronization.js` - Multi-device sync
+13. **Bots:** `bot/01-minimal-bot.js` - Basic bot framework
+14. **Production:** `bot/02-advanced-bot.js` - Advanced bot features
 
 ## Contributing
 

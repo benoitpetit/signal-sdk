@@ -31,11 +31,45 @@ The core class for Signal messaging operations using JSON-RPC with `signal-cli`.
 ### Constructor
 
 ```typescript
-new SignalCli(signalCliPath?: string, account?: string)
+new SignalCli(account?: string, signalCliPath?: string, config?: SignalCliConfig)
 ```
 
-- **`signalCliPath`** (optional): Path to the `signal-cli` binary. Defaults to `./bin/signal-cli`.
 - **`account`** (optional): Phone number for the Signal account (e.g., `"+15551234567"`).
+- **`signalCliPath`** (optional): Path to the `signal-cli` binary. Defaults to `./bin/signal-cli`.
+- **`config`** (optional): Advanced configuration object:
+  - `retryConfig`: Retry configuration with exponential backoff
+    - `maxAttempts`: Maximum retry attempts (default: 3)
+    - `initialDelay`: Initial delay in ms (default: 1000)
+    - `maxDelay`: Maximum delay in ms (default: 30000)
+    - `backoffMultiplier`: Backoff multiplier (default: 2)
+  - `rateLimiter`: Rate limiting configuration
+    - `maxConcurrent`: Maximum concurrent requests (default: 5)
+    - `minInterval`: Minimum interval between requests in ms (default: 100)
+  - `logger`: Logger instance for structured logging
+  - `timeout`: Operation timeout in ms (default: 30000)
+
+#### Example with Configuration
+
+```typescript
+import { SignalCli, Logger } from "signal-sdk";
+
+const config = {
+  retryConfig: {
+    maxAttempts: 5,
+    initialDelay: 1000,
+    maxDelay: 60000,
+    backoffMultiplier: 2,
+  },
+  rateLimiter: {
+    maxConcurrent: 3,
+    minInterval: 500,
+  },
+  logger: new Logger("debug"),
+  timeout: 60000,
+};
+
+const signal = new SignalCli("+1234567890", undefined, config);
+```
 
 ### Connection Management
 
@@ -95,6 +129,68 @@ Remotely deletes a sent message.
 
 Sends a message with progress tracking for large attachments.
 
+#### `sendPollCreate(recipient: string, question: string, options: PollCreateOptions): Promise<SendResponse>`
+
+Creates a poll in a conversation.
+
+**Parameters:**
+
+- `recipient`: Phone number or group ID
+- `question`: Poll question text
+- `options`:
+  - `answers`: Array of poll answer options (string[])
+  - `multipleAnswers`: Allow multiple answers (boolean)
+
+**Example:**
+
+```typescript
+await signal.sendPollCreate("+1234567890", "What's your favorite color?", {
+  answers: ["Red", "Blue", "Green", "Yellow"],
+  multipleAnswers: false,
+});
+```
+
+#### `sendPollVote(recipient: string, options: PollVoteOptions): Promise<SendResponse>`
+
+Votes on an existing poll.
+
+**Parameters:**
+
+- `recipient`: Phone number or group ID where poll was sent
+- `options`:
+  - `pollAuthor`: Phone number of the poll creator
+  - `pollTimestamp`: Timestamp of the poll message
+  - `optionIndexes`: Array of answer indices to vote for (number[])
+  - `voteCount`: Optional vote count (increase for each vote)
+
+**Example:**
+
+```typescript
+await signal.sendPollVote("+1234567890", {
+  pollAuthor: "+1234567890",
+  pollTimestamp: 1705843200000,
+  optionIndexes: [0, 2], // Vote for first and third options
+});
+```
+
+#### `sendPollTerminate(recipient: string, options: PollTerminateOptions): Promise<SendResponse>`
+
+Terminates a poll, preventing further votes.
+
+**Parameters:**
+
+- `recipient`: Phone number or group ID where poll was sent
+- `options`:
+  - `pollTimestamp`: Timestamp of the poll message
+
+**Example:**
+
+```typescript
+await signal.sendPollTerminate("+1234567890", {
+  pollTimestamp: 1705843200000,
+});
+```
+
 ### Group Management
 
 #### `createGroup(name: string, members: string[]): Promise<GroupInfo>`
@@ -108,6 +204,34 @@ Updates a group's settings and members.
 #### `listGroups(): Promise<GroupInfo[]>`
 
 Lists all groups.
+
+#### `listGroupsDetailed(): Promise<DetailedGroupInfo[]>`
+
+Lists all groups with detailed information including permissions, member roles, and invite links.
+
+**Returns:** Array of detailed group information:
+
+- `groupId`: Group identifier
+- `name`: Group name
+- `description`: Group description
+- `members`: Array of member objects with roles and permissions
+- `pendingMembers`: Members pending approval
+- `requestingMembers`: Members requesting to join
+- `bannedMembers`: Banned member list
+- `inviteLink`: Group invite link
+- `groupPermissions`: Permission settings
+- `isAdmin`: Whether current user is admin
+- `isMember`: Whether current user is member
+
+**Example:**
+
+```typescript
+const groups = await signal.listGroupsDetailed();
+groups.forEach((group) => {
+  console.log(`${group.name}: ${group.members.length} members`);
+  if (group.isAdmin) console.log("  (You are admin)");
+});
+```
 
 #### `joinGroup(uri: string): Promise<void>`
 
@@ -131,6 +255,21 @@ Updates a contact's name.
 
 Removes a contact from the contact list.
 
+#### `sendContacts(recipient: string): Promise<SendResponse>`
+
+Exports and sends contact list to a recipient. Useful for contact sharing and backup.
+
+**Parameters:**
+
+- `recipient`: Phone number or group ID to send contacts to
+
+**Example:**
+
+```typescript
+// Send your contact list to another user
+await signal.sendContacts("+1234567890");
+```
+
 #### `block(recipients: string[], groupId?: string): Promise<void>`
 
 Blocks one or more contacts.
@@ -142,6 +281,122 @@ Unblocks one or more contacts.
 #### `getUserStatus(numbers?: string[], usernames?: string[]): Promise<UserStatusResult[]>`
 
 Checks if phone numbers or usernames are registered with Signal.
+
+### Account Management
+
+#### `updateAccount(options: UpdateAccountOptions): Promise<AccountUpdateResult>`
+
+Updates account settings including name, avatar, and profile.
+
+**Parameters:**
+
+- `options`:
+  - `name`: Account display name (string)
+  - `avatar`: Path to avatar image file (string)
+  - `removeAvatar`: Remove current avatar (boolean)
+  - `about`: About/status text (string)
+  - `aboutEmoji`: About emoji (string)
+  - `mobileCoinAddress`: MobileCoin address for payments (string)
+
+**Returns:** Account update result with success status
+
+**Example:**
+
+```typescript
+const result = await signal.updateAccount({
+  name: "John Doe",
+  avatar: "./profile-pic.jpg",
+  about: "Signal SDK Developer",
+  aboutEmoji: "💻",
+});
+console.log("Account updated:", result.success);
+```
+
+#### `listAccountsDetailed(): Promise<DetailedAccountInfo[]>`
+
+Lists all registered accounts with detailed information.
+
+**Returns:** Array of detailed account information:
+
+- `number`: Phone number
+- `uuid`: Account UUID
+- `username`: Signal username
+- `name`: Display name
+- `about`: About text
+- `aboutEmoji`: About emoji
+- `avatar`: Avatar information
+- `deviceId`: Device identifier
+- `registered`: Registration status
+
+**Example:**
+
+```typescript
+const accounts = await signal.listAccountsDetailed();
+accounts.forEach((account) => {
+  console.log(`${account.name} (${account.number})`);
+  if (account.about) console.log(`  About: ${account.about}`);
+});
+```
+
+### Attachment Management
+
+#### `getAttachment(attachmentId: string, outputPath?: string): Promise<AttachmentData>`
+
+Retrieves an attachment by its ID.
+
+**Parameters:**
+
+- `attachmentId`: Unique attachment identifier
+- `outputPath`: Optional path to save the attachment
+
+**Returns:** Attachment data with content type and data
+
+**Example:**
+
+```typescript
+const attachment = await signal.getAttachment(
+  "abc123...",
+  "./downloads/file.pdf",
+);
+console.log("Downloaded:", attachment.contentType);
+```
+
+#### `getAvatar(contact: string, outputPath?: string): Promise<AvatarData>`
+
+Retrieves a contact's or group's avatar by contact identifier.
+
+**Parameters:**
+
+- `contact`: Phone number, UUID, or group ID
+- `outputPath`: Optional path to save the avatar
+
+**Returns:** Avatar data with image information
+
+**Example:**
+
+```typescript
+const avatar = await signal.getAvatar("+1234567890", "./avatars/contact.jpg");
+```
+
+#### `getSticker(stickerId: string, outputPath?: string): Promise<StickerData>`
+
+Retrieves a sticker by its ID.
+
+**Parameters:**
+
+- `stickerId`: Unique sticker identifier from pack
+- `outputPath`: Optional path to save the sticker
+
+**Returns:** Sticker data with image information
+
+**Example:**
+
+```typescript
+const sticker = await signal.getSticker(
+  "sticker-id-123",
+  "./stickers/my-sticker.webp",
+);
+```
 
 ### Payment Features
 
@@ -193,6 +448,7 @@ new SignalBot(config: BotConfig, signalCliPath?: string)
 ### Configuration
 
 The bot's configuration is managed via the `BotConfig` interface, which includes:
+
 - `phoneNumber`: The bot's phone number.
 - `admins`: A list of administrator phone numbers.
 - `group`: Configuration for a bot-managed group.
@@ -247,6 +503,7 @@ Sends a reaction to a message.
 ### Events
 
 The `SignalBot` class emits several events:
+
 - `ready`: Emitted when the bot is started and ready.
 - `stopped`: Emitted when the bot is stopped.
 - `message`: Emitted upon receiving a new message.

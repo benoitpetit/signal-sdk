@@ -16,7 +16,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![signal-cli](https://img.shields.io/badge/signal--cli-v0.13.22-blue.svg)](https://github.com/AsamK/signal-cli)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue.svg)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
+[![Tests](https://img.shields.io/badge/tests-225%20passing-brightgreen.svg)](./src/__tests__)
+[![Coverage](https://img.shields.io/badge/coverage-57.52%25-yellow.svg)](./src/__tests__)
 [![Donate on Liberapay](https://img.shields.io/badge/Liberapay-Donate-yellow.svg)](https://liberapay.com/devbyben/donate)
 
   </div>
@@ -25,11 +27,15 @@
 
 ### Core Capabilities
 
-- **JSON-RPC Communication** - Direct communication with signal-cli daemon via JSON-RPC
-- **TypeScript Support** - Complete type definitions with full IntelliSense support
+- **JSON-RPC Communication** - Direct communication with signal-cli daemon
+- **TypeScript Support** - Complete type definitions with IntelliSense
 - **Message Management** - Send, receive, and manage Signal messages
-- **Real-time Events** - Listen to incoming messages and notifications
-- **Production Ready** - Robust error handling and connection management
+- **Real-time Events** - Event-driven architecture for incoming messages
+- **Enterprise-Grade** - Robust error handling and retry logic
+- **Type-Safe Validation** - Comprehensive input validation
+- **Retry Mechanism** - Exponential backoff with configurable policies
+- **Structured Logging** - Multi-level logging system
+- **Configuration Management** - Centralized configuration with validation
 
 ### SignalBot Framework
 
@@ -43,18 +49,23 @@
 ### Advanced Features
 
 - **File Attachments** - Send and receive files, images, and media
-- **Group Operations** - Create, manage, and configure groups
-- **Contact Management** - Add, update, remove, and manage contacts
-- **Message Reactions** - React to messages with emoji reactions
+- **Group Operations** - Create and manage groups with detailed information
+- **Contact Management** - Manage contacts with export/import capabilities
+- **Message Reactions** - React to messages with emoji
 - **Typing Indicators** - Send and receive typing notifications
 - **Read Receipts** - Track message delivery and read status
 - **Profile Management** - Update profile information and avatars
-- **Payment Notifications** - Send payment receipts and notifications
-- **Custom Sticker Packs** - Upload and manage custom sticker packs
-- **User Status Checking** - Verify Signal registration status
-- **Rate Limit Recovery** - Handle and recover from rate limiting
+- **Payment Notifications** - Send payment notifications
+- **Sticker Packs** - Upload and manage custom sticker packs
+- **User Status** - Verify Signal registration status
+- **Rate Limiting** - Handle and recover from rate limits
 - **Phone Number Changes** - Change registered phone numbers
-- **Progress Tracking** - Monitor upload progress for large files
+- **Progress Tracking** - Monitor upload progress
+- **Polls** - Create, vote, and terminate polls
+- **Attachment Retrieval** - Retrieve attachments, avatars, and stickers
+- **Account Management** - Update account settings
+- **Stories** - View and interact with Signal stories
+- **Group Information** - Retrieve detailed group permissions
 
 ## Quick Start
 
@@ -66,7 +77,7 @@ npm install signal-sdk
 
 ### Prerequisites
 
-1. **Node.js** (version 16 or later)
+1. **Node.js** (version 18 or later)
 2. **Java Runtime Environment** (required by signal-cli)
 
 **Note:** signal-cli binaries are included with the SDK - no separate installation required.
@@ -117,13 +128,13 @@ This command will:
 const { SignalCli } = require("signal-sdk");
 
 // Initialize SignalCli with phone number
-const signal = new SignalCli("+1234567890");
+const signal = new SignalCli("+33111111111");
 
 // Connect to signal-cli daemon
 await signal.connect();
 
 // Send a message
-await signal.sendMessage("+0987654321", "Hello from Signal CLI SDK!");
+await signal.sendMessage("+33222222222", "Hello from Signal SDK!");
 
 // Listen for incoming messages
 signal.on("message", (message) => {
@@ -134,6 +145,35 @@ signal.on("message", (message) => {
 await signal.gracefulShutdown();
 ```
 
+### Advanced Configuration
+
+```javascript
+const { SignalCli, Logger } = require("signal-sdk");
+
+// Configure with advanced settings
+const config = {
+  retryConfig: {
+    maxAttempts: 3,
+    initialDelay: 1000,
+    maxDelay: 10000,
+    backoffMultiplier: 2,
+  },
+  rateLimiter: {
+    maxConcurrent: 5,
+    minInterval: 200,
+  },
+  logger: new Logger("info"),
+};
+
+const signal = new SignalCli("+33111111111", undefined, config);
+
+await signal.connect();
+
+// SDK automatically retries on failures, respects rate limits,
+// validates inputs, and logs operations
+await signal.sendMessage("+33222222222", "Reliable messaging!");
+```
+
 ### Create a Bot
 
 ```javascript
@@ -141,8 +181,8 @@ const { SignalBot } = require("signal-sdk");
 
 // Initialize bot with configuration
 const bot = new SignalBot({
-  phoneNumber: "+1234567890",
-  admins: ["+0987654321"],
+  phoneNumber: "+33111111111",
+  admins: ["+33222222222"],
   group: {
     name: "My Bot Group",
     description: "A group managed by my bot",
@@ -221,10 +261,10 @@ Your bot will automatically:
 
 ```javascript
 const { SignalCli } = require("signal-sdk");
-const signal = new SignalCli("+1234567890");
+const signal = new SignalCli("+33111111111");
 
 await signal.connect();
-await signal.sendMessage("+0987654321", "Hello World!");
+await signal.sendMessage("+33222222222", "Hello World!");
 await signal.gracefulShutdown();
 ```
 
@@ -232,12 +272,12 @@ await signal.gracefulShutdown();
 
 ```javascript
 // Send file with message
-await signal.sendMessage("+0987654321", "Here's the document:", {
+await signal.sendMessage("+33222222222", "Here's the document:", {
   attachments: ["./path/to/document.pdf"],
 });
 
 // Send multiple files
-await signal.sendMessage("+0987654321", "Photos from today:", {
+await signal.sendMessage("+33222222222", "Photos from today:", {
   attachments: ["./photo1.jpg", "./photo2.jpg"],
 });
 ```
@@ -247,8 +287,8 @@ await signal.sendMessage("+0987654321", "Photos from today:", {
 ```javascript
 // Create a new group
 const group = await signal.createGroup("My Group", [
-  "+0987654321",
-  "+1122334455",
+  "+33222222222",
+  "+33333333333",
 ]);
 console.log("Group ID:", group.groupId);
 
@@ -268,8 +308,8 @@ await signal.updateGroup(group.groupId, {
 const { SignalBot } = require("signal-sdk");
 
 const bot = new SignalBot({
-  phoneNumber: "+1234567890",
-  admins: ["+0987654321"],
+  phoneNumber: "+33111111111",
+  admins: ["+33222222222"],
 });
 
 // Add weather command
@@ -291,7 +331,56 @@ bot.on("groupMemberJoined", async (event) => {
 await bot.start();
 ```
 
+## Quality & Reliability
+
+### Code Quality
+
+- **TypeScript Strict Mode** - Full type safety with strict compilation
+- **Complete Type Coverage** - Type definitions for all APIs
+- **Input Validation** - Comprehensive validation throughout
+- **Error Handling** - Robust error classes and management
+- **Retry Logic** - Exponential backoff with configurable policies
+- **Configuration Management** - Validated configuration system
+
+### Enterprise Features
+
+- **Automatic Retries** - Configurable retry policies with exponential backoff
+- **Rate Limiting** - Built-in rate limiter to prevent throttling
+- **Structured Logging** - Multi-level logging system
+- **Input Sanitization** - Automatic sanitization of inputs
+- **E.164 Validation** - Strict international phone number validation
+- **Connection Management** - Graceful connection handling
+
+### Technical Specifications
+
+- **Node.js**: >=18.0.0
+- **TypeScript**: 5.8+ with strict mode
+- **Test Coverage**: 225 passing tests across 9 suites
+- **Code Coverage**: 57.52% overall, critical modules at 96-100%
+- **signal-cli**: Compatible with v0.13.22
+
 ## Testing
+
+The SDK has comprehensive test coverage to ensure reliability and quality.
+
+### Test Statistics
+
+- **Total Tests**: 225 passing
+- **Test Suites**: 9 suites
+- **Overall Coverage**: 57.52%
+
+### Coverage by Module
+
+| Module | Statements | Branches | Functions | Lines | Status |
+|--------|-----------|----------|-----------|-------|--------|
+| **validators.ts** | 100% | 100% | 100% | 100% | ✅ Perfect |
+| **config.ts** | 100% | 97.22% | 100% | 100% | ✅ Excellent |
+| **errors.ts** | 100% | 100% | 100% | 100% | ✅ Perfect |
+| **retry.ts** | 96.15% | 85.71% | 100% | 97.95% | ✅ Excellent |
+| **SignalCli.ts** | 68.68% | 55.46% | 65.9% | 72.7% | ✅ Good |
+| **SignalBot.ts** | 24.33% | 16.94% | 29.68% | 24.59% | ⚠️ In Progress |
+
+### Running Tests
 
 ```bash
 # Run all tests
@@ -300,8 +389,25 @@ npm test
 # Run specific test suite
 npm test -- --testNamePattern="SignalCli"
 
-# Run with coverage
+# Run with coverage report
 npm run test:coverage
+
+# Run tests in watch mode
+npm test -- --watch
+```
+
+### Test Suites
+
+1. **validators.test.ts** - Input validation (100% coverage)
+2. **config.test.ts** - Configuration management (100% coverage)
+3. **errors.test.ts** - Error handling (100% coverage)
+4. **retry.test.ts** - Retry logic (96% coverage)
+5. **SignalCli.test.ts** - Core CLI functionality
+6. **SignalCli.integration.test.ts** - Integration scenarios
+7. **SignalCli.methods.test.ts** - API methods (31 tests)
+8. **SignalBot.test.ts** - Bot framework
+9. **SignalBot.additional.test.ts** - Extended bot features
+
 ```
 
 ## Development
@@ -331,9 +437,9 @@ npm test
 Create a `.env` file in your project root:
 
 ```env
-SIGNAL_PHONE_NUMBER="+1234567890"
-SIGNAL_ADMIN_NUMBER="+0987654321"
-SIGNAL_RECIPIENT_NUMBER="+1122334455"
+SIGNAL_PHONE_NUMBER="+33111111111"
+SIGNAL_ADMIN_NUMBER="+33222222222"
+SIGNAL_RECIPIENT_NUMBER="+33333333333"
 SIGNAL_GROUP_NAME="My Bot Group"
 ```
 
@@ -348,7 +454,7 @@ const signal = new SignalCli(configPath, phoneNumber);
 // phoneNumber: Your registered Signal phone number (required)
 
 // Example with custom config path
-const signal = new SignalCli("/custom/signal-cli/config", "+1234567890");
+const signal = new SignalCli("/custom/signal-cli/config", "+33111111111");
 ```
 
 ### SignalBot Configuration
@@ -357,8 +463,8 @@ const signal = new SignalCli("/custom/signal-cli/config", "+1234567890");
 const { SignalBot } = require("signal-sdk");
 
 const bot = new SignalBot({
-  phoneNumber: "+1234567890", // Required: Your Signal phone number
-  admins: ["+0987654321"], // Required: Admin phone numbers
+  phoneNumber: "+33111111111", // Required: Your Signal phone number
+  admins: ["+33222222222"], // Required: Admin phone numbers
   group: {
     name: "My Bot Group", // Group name
     description: "Managed by my bot", // Group description
@@ -403,15 +509,15 @@ const bot = new SignalBot({
 
    ```bash
    # Register your phone number with Signal first
-   signal-cli -a +1234567890 register
-   signal-cli -a +1234567890 verify CODE_FROM_SMS
+   signal-cli -a +33111111111 register
+   signal-cli -a +33111111111 verify CODE_FROM_SMS
    ```
 
 4. **Connection timeout**
 
    ```bash
    # Test signal-cli directly
-   signal-cli -a +1234567890 send +0987654321 "Test message"
+   signal-cli -a +33111111111 send +33222222222 "Test message"
    ```
 
 5. **Permission denied on config directory**
@@ -459,29 +565,39 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 Compatible with signal-cli v0.13.22 - **100% Feature Coverage**
 
-| Category      | Method                     | Description                        | Status |
-| ------------- | -------------------------- | ---------------------------------- | ------ |
-| **Messaging** | `send`                     | Send text messages and attachments | ✅     |
-|               | `sendReaction`             | React to messages with emoji       | ✅     |
-|               | `sendTyping`               | Send typing indicators             | ✅     |
-|               | `sendReceipt`              | Send read receipts                 | ✅     |
-|               | `sendPaymentNotification`  | Send payment notifications         | ✅     |
-| **Groups**    | `createGroup`              | Create new groups                  | ✅     |
-|               | `updateGroup`              | Update group settings              | ✅     |
-|               | `listGroups`               | List all groups                    | ✅     |
-|               | `quitGroup`                | Leave a group                      | ✅     |
-| **Contacts**  | `listContacts`             | List all contacts                  | ✅     |
-|               | `updateContact`            | Update contact information         | ✅     |
-|               | `removeContact`            | Remove contacts with options       | ✅     |
-|               | `block` / `unblock`        | Block/unblock contacts             | ✅     |
-|               | `getUserStatus`            | Check registration status          | ✅     |
-| **Stickers**  | `listStickerPacks`         | List sticker packs                 | ✅     |
-|               | `addStickerPack`           | Install sticker packs              | ✅     |
-|               | `uploadStickerPack`        | Upload custom sticker packs        | ✅     |
-| **Advanced**  | `submitRateLimitChallenge` | Handle rate limiting               | ✅     |
-|               | `startChangeNumber`        | Start phone number change          | ✅     |
-|               | `finishChangeNumber`       | Complete phone number change       | ✅     |
-|               | `sendMessageWithProgress`  | Enhanced messaging with progress   | ✅     |
+| Category        | Method                     | Description                        | Status |
+| --------------- | -------------------------- | ---------------------------------- | ------ |
+| **Messaging**   | `send`                     | Send text messages and attachments | ✅     |
+|                 | `sendReaction`             | React to messages with emoji       | ✅     |
+|                 | `sendTyping`               | Send typing indicators             | ✅     |
+|                 | `sendReceipt`              | Send read receipts                 | ✅     |
+|                 | `sendPaymentNotification`  | Send payment notifications         | ✅     |
+|                 | `sendPollCreate`           | Create polls in conversations      | ✅     |
+|                 | `sendPollVote`             | Vote on existing polls             | ✅     |
+|                 | `sendPollTerminate`        | Terminate a poll                   | ✅     |
+| **Groups**      | `createGroup`              | Create new groups                  | ✅     |
+|                 | `updateGroup`              | Update group settings              | ✅     |
+|                 | `listGroups`               | List all groups                    | ✅     |
+|                 | `listGroupsDetailed`       | List groups with detailed info     | ✅     |
+|                 | `quitGroup`                | Leave a group                      | ✅     |
+| **Contacts**    | `listContacts`             | List all contacts                  | ✅     |
+|                 | `updateContact`            | Update contact information         | ✅     |
+|                 | `removeContact`            | Remove contacts with options       | ✅     |
+|                 | `sendContacts`             | Export/send contact data           | ✅     |
+|                 | `block` / `unblock`        | Block/unblock contacts             | ✅     |
+|                 | `getUserStatus`            | Check registration status          | ✅     |
+| **Account**     | `updateAccount`            | Update account settings            | ✅     |
+|                 | `listAccountsDetailed`     | List accounts with detailed info   | ✅     |
+| **Attachments** | `getAttachment`            | Retrieve attachment by ID          | ✅     |
+|                 | `getAvatar`                | Retrieve avatar by ID              | ✅     |
+|                 | `getSticker`               | Retrieve sticker by ID             | ✅     |
+| **Stickers**    | `listStickerPacks`         | List sticker packs                 | ✅     |
+|                 | `addStickerPack`           | Install sticker packs              | ✅     |
+|                 | `uploadStickerPack`        | Upload custom sticker packs        | ✅     |
+| **Advanced**    | `submitRateLimitChallenge` | Handle rate limiting               | ✅     |
+|                 | `startChangeNumber`        | Start phone number change          | ✅     |
+|                 | `finishChangeNumber`       | Complete phone number change       | ✅     |
+|                 | `sendMessageWithProgress`  | Enhanced messaging with progress   | ✅     |
 
 [Complete API documentation](./docs/api-reference.md)
 

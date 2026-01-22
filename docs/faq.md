@@ -20,7 +20,7 @@ You can build messaging applications, notification systems, chatbots, group mana
 
 ### What are the system requirements?
 
-- Node.js (version 16 or later)
+- Node.js (version 18 or later)
 - Java Runtime Environment (JRE)
 - Internet connection for initial setup
 

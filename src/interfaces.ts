@@ -5,7 +5,7 @@
  * which uses JSON-RPC communication with signal-cli for optimal performance.
  * 
  * @author Signal SDK Team
- * @version 2.0.0
+ * @version 0.1.0
  */
 
 // ===== DEPRECATED INTERFACES =====
@@ -1033,4 +1033,162 @@ export interface UploadProgress {
   speed?: number;
   /** Estimated time remaining in seconds */
   timeRemaining?: number;
+}
+
+// ===== POLLS =====
+
+/**
+ * Options for creating a poll
+ */
+export interface PollCreateOptions {
+  /** The poll question */
+  question: string;
+  /** Array of poll options */
+  options: string[];
+  /** Allow multiple selections (default: true) */
+  multiSelect?: boolean;
+  /** Recipients to send the poll to */
+  recipients?: string[];
+  /** Group ID to send the poll to */
+  groupId?: string;
+}
+
+/**
+ * Options for voting on a poll
+ */
+export interface PollVoteOptions {
+  /** Author of the poll */
+  pollAuthor: string;
+  /** Timestamp of the poll message */
+  pollTimestamp: number;
+  /** Array of option indexes to vote for */
+  optionIndexes: number[];
+  /** Vote count (increase for each vote) */
+  voteCount?: number;
+}
+
+/**
+ * Options for terminating a poll
+ */
+export interface PollTerminateOptions {
+  /** Timestamp of the poll message to terminate */
+  pollTimestamp: number;
+}
+
+// ===== STORIES =====
+
+/**
+ * Options for sending a story
+ */
+export interface StoryOptions {
+  /** Story content (text or attachment path) */
+  content?: string;
+  /** Attachment for the story */
+  attachment?: string;
+  /** Text attachment with style */
+  textAttachment?: {
+    text: string;
+    textStyle?: 'DEFAULT' | 'REGULAR' | 'BOLD' | 'SERIF' | 'SCRIPT' | 'CONDENSED';
+    textForegroundColor?: string;
+    textBackgroundColor?: string;
+    preview?: {
+      url: string;
+      title?: string;
+      description?: string;
+    };
+  };
+  /** Allow replies (default: true) */
+  allowReplies?: boolean;
+}
+
+// ===== AVATARS AND ATTACHMENTS =====
+
+/**
+ * Options for getting attachment data
+ */
+export interface GetAttachmentOptions {
+  /** Attachment ID */
+  id: string;
+  /** Recipient who sent the attachment */
+  recipient?: string;
+  /** Group ID where attachment was sent */
+  groupId?: string;
+}
+
+/**
+ * Options for getting avatar data
+ */
+export interface GetAvatarOptions {
+  /** Contact number for contact avatar */
+  contact?: string;
+  /** Profile number for profile avatar */
+  profile?: string;
+  /** Group ID for group avatar */
+  groupId?: string;
+}
+
+/**
+ * Options for getting sticker data
+ */
+export interface GetStickerOptions {
+  /** Sticker pack ID (hex encoded) */
+  packId: string;
+  /** Sticker index in the pack */
+  stickerId: number;
+}
+
+// ===== ADVANCED ACCOUNT MANAGEMENT =====
+
+/**
+ * Options for updating account information
+ */
+export interface UpdateAccountOptions {
+  /** New device name */
+  deviceName?: string;
+  /** Username to set (with or without discriminator) */
+  username?: string;
+  /** Delete the current username */
+  deleteUsername?: boolean;
+  /** Enable unrestricted unidentified sender */
+  unrestrictedUnidentifiedSender?: boolean;
+  /** Enable discoverability by phone number */
+  discoverableByNumber?: boolean;
+  /** Enable number sharing */
+  numberSharing?: boolean;
+}
+
+/**
+ * Result from account update with username
+ */
+export interface AccountUpdateResult {
+  /** Success status */
+  success: boolean;
+  /** New username with discriminator */
+  username?: string;
+  /** Username link URL */
+  usernameLink?: string;
+  /** Error message if failed */
+  error?: string;
+}
+
+// ===== SYNC AND CONTACTS =====
+
+/**
+ * Options for sending contacts sync
+ */
+export interface SendContactsOptions {
+  /** Include all recipients, not just contacts */
+  includeAllRecipients?: boolean;
+}
+
+// ===== LIST OPTIONS =====
+
+/**
+ * Options for listing groups
+ */
+export interface ListGroupsOptions {
+  /** Show detailed information */
+  detailed?: boolean;
+  /** Filter by specific group IDs */
+  groupIds?: string[];
 }

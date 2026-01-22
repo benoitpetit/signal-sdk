@@ -1,6 +1,351 @@
 # Advanced Features
 
-This guide covers the advanced features of the Signal CLI SDK, offering a range of powerful functionalities for developers. This document details how to use these features for contact management, user status checks, payment notifications, and more, along with performance optimizations and security patterns.
+This guide covers the advanced features of the Signal CLI SDK, offering a range of powerful functionalities for developers. This document details how to use these features for contact management, user status checks, payment notifications, polls, attachment management, and more, along with performance optimizations and security patterns.
+
+---
+
+## Table of Contents
+
+- [Polls](#polls)
+- [Attachment Management](#attachment-management)
+- [Account Management](#account-management)
+- [Contact Management](#contact-management)
+- [User Registration Status](#user-registration-status)
+- [Payment Notifications](#payment-notifications)
+- [Group Management](#group-management)
+- [Robust Infrastructure](#robust-infrastructure)
+
+---
+
+## Polls
+
+Create, vote on, and manage polls in Signal conversations.
+
+### Create a Poll
+
+```javascript
+const { SignalCli } = require("signal-sdk");
+const signal = new SignalCli("+1234567890");
+
+await signal.connect();
+
+// Create a poll in a group or with a contact
+await signal.sendPollCreate(
+  "group-id-or-phone",
+  "What's your favorite programming language?",
+  {
+    answers: ["JavaScript", "Python", "Rust", "Go"],
+    multipleAnswers: false, // Single choice poll
+  },
+);
+
+// Create a multiple-choice poll
+await signal.sendPollCreate("+1987654321", "Which features do you want next?", {
+  answers: ["Dark Mode", "File Sync", "Video Calls", "Screen Share"],
+  multipleAnswers: true, // Allow multiple selections
+});
+```
+
+### Vote on a Poll
+
+```javascript
+// Vote on a poll (use timestamp from poll message)
+await signal.sendPollVote(
+  "group-id-or-phone",
+  1705843200000, // Poll message timestamp
+  {
+    votes: [1], // Vote for second option (0-indexed)
+  },
+);
+
+// Vote for multiple options (if poll allows)
+await signal.sendPollVote("group-id-or-phone", 1705843200000, {
+  votes: [0, 2, 3], // Vote for first, third, and fourth options
+});
+```
+
+### Terminate a Poll
+
+```javascript
+// Stop accepting votes (creator only)
+await signal.sendPollTerminate(
+  "group-id-or-phone",
+  1705843200000, // Poll message timestamp
+);
+```
+
+### Poll Use Cases
+
+- **Group decisions**: Let group members vote on meeting times, topics, or activities
+- **Surveys**: Collect feedback from your Signal contacts
+- **Bot interactions**: Create interactive bot experiences with polls
+- **Quick polls**: Get instant feedback without leaving Signal
+
+---
+
+## Attachment Management
+
+Retrieve attachments, avatars, and stickers by their unique identifiers.
+
+### Get Attachment by ID
+
+```javascript
+// Retrieve attachment from a message
+const attachment = await signal.getAttachment(
+  "abc123...", // Attachment ID from message
+  "./downloads/document.pdf", // Optional: save to file
+);
+
+console.log("Content type:", attachment.contentType);
+console.log("Size:", attachment.size);
+console.log("Data:", attachment.data); // Buffer if no outputPath
+```
+
+### Get Avatar
+
+```javascript
+// Get contact's avatar
+const avatar = await signal.getAvatar("+1234567890", "./avatars/contact.jpg");
+
+// Get group avatar
+const groupAvatar = await signal.getAvatar(
+  "group-id-123",
+  "./avatars/group.jpg",
+);
+
+// Get avatar data without saving
+const avatarData = await signal.getAvatar("+1234567890");
+console.log("Avatar type:", avatarData.contentType);
+// avatarData.data contains the image buffer
+```
+
+### Get Sticker
+
+```javascript
+// Retrieve sticker by ID
+const sticker = await signal.getSticker(
+  "sticker-pack-id-123",
+  "./stickers/funny-cat.webp",
+);
+
+console.log("Sticker format:", sticker.contentType);
+```
+
+### Attachment Use Cases
+
+- **Media archival**: Download and archive important attachments
+- **Content processing**: Process images, documents, or videos programmatically
+- **Avatar management**: Sync avatars to external systems
+- **Sticker collections**: Build custom sticker management tools
+
+---
+
+## Account Management
+
+Manage account settings, profile information, and account details.
+
+### Update Account
+
+```javascript
+// Update profile name and avatar
+const result = await signal.updateAccount({
+  name: "John Doe",
+  avatar: "./profile-picture.jpg",
+});
+
+// Update about section
+await signal.updateAccount({
+  about: "Signal SDK Developer",
+  aboutEmoji: "computer",
+});
+
+// Remove avatar
+await signal.updateAccount({
+  removeAvatar: true,
+});
+
+// Update MobileCoin address for payments
+await signal.updateAccount({
+  mobileCoinAddress: "your-mobilecoin-address",
+});
+
+// Multiple updates at once
+await signal.updateAccount({
+  name: "Jane Smith",
+  avatar: "./new-avatar.jpg",
+  about: "Open source enthusiast",
+  aboutEmoji: "🚀",
+});
+```
+
+### List Accounts with Details
+
+```javascript
+// Get detailed information about all registered accounts
+const accounts = await signal.listAccountsDetailed();
+
+accounts.forEach((account) => {
+  console.log(`Account: ${account.name} (${account.number})`);
+  console.log(`  UUID: ${account.uuid}`);
+  console.log(`  Username: ${account.username || "Not set"}`);
+  console.log(`  About: ${account.about || "No status"}`);
+  console.log(`  Device ID: ${account.deviceId}`);
+  console.log(`  Registered: ${account.registered}`);
+});
+```
+
+### Account Management Use Cases
+
+- **Profile updates**: Programmatically update profile information
+- **Multi-account management**: Manage multiple Signal accounts
+- **Backup and restore**: Export account settings for backup
+- **Bot profiles**: Set appropriate names and avatars for bots
+
+---
+
+## Group Management
+
+### List Groups with Details
+
+Get comprehensive group information including permissions and member roles.
+
+```javascript
+// Get detailed group information
+const groups = await signal.listGroupsDetailed();
+
+groups.forEach((group) => {
+  console.log(`Group: ${group.name}`);
+  console.log(`  ID: ${group.groupId}`);
+  console.log(`  Description: ${group.description || "None"}`);
+  console.log(`  Members: ${group.members.length}`);
+  console.log(`  Admin: ${group.isAdmin ? "Yes" : "No"}`);
+
+  if (group.inviteLink) {
+    console.log(`  Invite Link: ${group.inviteLink}`);
+  }
+
+  // Member details
+  group.members.forEach((member) => {
+    console.log(`    - ${member.name} (${member.role})`);
+  });
+
+  // Pending members
+  if (group.pendingMembers?.length > 0) {
+    console.log(`  Pending: ${group.pendingMembers.length}`);
+  }
+});
+```
+
+### Group Use Cases
+
+- **Group analytics**: Track member counts and activity
+- **Permission management**: Monitor admin status and permissions
+- **Invite link generation**: Programmatically manage group invites
+- **Member auditing**: Review member lists and roles
+
+---
+
+## Robust Infrastructure
+
+The SDK includes enterprise-grade reliability features:
+
+### Error Handling
+
+```javascript
+import {
+  ConnectionError,
+  ValidationError,
+  RateLimitError,
+  TimeoutError,
+} from "signal-sdk";
+
+try {
+  await signal.sendMessage(recipient, message);
+} catch (error) {
+  if (error instanceof ConnectionError) {
+    console.error("Connection failed, retrying...");
+    // Automatic retry with exponential backoff
+  } else if (error instanceof ValidationError) {
+    console.error("Invalid input:", error.message);
+  } else if (error instanceof RateLimitError) {
+    console.error("Rate limited, waiting...");
+    await sleep(error.retryAfter);
+  }
+}
+```
+
+### Automatic Retry
+
+```javascript
+import { SignalCli } from "signal-sdk";
+
+// Configure retry with exponential backoff
+const signal = new SignalCli("+1234567890", undefined, {
+  retryConfig: {
+    maxAttempts: 5,
+    initialDelay: 1000,
+    maxDelay: 60000,
+    backoffMultiplier: 2,
+  },
+});
+
+// Operations automatically retry on transient failures
+await signal.sendMessage(recipient, message);
+```
+
+### Rate Limiting
+
+```javascript
+import { RateLimiter } from "signal-sdk";
+
+// Client-side rate limiting
+const signal = new SignalCli("+1234567890", undefined, {
+  rateLimiter: {
+    maxConcurrent: 5, // Max 5 concurrent operations
+    minInterval: 200, // 200ms between requests
+  },
+});
+
+// Bulk operations automatically rate-limited
+const recipients = ["+1111111111", "+2222222222" /* ... */];
+for (const recipient of recipients) {
+  await signal.sendMessage(recipient, "Bulk message");
+}
+```
+
+### Input Validation
+
+```javascript
+import {
+  validatePhoneNumber,
+  validateMessage,
+  sanitizeInput,
+} from "signal-sdk";
+
+// Validate before sending
+try {
+  validatePhoneNumber(userInput);
+  const message = sanitizeInput(userMessage);
+  await signal.sendMessage(userInput, message);
+} catch (error) {
+  console.error("Validation failed:", error.message);
+}
+```
+
+### Structured Logging
+
+```javascript
+import { Logger, SignalCli } from "signal-sdk";
+
+const logger = new Logger("info");
+const signal = new SignalCli("+1234567890", undefined, { logger });
+
+// Automatic structured logging
+// [2024-01-21T10:30:45.123Z] [INFO] - Connecting to signal-cli daemon
+// [2024-01-21T10:30:45.456Z] [INFO] - Connected successfully
+```
+
+For complete infrastructure documentation, see [Robust Infrastructure Guide](./robust-infrastructure.md).
 
 ---
 
@@ -11,7 +356,7 @@ This guide covers the advanced features of the Signal CLI SDK, offering a range 
 Remove contacts from your Signal account with different levels of data removal.
 
 ```javascript
-const { SignalCli } = require("./src");
+const { SignalCli } = require("signal-sdk");
 const signal = new SignalCli("+1234567890");
 
 await signal.connect();
@@ -28,11 +373,31 @@ await signal.removeContact("+1987654321", { forget: true });
 - `hide: boolean` - Hide the contact in the contact list, but keep the data
 - `forget: boolean` - Delete all data associated with this contact, including identity keys and sessions
 
+### Export and Send Contacts
+
+Send your contact list to another Signal user or export for backup.
+
+```javascript
+// Send contact list to a user
+await signal.sendContacts("+1234567890");
+
+// Send contacts to a group
+await signal.sendContacts("group-id-123");
+```
+
+This exports your Signal contacts in vCard format and sends them as an attachment. Useful for:
+
+- Contact sharing between devices
+- Backup and restore operations
+- Contact synchronization
+
 #### Use Cases
 
 - Clean up contact lists
 - Remove old or unwanted contacts
 - Privacy management after blocking
+- Contact backup and migration
+- Share contacts with team members
 
 ---
 
@@ -51,7 +416,7 @@ const userStatus = await signal.getUserStatus([
 
 userStatus.forEach((status) => {
   console.log(
-    `${status.number}: ${status.isRegistered ? "Registered" : "Not registered"}`
+    `${status.number}: ${status.isRegistered ? "Registered" : "Not registered"}`,
   );
   if (status.uuid) console.log(`UUID: ${status.uuid}`);
   if (status.username) console.log(`Username: ${status.username}`);
@@ -137,12 +502,12 @@ Create a manifest.json file:
   "author": "Your Name",
   "cover": {
     "id": 0,
-    "emoji": "😀"
+    "emoji": "smile"
   },
   "stickers": [
-    { "id": 0, "emoji": "😀" },
-    { "id": 1, "emoji": "😎" },
-    { "id": 2, "emoji": "🎉" }
+    { "id": 0, "emoji": "smile" },
+    { "id": 1, "emoji": "cool" },
+    { "id": 2, "emoji": "party" }
   ]
 }
 ```
@@ -186,7 +551,7 @@ try {
     // Submit challenge
     const result = await signal.submitRateLimitChallenge(
       challengeToken,
-      captchaToken
+      captchaToken,
     );
 
     if (result.success) {
@@ -299,7 +664,7 @@ class SignalPool {
   async shutdown() {
     for (const [phone, pool] of this.pools) {
       await Promise.all(
-        pool.connections.map((conn) => conn.gracefulShutdown())
+        pool.connections.map((conn) => conn.gracefulShutdown()),
       );
     }
   }
@@ -343,13 +708,13 @@ class BatchProcessor {
             const result = await this.signal.sendMessage(
               item.recipient,
               item.message,
-              item.options
+              item.options,
             );
             item.resolve(result);
           } catch (error) {
             item.reject(error);
           }
-        })
+        }),
       );
 
       // Delay between batches to avoid rate limiting
@@ -399,7 +764,7 @@ class MessageQueue {
         const result = await this.signal.sendMessage(
           recipient,
           message,
-          options
+          options,
         );
         return result;
       } catch (error) {
@@ -425,7 +790,7 @@ class MessageQueue {
         attempts: jobOptions.retries || 3,
         backoff: "exponential",
         ...jobOptions,
-      }
+      },
     );
   }
 
@@ -450,7 +815,7 @@ await messageQueue.queueMessage(
   "+33000000000",
   "Delayed message",
   {},
-  { delay: 30000 }
+  { delay: 30000 },
 );
 ```
 
@@ -476,7 +841,7 @@ class SignalRPC extends EventEmitter {
       this.socket = net.createConnection(this.socketPath);
 
       this.socket.on("connect", () => {
-        console.log("🔌 Connected to Signal RPC");
+        console.log("Connected to Signal RPC");
         resolve();
       });
 
@@ -565,7 +930,7 @@ await rpc.connect();
 
 // Listen for incoming messages
 rpc.on("receive", (params) => {
-  console.log("📨 Message received:", params);
+  console.log("Message received:", params);
 });
 
 await rpc.sendMessage("+33000000000", "Hello via RPC!");
@@ -595,7 +960,7 @@ class SignalWebSocketBridge {
     this.wss = new WebSocket.Server({ port: this.port });
 
     this.wss.on("connection", (ws) => {
-      console.log("👤 Client connected");
+      console.log("Client connected");
       this.clients.add(ws);
 
       ws.on("message", async (data) => {
@@ -608,7 +973,7 @@ class SignalWebSocketBridge {
       });
 
       ws.on("close", () => {
-        console.log("👤 Client disconnected");
+        console.log("Client disconnected");
         this.clients.delete(ws);
       });
     });
@@ -632,7 +997,7 @@ class SignalWebSocketBridge {
           result = await this.signal.sendMessage(
             params.recipient,
             params.message,
-            params.options
+            params.options,
           );
           break;
 
@@ -660,7 +1025,7 @@ class SignalWebSocketBridge {
         id,
         result,
         error: null,
-      })
+      }),
     );
   }
 
@@ -670,7 +1035,7 @@ class SignalWebSocketBridge {
         id,
         result: null,
         error: { message },
-      })
+      }),
     );
   }
 
@@ -926,13 +1291,13 @@ class SignalLogger {
       format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.errors({ stack: true }),
-        winston.format.json()
+        winston.format.json(),
       ),
       transports: [
         new winston.transports.Console({
           format: winston.format.combine(
             winston.format.colorize(),
-            winston.format.simple()
+            winston.format.simple(),
           ),
         }),
         new DailyRotateFile({
@@ -1028,7 +1393,7 @@ bot.addCommand = (commandConfig) => {
         commandConfig.name,
         args,
         success,
-        responseTime
+        responseTime,
       );
     }
   };
@@ -1325,7 +1690,7 @@ class WebhookManager {
         attempts++;
         console.error(
           `ERROR: Webhook failed (${attempts}/${webhook.retries}):`,
-          error
+          error,
         );
 
         if (attempts < webhook.retries) {
@@ -1347,7 +1712,7 @@ webhookManager.addWebhook("message", "https://api.example.com/signal/message", {
 
 webhookManager.addWebhook(
   "memberJoined",
-  "https://api.example.com/signal/join"
+  "https://api.example.com/signal/join",
 );
 ```
 

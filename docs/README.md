@@ -19,7 +19,8 @@ Welcome to the complete documentation for the Signal SDK - a comprehensive TypeS
 ### Framework Guides
 
 - [SignalBot Framework](./signalbot-framework.md) - Build powerful bots with minimal code
-- [Advanced Features](./advanced-features.md) - Advanced SDK features and techniques
+- [Advanced Features](./advanced-features.md) - Polls, attachments, account management
+- [Robust Infrastructure](./robust-infrastructure.md) - Error handling, retry, rate limiting, logging
 
 ### Support
 
@@ -47,7 +48,21 @@ Dive deeper into the SDK capabilities:
 
 - **[API Reference](./api-reference.md)** - Complete method documentation
 - **[SignalBot Framework](./signalbot-framework.md)** - Build interactive bots
-- **[Advanced Features](./advanced-features.md)** - Power user techniques
+- **[Advanced Features](./advanced-features.md)** - Polls, attachments, account management
+- **[Robust Infrastructure](./robust-infrastructure.md)** - Enterprise-grade reliability
+
+### New Features
+
+- **Poll support** - Create, vote, and terminate polls in conversations
+- **Attachment management** - Retrieve attachments, avatars, stickers by ID
+- **Account management** - Update profile, settings, and account details
+- **Contact export** - Send and backup contact lists
+- **Enhanced group info** - Detailed group information with permissions
+- **Retry mechanism** - Exponential backoff for transient failures
+- **Rate limiting** - Client-side rate limiting to prevent API throttling
+- **Input validation** - Comprehensive validation for all operations
+- **Structured logging** - Professional logging system with levels
+- **Configuration** - Centralized configuration management
 
 ### For Troubleshooting
 
@@ -129,7 +144,6 @@ await bot.start();
 The documentation is organized into the following sections:
 
 - **`docs/`**: Contains all documentation files.
-
   - **`installation.md`**: Step-by-step installation guide.
   - **`device-linking.md`**: QR code linking process.
   - **`getting-started.md`**: Quick start and basic usage.
@@ -151,16 +165,16 @@ The documentation is organized into the following sections:
 
 | Feature                 | SignalCli | SignalBot | Description                                    |
 | ----------------------- | :-------: | :-------: | ---------------------------------------------- |
-| **JSON-RPC**            |    ✅     |    ✅     | Native, high-performance communication         |
-| **Device Linking**      |    ✅     |    ✅     | QR code device linking                         |
-| **Messaging**           |    ✅     |    ✅     | Send/receive messages, reactions, typing       |
-| **Group Management**    |    ✅     |    ✅     | Create, update, manage groups                  |
-| **Contact Management**  |    ✅     |    ✅     | List, update, block/unblock contacts           |
-| **File Attachments**    |    ✅     |    ✅     | Send files, images, and other media            |
-| **Command System**      |    ❌     |    ✅     | Built-in command handling with prefixes        |
-| **Admin Permissions**   |    ❌     |    ✅     | Role-based access control                      |
-| **Auto Group Creation** |    ❌     |    ✅     | Automatically create and configure a bot group |
-| **Anti-Spam**           |    ❌     |    ✅     | Rate limiting and spam protection              |
+| **JSON-RPC**            |    Yes    |    Yes    | Native, high-performance communication         |
+| **Device Linking**      |    Yes    |    Yes    | QR code device linking                         |
+| **Messaging**           |    Yes    |    Yes    | Send/receive messages, reactions, typing       |
+| **Group Management**    |    Yes    |    Yes    | Create, update, manage groups                  |
+| **Contact Management**  |    Yes    |    Yes    | List, update, block/unblock contacts           |
+| **File Attachments**    |    Yes    |    Yes    | Send files, images, and other media            |
+| **Command System**      |    No     |    Yes    | Built-in command handling with prefixes        |
+| **Admin Permissions**   |    No     |    Yes    | Role-based access control                      |
+| **Auto Group Creation** |    No     |    Yes    | Automatically create and configure a bot group |
+| **Anti-Spam**           |    No     |    Yes    | Rate limiting and spam protection              |
 
 ---
 

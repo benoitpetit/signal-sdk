@@ -28,19 +28,55 @@ import {
     StickerPackUploadResult,
     RateLimitChallengeResult,
     ChangeNumberSession,
-    UploadProgress
+    UploadProgress,
+    PollCreateOptions,
+    PollVoteOptions,
+    PollTerminateOptions,
+    StoryOptions,
+    GetAttachmentOptions,
+    GetAvatarOptions,
+    GetStickerOptions,
+    UpdateAccountOptions,
+    AccountUpdateResult,
+    SendContactsOptions,
+    ListGroupsOptions
 } from './interfaces';
 import { EventEmitter } from 'events';
 import * as path from 'path';
+import { validatePhoneNumber, validateGroupId, validateRecipient, validateMessage, validateTimestamp, validateEmoji, validateDeviceId } from './validators';
+import { withRetry, RateLimiter } from './retry';
+import { Logger, SignalCliConfig, validateConfig } from './config';
+import { ConnectionError, AuthenticationError, RateLimitError, MessageError, GroupError } from './errors';
 
 export class SignalCli extends EventEmitter {
     private signalCliPath: string;
     private account?: string;
     private cliProcess: ChildProcess | null = null;
     private requestPromises = new Map<string, { resolve: (value: any) => void; reject: (reason?: any) => void }>();
+    private config: Required<SignalCliConfig>;
+    private logger: Logger;
+    private rateLimiter: RateLimiter;
+    private reconnectAttempts = 0;
+    private maxReconnectAttempts = 5;
 
-    constructor(accountOrPath?: string, account?: string) {
+    constructor(accountOrPath?: string, account?: string, config: SignalCliConfig = {}) {
         super();
+        
+        // Validate and merge configuration
+        this.config = validateConfig(config);
+        
+        // Initialize logger
+        this.logger = new Logger({
+            level: this.config.verbose ? 'debug' : 'info',
+            enableFile: !!this.config.logFile,
+            filePath: this.config.logFile
+        });
+        
+        // Initialize rate limiter
+        this.rateLimiter = new RateLimiter(
+            this.config.maxConcurrentRequests,
+            this.config.minRequestInterval
+        );
         
         let signalCliPath: string | undefined;
         let phoneNumber: string | undefined;
@@ -805,4 +841,290 @@ export class SignalCli extends EventEmitter {
         
         return this.sendMessage(recipient, message, sendOptions);
     }
+
+    // ========== NEW METHODS FOR 100% signal-cli COMPATIBILITY ==========
+
+    /**
+     * Send a poll create message to a recipient or group.
+     * @param options Poll creation options
+     * @returns Send response with timestamp
+     */
+    async sendPollCreate(options: PollCreateOptions): Promise<SendResponse> {
+        this.logger.debug('Sending poll create', options);
+        
+        validateMessage(options.question, 500);
+        
+        if (!options.options || options.options.length < 2) {
+            throw new MessageError('Poll must have at least 2 options');
+        }
+        
+        if (options.options.length > 10) {
+            throw new MessageError('Poll cannot have more than 10 options');
+        }
+        
+        const params: any = {
+            question: options.question,
+            options: options.options,
+            account: this.account
+        };
+        
+        if (options.multiSelect !== undefined) {
+            params.multiSelect = options.multiSelect;
+        }
+        
+        if (options.groupId) {
+            validateGroupId(options.groupId);
+            params.groupId = options.groupId;
+        } else if (options.recipients) {
+            params.recipients = options.recipients.map(r => {
+                validateRecipient(r);
+                return r;
+            });
+        } else {
+            throw new MessageError('Must specify either recipients or groupId');
+        }
+        
+        return this.sendJsonRpcRequest('sendPollCreate', params);
+    }
+
+    /**
+     * Send a poll vote message to vote on a poll.
+     * @param recipient Recipient or group ID
+     * @param options Poll vote options
+     * @returns Send response with timestamp
+     */
+    async sendPollVote(recipient: string, options: PollVoteOptions): Promise<SendResponse> {
+        this.logger.debug('Sending poll vote', { recipient, options });
+        
+        validateRecipient(options.pollAuthor);
+        validateTimestamp(options.pollTimestamp);
+        
+        if (!options.optionIndexes || options.optionIndexes.length === 0) {
+            throw new MessageError('Must specify at least one option to vote for');
+        }
+        
+        const params: any = {
+            pollAuthor: options.pollAuthor,
+            pollTimestamp: options.pollTimestamp,
+            options: options.optionIndexes,
+            account: this.account
+        };
+        
+        if (options.voteCount !== undefined) {
+            params.voteCount = options.voteCount;
+        }
+        
+        if (this.isGroupId(recipient)) {
+            validateGroupId(recipient);
+            params.groupId = recipient;
+        } else {
+            validateRecipient(recipient);
+            params.recipient = recipient;
+        }
+        
+        return this.sendJsonRpcRequest('sendPollVote', params);
+    }
+
+    /**
+     * Send a poll terminate message to close a poll.
+     * @param recipient Recipient or group ID
+     * @param options Poll terminate options
+     * @returns Send response with timestamp
+     */
+    async sendPollTerminate(recipient: string, options: PollTerminateOptions): Promise<SendResponse> {
+        this.logger.debug('Sending poll terminate', { recipient, options });
+        
+        validateTimestamp(options.pollTimestamp);
+        
+        const params: any = {
+            pollTimestamp: options.pollTimestamp,
+            account: this.account
+        };
+        
+        if (this.isGroupId(recipient)) {
+            validateGroupId(recipient);
+            params.groupId = recipient;
+        } else {
+            validateRecipient(recipient);
+            params.recipient = recipient;
+        }
+        
+        return this.sendJsonRpcRequest('sendPollTerminate', params);
+    }
+
+    /**
+     * Update account information (device name, username, privacy settings).
+     * @param options Account update options
+     * @returns Account update result
+     */
+    async updateAccount(options: UpdateAccountOptions): Promise<AccountUpdateResult> {
+        this.logger.debug('Updating account', options);
+        
+        const params: any = { account: this.account };
+        
+        if (options.deviceName) {
+            params.deviceName = options.deviceName;
+        }
+        
+        if (options.username) {
+            params.username = options.username;
+        }
+        
+        if (options.deleteUsername) {
+            params.deleteUsername = true;
+        }
+        
+        if (options.unrestrictedUnidentifiedSender !== undefined) {
+            params.unrestrictedUnidentifiedSender = options.unrestrictedUnidentifiedSender;
+        }
+        
+        if (options.discoverableByNumber !== undefined) {
+            params.discoverableByNumber = options.discoverableByNumber;
+        }
+        
+        if (options.numberSharing !== undefined) {
+            params.numberSharing = options.numberSharing;
+        }
+        
+        try {
+            const result = await this.sendJsonRpcRequest('updateAccount', params);
+            return {
+                success: true,
+                username: result.username,
+                usernameLink: result.usernameLink
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error'
+            };
+        }
+    }
+
+    /**
+     * Get raw attachment data as base64 string.
+     * @param options Attachment retrieval options
+     * @returns Base64 encoded attachment data
+     */
+    async getAttachment(options: GetAttachmentOptions): Promise<string> {
+        this.logger.debug('Getting attachment', options);
+        
+        if (!options.id) {
+            throw new MessageError('Attachment ID is required');
+        }
+        
+        const params: any = {
+            id: options.id,
+            account: this.account
+        };
+        
+        if (options.groupId) {
+            validateGroupId(options.groupId);
+            params.groupId = options.groupId;
+        } else if (options.recipient) {
+            validateRecipient(options.recipient);
+            params.recipient = options.recipient;
+        }
+        
+        const result = await this.sendJsonRpcRequest('getAttachment', params);
+        return result.data || result;
+    }
+
+    /**
+     * Get raw avatar data as base64 string.
+     * @param options Avatar retrieval options
+     * @returns Base64 encoded avatar data
+     */
+    async getAvatar(options: GetAvatarOptions): Promise<string> {
+        this.logger.debug('Getting avatar', options);
+        
+        const params: any = { account: this.account };
+        
+        if (options.contact) {
+            validateRecipient(options.contact);
+            params.contact = options.contact;
+        } else if (options.profile) {
+            validateRecipient(options.profile);
+            params.profile = options.profile;
+        } else if (options.groupId) {
+            validateGroupId(options.groupId);
+            params.groupId = options.groupId;
+        } else {
+            throw new MessageError('Must specify contact, profile, or groupId');
+        }
+        
+        const result = await this.sendJsonRpcRequest('getAvatar', params);
+        return result.data || result;
+    }
+
+    /**
+     * Get raw sticker data as base64 string.
+     * @param options Sticker retrieval options
+     * @returns Base64 encoded sticker data
+     */
+    async getSticker(options: GetStickerOptions): Promise<string> {
+        this.logger.debug('Getting sticker', options);
+        
+        if (!options.packId || !options.stickerId) {
+            throw new MessageError('Pack ID and sticker ID are required');
+        }
+        
+        const params = {
+            packId: options.packId,
+            stickerId: options.stickerId,
+            account: this.account
+        };
+        
+        const result = await this.sendJsonRpcRequest('getSticker', params);
+        return result.data || result;
+    }
+
+    /**
+     * Send contacts synchronization message to linked devices.
+     * @param options Contacts sync options
+     */
+    async sendContacts(options: SendContactsOptions = {}): Promise<void> {
+        this.logger.debug('Sending contacts sync');
+        
+        const params: any = { account: this.account };
+        
+        if (options.includeAllRecipients) {
+            params.allRecipients = true;
+        }
+        
+        await this.sendJsonRpcRequest('sendContacts', params);
+    }
+
+    /**
+     * List groups with optional filtering and details.
+     * @param options List groups options
+     * @returns Array of group information
+     */
+    async listGroupsDetailed(options: ListGroupsOptions = {}): Promise<GroupInfo[]> {
+        this.logger.debug('Listing groups with options', options);
+        
+        const params: any = { account: this.account };
+        
+        if (options.detailed) {
+            params.detailed = true;
+        }
+        
+        if (options.groupIds && options.groupIds.length > 0) {
+            params.groupId = options.groupIds;
+        }
+        
+        return this.sendJsonRpcRequest('listGroups', params);
+    }
+
+    /**
+     * List all local accounts.
+     * @returns Array of account phone numbers
+     */
+    async listAccountsDetailed(): Promise<Array<{ number: string; name?: string; uuid?: string }>> {
+        this.logger.debug('Listing all accounts');
+        
+        const result = await this.sendJsonRpcRequest('listAccounts');
+        return result.accounts || [];
+    }
 }
+

@@ -27,7 +27,7 @@ async function demonstrateAdvancedFeatures() {
         console.log('Contact hidden from list');
 
         // Remove a contact completely (delete all data)
-        await signal.removeContact('+0987654321', { forget: true });
+        await signal.removeContact('+9876543210', { forget: true });
         console.log('Contact data completely removed');
 
         // 2. User Status Checking
@@ -35,7 +35,7 @@ async function demonstrateAdvancedFeatures() {
 
         const userStatus = await signal.getUserStatus([
             '+1234567890',
-            '+0987654321',
+            '+9876543210',
             '+1122334455'
         ]);
 

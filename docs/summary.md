@@ -9,7 +9,6 @@ I have completely rewritten the Signal SDK documentation to provide a coherent, 
 ### Core Documentation Files
 
 1. **[Installation Guide](./installation.md)**
-
    - System requirements (Node.js, Java)
    - Multiple installation methods
    - Automatic signal-cli download
@@ -17,7 +16,6 @@ I have completely rewritten the Signal SDK documentation to provide a coherent, 
    - Troubleshooting installation issues
 
 2. **[Device Linking Guide](./device-linking.md)**
-
    - **MANDATORY FIRST STEP** - QR code linking process
    - Multiple QR display options (console, file, base64)
    - Step-by-step instructions
@@ -25,7 +23,6 @@ I have completely rewritten the Signal SDK documentation to provide a coherent, 
    - Security considerations
 
 3. **[Getting Started Guide](./getting-started.md)**
-
    - 30-second quick setup
    - Basic messaging patterns
    - SignalBot framework introduction
@@ -33,23 +30,38 @@ I have completely rewritten the Signal SDK documentation to provide a coherent, 
    - Configuration options
 
 4. **[Complete API Reference](./api-reference.md)**
-
-   - **SignalCli Class**: All 34+ methods documented
+   - **SignalCli Class**: All 40+ methods documented (including new polls, attachments, account methods)
    - **SignalBot Class**: Complete bot framework API
    - **TypeScript Interfaces**: All types and interfaces
-   - **Error Handling**: Error types and patterns
+   - **Error Handling**: 8 typed error classes
    - **Events**: Complete event system
+   - **Configuration**: Production-ready configuration system
 
-5. **[Examples Guide](./examples-guide.md)**
+5. **[Advanced Features Guide](./advanced-features.md)**
+   - **Polls**: Create, vote, and terminate polls
+   - **Attachment Management**: Retrieve attachments, avatars, stickers by ID
+   - **Account Management**: Update profile, settings, and account details
+   - **Contact Export**: Send and backup contact lists
+   - **Enhanced Group Info**: Detailed group information with permissions
+   - **Production Features**: Error handling, retry, rate limiting examples
 
+6. **[Production Features Guide](./production-features.md)** **(NEW)**
+   - **Error Handling**: Comprehensive error hierarchy with 8 error types
+   - **Retry Mechanism**: Exponential backoff with configurable policies
+   - **Rate Limiting**: Client-side rate limiting to prevent API throttling
+   - **Input Validation**: Comprehensive validation for all operations
+   - **Logging System**: Professional structured logging with levels
+   - **Configuration Management**: Centralized configuration with validation
+   - **Best Practices**: Production deployment guidelines
+
+7. **[Examples Guide](./examples-guide.md)**
    - Walkthrough of all 8 examples
    - SDK examples: device linking, messaging, groups, contacts, files
    - Bot examples: minimal and advanced bots
    - Running instructions
    - Customization guide
 
-6. **[Troubleshooting Guide](./troubleshooting.md)**
-
+8. **[Troubleshooting Guide](./troubleshooting.md)**
    - Device linking issues
    - Connection problems
    - Messaging failures
@@ -57,7 +69,7 @@ I have completely rewritten the Signal SDK documentation to provide a coherent, 
    - Platform-specific problems
    - Performance optimization
 
-7. **[Main Documentation Index](./README.md)**
+9. **[Main Documentation Index](./README.md)**
    - Navigation to all sections
    - Quick start paths
    - SDK overview
