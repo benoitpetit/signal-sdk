@@ -305,6 +305,8 @@ export interface SendResponse {
 export interface GroupInfo {
     /** Base64 encoded group ID */
     groupId: string;
+    /** Alias for groupId */
+    id?: string;
     /** Group display name */
     name: string;
     /** Group description */
@@ -333,6 +335,8 @@ export interface GroupInfo {
     permissionSendMessage: string;
     /** Group invite link */
     groupInviteLink?: string;
+    /** Alias for groupInviteLink */
+    inviteLink?: string;
 }
 
 
@@ -340,12 +344,16 @@ export interface GroupInfo {
  * Represents a received message.
  */
 export interface Message {
-  id: string;
+  id?: string;
   source: string;
+  sourceUuid?: string;
+  sourceDevice?: number;
   text?: string;
   timestamp: number;
   attachments?: Attachment[];
   reactions?: Reaction[];
+  reaction?: any;
+  groupId?: string;
   groupInfo?: {
     id: string;
     name?: string;
@@ -362,8 +370,12 @@ export interface Message {
   textStyles?: TextStyle[];
   expiresInSeconds?: number;
   isViewOnce?: boolean;
+  viewOnce?: boolean;
   remoteDelete?: boolean;
   isExpirationUpdate?: boolean;
+  syncMessage?: any;
+  receipt?: any;
+  typing?: any;
 }
 
 /**
@@ -373,6 +385,7 @@ export interface Mention {
   start: number;
   length: number;
   number: string;
+  recipient?: string;  // Alias for number, for compatibility
   name?: string;
 }
 
@@ -413,11 +426,23 @@ export interface Contact {
   uuid?: string;
   blocked: boolean;
   profileName?: string;
+  /** Given name (first name) from profile */
+  givenName?: string;
+  /** Family name (last name) from profile */
+  familyName?: string;
+  /** MobileCoin address for payments */
+  mobileCoinAddress?: string;
   profileAvatar?: string;
   color?: string;
   archived?: boolean;
   mutedUntil?: number;
   hideStory?: boolean;
+  /** Profile key for encrypted profile access */
+  profileKey?: string;
+  /** Contact's username */
+  username?: string;
+  /** Whether this contact is a registered Signal user */
+  registered?: boolean;
 }
 
 /**
@@ -428,6 +453,14 @@ export interface Group {
   name: string;
   members: string[];
   admins?: string[];
+  /** Pending members awaiting invite acceptance */
+  pendingMembers?: string[];
+  /** Banned members who cannot rejoin */
+  bannedMembers?: string[];
+  /** Group invite link for joining */
+  inviteLink?: string;
+  /** Whether invite link approval is required */
+  inviteLinkRequiresApproval?: boolean;
   isBlocked: boolean;
   isMember: boolean;
   isAdmin?: boolean;
@@ -436,12 +469,15 @@ export interface Group {
   color?: string;
   archived?: boolean;
   mutedUntil?: number;
-  inviteLink?: string;
   permissionAddMember?: 'EVERY_MEMBER' | 'ONLY_ADMINS';
   permissionEditDetails?: 'EVERY_MEMBER' | 'ONLY_ADMINS';
   permissionSendMessage?: 'EVERY_MEMBER' | 'ONLY_ADMINS';
   announcementsOnly?: boolean;
   expirationTimer?: number;
+  /** Group version (v1 or v2) */
+  version?: number;
+  /** Group master key for v2 groups */
+  masterKey?: string;
 }
 
 /**
@@ -508,15 +544,18 @@ export interface SendMessageOptions {
     text?: string;
     attachments?: Attachment[];
     mentions?: Mention[];
+    textStyles?: TextStyle[];
   };
   sticker?: Sticker;
   expiresInSeconds?: number;
   isViewOnce?: boolean;
   linkPreview?: boolean;
-  editMessage?: {
-    timestamp: number;
-    dataMessage: any;
-  };
+  previewUrl?: string;
+  editTimestamp?: number;
+  storyTimestamp?: number;
+  storyAuthor?: string;
+  noteToSelf?: boolean;
+  endSession?: boolean;
 }
 
 /**
@@ -634,9 +673,10 @@ export interface PinConfiguration {
 export interface IdentityKey {
   number: string;
   identityKey: string;
-  trustLevel: 'TRUSTED_UNVERIFIED' | 'TRUSTED_VERIFIED' | 'UNTRUSTED';
-  addedDate: number;
-  firstUse: boolean;
+  safetyNumber?: string;
+  trustLevel?: 'TRUSTED_UNVERIFIED' | 'TRUSTED_VERIFIED' | 'UNTRUSTED' | 'TRUST_ON_FIRST_USE';
+  addedDate?: number;
+  firstUse?: boolean;
 }
 
 /**
@@ -1172,6 +1212,22 @@ export interface AccountUpdateResult {
 }
 
 // ===== SYNC AND CONTACTS =====
+
+/**
+ * Options for receiving messages
+ */
+export interface ReceiveOptions {
+  /** Timeout in seconds (default: 5) */
+  timeout?: number;
+  /** Maximum number of messages to receive (default: unlimited) */
+  maxMessages?: number;
+  /** Skip downloading attachments */
+  ignoreAttachments?: boolean;
+  /** Skip receiving stories */
+  ignoreStories?: boolean;
+  /** Send read receipts automatically */
+  sendReadReceipts?: boolean;
+}
 
 /**
  * Options for sending contacts sync

@@ -50,13 +50,13 @@ async function contactManagementExample() {
         console.log('2. - Listing all contacts...');
         const contacts = await signal.listContacts();
         console.log(`   - Found ${contacts.length} contacts:`);
-        
+
         if (contacts.length > 0) {
             contacts.forEach((contact, index) => {
                 const name = contact.name || 'Unknown';
                 const number = contact.number || contact.recipient || 'Unknown';
                 const profile = contact.profile || {};
-                
+
                 console.log(`   ${index + 1}. ${name} (${number})`);
                 if (profile.displayName) {
                     console.log(`      - Display Name: ${profile.displayName}`);
@@ -76,7 +76,7 @@ async function contactManagementExample() {
         // Step 3: Update contact information
         console.log('3. Updating contact information...');
         const contactName = `SDK Test Contact ${Date.now()}`;
-        
+
         try {
             await signal.updateContact(testContact, contactName);
             console.log(`   - Contact updated successfully!`);
@@ -89,12 +89,12 @@ async function contactManagementExample() {
         // Step 4: Send a message to the contact
         console.log('4. Sending message to contact...');
         const contactMessage = `Hello ${contactName}!\n\n` +
-                             `This message was sent from the Signal SDK Contact Management example.\n\n` +
-                             `Contact Test Info:\n` +
-                             `- Your number: ${testContact}\n` +
-                             `- Updated name: ${contactName}\n` +
-                             `- Test time: ${new Date().toLocaleString()}\n\n` +
-                             `- SDK Version: Latest`;
+            `This message was sent from the Signal SDK Contact Management example.\n\n` +
+            `Contact Test Info:\n` +
+            `- Your number: ${testContact}\n` +
+            `- Updated name: ${contactName}\n` +
+            `- Test time: ${new Date().toLocaleString()}\n\n` +
+            `- SDK Version: Latest`;
 
         const sendResult = await signal.sendMessage(testContact, contactMessage);
         console.log('   - Message sent to contact!');
@@ -162,13 +162,13 @@ async function contactManagementExample() {
         console.log('10. Getting updated contact list...');
         const updatedContacts = await signal.listContacts();
         const updatedContact = updatedContacts.find(c => c.number === testContact || c.recipient === testContact);
-        
+
         if (updatedContact) {
             console.log('   Contact found in updated list:');
             console.log(`   Name: ${updatedContact.name || 'Unknown'}`);
             console.log(`   Number: ${updatedContact.number || updatedContact.recipient}`);
             console.log(`   Blocked: ${updatedContact.blocked ? 'Yes' : 'No'}`);
-            
+
             if (updatedContact.profile) {
                 console.log(`   Profile Name: ${updatedContact.profile.displayName || 'N/A'}`);
                 console.log(`   About: ${updatedContact.profile.about || 'N/A'}`);
@@ -181,16 +181,16 @@ async function contactManagementExample() {
         // Step 11: Send final summary
         console.log('11. Sending contact summary...');
         const summary = `Contact Management Example Complete!\n\n` +
-                       `Test Contact Summary:\n` +
-                       `- Number: ${testContact}\n` +
-                       `- Updated Name: ${contactName}\n` +
-                       `- Messages Sent: 2\n` +
-                       `- Reactions Sent: 1\n` +
-                       `- Receipts Sent: 1\n` +
-                       `- Identities Checked: Yes\n` +
-                       `- Block/Unblock: Tested (API)\n\n` +
-                       `All contact operations completed successfully!\n\n` +
-                       `TIP: This contact has been updated with test information.`;
+            `Test Contact Summary:\n` +
+            `- Number: ${testContact}\n` +
+            `- Updated Name: ${contactName}\n` +
+            `- Messages Sent: 2\n` +
+            `- Reactions Sent: 1\n` +
+            `- Receipts Sent: 1\n` +
+            `- Identities Checked: Yes\n` +
+            `- Block/Unblock: Tested (API)\n\n` +
+            `All contact operations completed successfully!\n\n` +
+            `TIP: This contact has been updated with test information.`;
 
         await signal.sendMessage(testContact, summary);
         console.log('   - Contact summary sent!\n');

@@ -50,7 +50,7 @@ async function groupManagementExample() {
         console.log('2. Listing existing groups...');
         const existingGroups = await signal.listGroups();
         console.log(`   - Found ${existingGroups.length} groups:`);
-        
+
         if (existingGroups.length > 0) {
             existingGroups.forEach((group, index) => {
                 const memberCount = group.members ? group.members.length : 0;
@@ -98,13 +98,13 @@ async function groupManagementExample() {
             // Step 5: Send a message to the group
             console.log('5. Sending message to the group...');
             const groupMessage = `Welcome to ${testGroupName}!\n\n` +
-                               `This group was created by the Signal SDK Group Management example.\n\n` +
-                               `Group Info:\n` +
-                               `- Created: ${new Date().toLocaleString()}\n` +
-                               `- Creator: ${phoneNumber}\n` +
-                               `- Initial Members: ${initialMembers.length}\n` +
-                               `- SDK Version: Latest\n\n` +
-                               `Ready to test group features!`;
+                `This group was created by the Signal SDK Group Management example.\n\n` +
+                `Group Info:\n` +
+                `- Created: ${new Date().toLocaleString()}\n` +
+                `- Creator: ${phoneNumber}\n` +
+                `- Initial Members: ${initialMembers.length}\n` +
+                `- SDK Version: Latest\n\n` +
+                `Ready to test group features!`;
 
             await signal.sendMessage(testGroupId, groupMessage);
             console.log('   - Welcome message sent to group!\n');
@@ -113,7 +113,7 @@ async function groupManagementExample() {
             console.log('6. 👥 Checking group members...');
             const updatedGroups = await signal.listGroups();
             const currentGroup = updatedGroups.find(g => g.groupId === testGroupId);
-            
+
             if (currentGroup && currentGroup.members) {
                 console.log(`   - Group has ${currentGroup.members.length} members:`);
                 currentGroup.members.forEach((member, index) => {
@@ -128,7 +128,7 @@ async function groupManagementExample() {
 
             // Step 7: Demonstrate group permissions
             console.log('7. Testing group permissions...');
-            
+
             // Try to add another member (if we have one)
             if (process.env.SIGNAL_ADDITIONAL_MEMBER) {
                 try {
@@ -160,16 +160,16 @@ async function groupManagementExample() {
             console.log('9. Sending group summary...');
             const finalGroups = await signal.listGroups();
             const finalGroup = finalGroups.find(g => g.groupId === testGroupId);
-            
+
             const summary = `Group Management Example Complete!\n\n` +
-                          `Test Group Details:\n` +
-                          `- Name: ${testGroupName}\n` +
-                          `- ID: ${testGroupId}\n` +
-                          `- Members: ${finalGroup?.members?.length || 0}\n` +
-                          `- Admin: ${finalGroup?.isAdmin ? 'Yes' : 'No'}\n` +
-                          `- Created: ${new Date().toLocaleString()}\n\n` +
-                          `- All group operations completed successfully!\n\n` +
-                          `TIP: Note: This is a test group. You can leave it after testing.`;
+                `Test Group Details:\n` +
+                `- Name: ${testGroupName}\n` +
+                `- ID: ${testGroupId}\n` +
+                `- Members: ${finalGroup?.members?.length || 0}\n` +
+                `- Admin: ${finalGroup?.isAdmin ? 'Yes' : 'No'}\n` +
+                `- Created: ${new Date().toLocaleString()}\n\n` +
+                `- All group operations completed successfully!\n\n` +
+                `TIP: Note: This is a test group. You can leave it after testing.`;
 
             await signal.sendMessage(testGroupId, summary);
             console.log('   - Group summary sent!\n');
@@ -180,23 +180,23 @@ async function groupManagementExample() {
 
         } catch (groupError) {
             console.error('ERROR: Error with group operations:', groupError.message);
-            
+
             if (groupError.message.includes('Method not implemented')) {
                 console.error('\nTIP: Group creation not supported by your signal-cli version.');
                 console.error('   This is normal for some signal-cli versions.');
                 console.error('   The example will demonstrate other group operations with existing groups.');
-                
+
                 // Fall back to demonstrating with existing groups
                 if (existingGroups.length > 0) {
                     console.log('\nDemonstrating with existing group...');
                     const testGroup = existingGroups[0];
-                    
+
                     console.log(`Sending test message to: ${testGroup.name}`);
                     const testMessage = `Group Management Test Message\n\n` +
-                                      `- Sent from: Signal SDK Group Management Example\n` +
-                                      `- Time: ${new Date().toLocaleString()}\n\n` +
-                                      `- This message demonstrates group messaging capabilities.`;
-                    
+                        `- Sent from: Signal SDK Group Management Example\n` +
+                        `- Time: ${new Date().toLocaleString()}\n\n` +
+                        `- This message demonstrates group messaging capabilities.`;
+
                     await signal.sendMessage(testGroup.groupId, testMessage);
                     console.log('   - Test message sent to existing group!');
                 }

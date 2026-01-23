@@ -190,26 +190,15 @@ describe('SignalCli', () => {
     });
 
     it('should start change number', async () => {
-      const mockResponse = {
-        session: 'change-session-id',
-        challenge: 'challenge-token'
-      };
-      
       const sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest')
-        .mockResolvedValue(mockResponse);
+        .mockResolvedValue({});
 
-      const result = await signalCli.startChangeNumber('+1987654321');
+      await signalCli.startChangeNumber('+1987654321');
 
       expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('startChangeNumber', {
         account: '+1234567890',
         number: '+1987654321',
         voice: false
-      });
-
-      expect(result).toEqual({
-        session: 'change-session-id',
-        newNumber: '+1987654321',
-        challenge: 'challenge-token'
       });
     });
 
@@ -217,11 +206,12 @@ describe('SignalCli', () => {
       const sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest')
         .mockResolvedValue({});
 
-      await signalCli.finishChangeNumber('123456', 'pin-code');
+      await signalCli.finishChangeNumber('+1987654321', '123456', 'pin-code');
 
       expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('finishChangeNumber', {
         account: '+1234567890',
-        code: '123456',
+        number: '+1987654321',
+        verificationCode: '123456',
         pin: 'pin-code'
       });
     });

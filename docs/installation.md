@@ -7,7 +7,6 @@ Before installing the Signal SDK, ensure you have the following requirements:
 ### System Requirements
 
 1. **Node.js** (version 18 or later)
-
    - Check your version: `node --version`
    - Download: [https://nodejs.org/](https://nodejs.org/)
 

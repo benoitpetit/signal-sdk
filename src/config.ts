@@ -32,9 +32,24 @@ export interface SignalCliConfig {
     trustNewIdentities?: 'on-first-use' | 'always' | 'never';
     /** Disable send log (for message resending) */
     disableSendLog?: boolean;
+    /** Daemon connection mode: json-rpc (default), unix-socket, tcp, http */
+    daemonMode?: 'json-rpc' | 'unix-socket' | 'tcp' | 'http';
+    /** Unix socket path (for unix-socket mode) */
+    socketPath?: string;
+    /** TCP host (for tcp mode) */
+    tcpHost?: string;
+    /** TCP port (for tcp or http mode) */
+    tcpPort?: number;
+    /** HTTP base URL (for http mode) */
+    httpBaseUrl?: string;
 }
 
-export const DEFAULT_CONFIG: Required<SignalCliConfig> = {
+export const DEFAULT_CONFIG: Required<Omit<SignalCliConfig, 'socketPath' | 'tcpHost' | 'tcpPort' | 'httpBaseUrl'> & {
+    socketPath: string;
+    tcpHost: string;
+    tcpPort: number;
+    httpBaseUrl: string;
+}> = {
     signalCliPath: '',
     account: '',
     connectionTimeout: 30000,
@@ -48,7 +63,12 @@ export const DEFAULT_CONFIG: Required<SignalCliConfig> = {
     minRequestInterval: 100,
     autoReconnect: true,
     trustNewIdentities: 'on-first-use',
-    disableSendLog: false
+    disableSendLog: false,
+    daemonMode: 'json-rpc',
+    socketPath: '/tmp/signal-cli.sock',
+    tcpHost: 'localhost',
+    tcpPort: 7583,
+    httpBaseUrl: 'http://localhost:8080'
 };
 
 /**

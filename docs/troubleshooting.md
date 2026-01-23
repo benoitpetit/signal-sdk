@@ -141,7 +141,6 @@ Error: Account already linked on this device
 **Solutions**:
 
 1. **Use existing account**:
-
    - Your phone number is already configured.
    - Use `new SignalCli(undefined, 'YOUR_PHONE_NUMBER')`
 
@@ -172,12 +171,10 @@ Error: connect ECONNREFUSED 127.0.0.1:XXXX
 **Solutions**:
 
 1. **Check if signal-cli is running**:
-
    - The SDK automatically starts signal-cli.
    - If you run it manually, ensure it's in `json-rpc` mode.
 
 2. **Port conflicts**:
-
    - Another application might be using the port.
    - The SDK will try to find a free port automatically.
 
@@ -197,7 +194,6 @@ Error: Connection timeout
 **Solutions**:
 
 1. **Slow system**:
-
    - Increase timeout in `connect()`:
      ```javascript
      await signal.connect({ timeout: 30000 }); // 30 seconds
@@ -245,16 +241,13 @@ Error: User +XXXXXXXXXXX is not registered.
 **Solutions**:
 
 1. **Check for rate limiting**:
-
    - You might be sending too many messages.
    - Wait a while and try again.
 
 2. **Recipient has blocked you**:
-
    - Verify with the recipient.
 
 3. **Safety numbers changed**:
-
    - You may need to verify the new safety numbers.
    - This usually happens automatically.
 
@@ -262,6 +255,7 @@ Error: User +XXXXXXXXXXX is not registered.
    ```bash
    DEBUG=signal-cli,signal-sdk node your-script.js
    ```
+
    - Look for errors in the signal-cli output.
 
 ### Messages Not Being Received
@@ -276,11 +270,9 @@ Error: User +XXXXXXXXXXX is not registered.
 **Solutions**:
 
 1. **Listener not attached**:
-
    - Ensure you have `signal.on('message', ...)` set up.
 
 2. **Another client is receiving messages**:
-
    - If you have multiple signal-cli instances running, only one will receive the message.
    - Ensure only one client is connected for that number.
 
@@ -301,12 +293,10 @@ Error: Invalid attachment
 **Solutions**:
 
 1. **Check file path**:
-
    - Use absolute paths for attachments.
    - `path.resolve('./my-file.txt')`
 
 2. **File permissions**:
-
    - Ensure the Node.js process has read access to the file.
 
 3. **File size limits**:
@@ -329,12 +319,10 @@ Error: Invalid attachment
 **Solutions**:
 
 1. **Command prefix**:
-
    - Default prefix is `/`.
    - Check if you customized it: `new SignalBot({ settings: { commandPrefix: '!' } })`
 
 2. **Admin permissions**:
-
    - Some commands require admin rights.
    - Ensure your number is in the `admins` array.
 
@@ -353,7 +341,6 @@ Error: Invalid attachment
 **Solutions**:
 
 1. **Missing `await`**:
-
    - `bot.start()` is an async function.
    - Make sure you are using `await bot.start()`.
 

@@ -103,14 +103,33 @@ export async function withTimeout<T>(
     promise: Promise<T>,
     timeoutMs: number
 ): Promise<T> {
-    return Promise.race([
-        promise,
-        new Promise<T>((_, reject) => {
-            setTimeout(() => {
-                reject(new TimeoutError(`Operation timed out after ${timeoutMs}ms`));
-            }, timeoutMs);
-        })
-    ]);
+    let timeoutHandle: NodeJS.Timeout | null = null;
+    
+    const timeoutPromise = new Promise<T>((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+            reject(new TimeoutError(`Operation timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+        
+        // Use unref() to prevent this timer from keeping the process alive
+        if (timeoutHandle.unref) {
+            timeoutHandle.unref();
+        }
+    });
+    
+    try {
+        const result = await Promise.race([promise, timeoutPromise]);
+        // Clear the timeout if the promise resolves first
+        if (timeoutHandle) {
+            clearTimeout(timeoutHandle);
+        }
+        return result;
+    } catch (error) {
+        // Clear the timeout if the promise rejects
+        if (timeoutHandle) {
+            clearTimeout(timeoutHandle);
+        }
+        throw error;
+    }
 }
 
 /**

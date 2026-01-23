@@ -19,7 +19,12 @@ describe('SignalBot', () => {
     afterEach(async () => {
         if (bot) {
             await bot.stop();
+            // Clean up all listeners
+            bot.removeAllListeners();
+            bot.getSignalCli().removeAllListeners();
         }
+        // Clear all timers
+        jest.clearAllTimers();
     });
 
     test('should create bot with minimal config', () => {

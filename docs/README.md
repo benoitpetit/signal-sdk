@@ -13,7 +13,6 @@ Welcome to the complete documentation for the Signal SDK - a comprehensive TypeS
 ### API Documentation
 
 - [Complete API Reference](./api-reference.md) - Full SignalCli and SignalBot API documentation
-- [CLI Reference](./cli-reference.md) - Command-line interface documentation
 - [Examples Guide](./examples-guide.md) - Walkthrough of all examples with explanations
 
 ### Framework Guides
@@ -51,7 +50,58 @@ Dive deeper into the SDK capabilities:
 - **[Advanced Features](./advanced-features.md)** - Polls, attachments, account management
 - **[Robust Infrastructure](./robust-infrastructure.md)** - Enterprise-grade reliability
 
-### New Features
+### New Features ✨
+
+**Phases 1-6 Complete** (298 tests passing, 60.21% coverage)
+
+#### Advanced Messaging
+
+- **Text styling** - Bold, italic, strikethrough, monospace, spoiler
+- **Mentions** - @tag users in messages
+- **Quotes** - Reply to specific messages with context
+- **Edit messages** - Correct previously sent messages
+- **Link previews** - Rich URL previews
+- **Story replies** - Respond to stories
+- **Advanced receive()** - Timeout, maxMessages, ignoreAttachments, ignoreStories, sendReadReceipts
+
+#### Identity & Security
+
+- **Safety numbers** - Get and verify safety numbers
+- **Identity verification** - Verify contact identities
+- **Untrusted identities** - List identities that need verification
+
+#### Username Management
+
+- **Set username** - Create Signal username for privacy
+- **Username links** - Share username without phone number
+- **Delete username** - Remove username anytime
+
+#### Multi-Account Management
+
+- **MultiAccountManager** - Manage multiple Signal accounts simultaneously
+- **Event routing** - Automatic event forwarding per account
+- **Account isolation** - Independent connections and operations
+
+#### Enhanced Parsing
+
+- **Contact profiles** - Parse givenName, familyName, mobileCoinAddress
+- **Group details** - Parse pendingMembers, bannedMembers, inviteLink
+- **Helper methods** - getContactsWithProfiles(), getGroupsWithDetails()
+
+#### Advanced Group Features
+
+- **Group invite links** - Generate and manage invite links
+- **Banned members** - Set and manage banned members list
+- **Reset links** - Invalidate and regenerate invite links
+
+#### Daemon Modes
+
+- **Unix socket** - Connect via Unix socket
+- **TCP** - Connect to remote daemon via TCP
+- **HTTP** - REST API connection mode
+- **JSON-RPC STDIO** - Default high-performance mode
+
+#### Foundation Features
 
 - **Poll support** - Create, vote, and terminate polls in conversations
 - **Attachment management** - Retrieve attachments, avatars, stickers by ID
@@ -168,13 +218,23 @@ The documentation is organized into the following sections:
 | **JSON-RPC**            |    Yes    |    Yes    | Native, high-performance communication         |
 | **Device Linking**      |    Yes    |    Yes    | QR code device linking                         |
 | **Messaging**           |    Yes    |    Yes    | Send/receive messages, reactions, typing       |
+| **Advanced Messaging**  |    Yes    |    Yes    | Text styling, mentions, quotes, edits ✨       |
+| **Identity Security**   |    Yes    |    Yes    | Safety numbers, verification ✨                |
+| **Username Management** |    Yes    |    Yes    | Set/delete username, links ✨                  |
+| **Multi-Account**       |    Yes    |    No     | Manage multiple accounts simultaneously ✨     |
+| **Enhanced Parsing**    |    Yes    |    Yes    | Detailed profiles & groups ✨                  |
 | **Group Management**    |    Yes    |    Yes    | Create, update, manage groups                  |
+| **Advanced Groups**     |    Yes    |    Yes    | Invite links, banned members ✨                |
 | **Contact Management**  |    Yes    |    Yes    | List, update, block/unblock contacts           |
 | **File Attachments**    |    Yes    |    Yes    | Send files, images, and other media            |
+| **Polls**               |    Yes    |    Yes    | Create, vote, terminate polls                  |
+| **Daemon Modes**        |    Yes    |    Yes    | Unix socket, TCP, HTTP ✨                      |
 | **Command System**      |    No     |    Yes    | Built-in command handling with prefixes        |
 | **Admin Permissions**   |    No     |    Yes    | Role-based access control                      |
 | **Auto Group Creation** |    No     |    Yes    | Automatically create and configure a bot group |
 | **Anti-Spam**           |    No     |    Yes    | Rate limiting and spam protection              |
+
+✨ = New in Phases 1-6
 
 ---
 

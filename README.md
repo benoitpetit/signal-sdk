@@ -17,8 +17,7 @@
 [![signal-cli](https://img.shields.io/badge/signal--cli-v0.13.22-blue.svg)](https://github.com/AsamK/signal-cli)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
-[![Tests](https://img.shields.io/badge/tests-225%20passing-brightgreen.svg)](./src/__tests__)
-[![Coverage](https://img.shields.io/badge/coverage-57.52%25-yellow.svg)](./src/__tests__)
+[![Tests](https://img.shields.io/badge/tests-310%20passing-brightgreen.svg)](./src/__tests__)
 [![Donate on Liberapay](https://img.shields.io/badge/Liberapay-Donate-yellow.svg)](https://liberapay.com/devbyben/donate)
 
   </div>
@@ -48,6 +47,14 @@
 
 ### Advanced Features
 
+- **Multi-Account Support** - Manage multiple Signal accounts simultaneously with `MultiAccountManager`
+- **Advanced Messaging** - Text styles (bold, italic), mentions, quotes, URL previews, message editing
+- **Enhanced Receive** - Modern `receive()` method with options (timeout, ignore filters)
+- **Username Management** - Set and delete Signal usernames
+- **Identity Verification** - Get and verify safety numbers, manage untrusted identities
+- **Advanced Groups** - Send invite links, manage banned members, reset group links
+- **Enhanced Parsing** - Extract givenName, familyName, mobileCoinAddress from profiles and contacts
+- **Daemon Modes** - Support for Unix socket, TCP, and HTTP daemon connections
 - **File Attachments** - Send and receive files, images, and media
 - **Group Operations** - Create and manage groups with detailed information
 - **Contact Management** - Manage contacts with export/import capabilities
@@ -55,11 +62,11 @@
 - **Typing Indicators** - Send and receive typing notifications
 - **Read Receipts** - Track message delivery and read status
 - **Profile Management** - Update profile information and avatars
-- **Payment Notifications** - Send payment notifications
+- **Payment Notifications** - Send MobileCoin payment notifications with receipts
 - **Sticker Packs** - Upload and manage custom sticker packs
 - **User Status** - Verify Signal registration status
 - **Rate Limiting** - Handle and recover from rate limits
-- **Phone Number Changes** - Change registered phone numbers
+- **Phone Number Changes** - Change registered phone numbers with verification
 - **Progress Tracking** - Monitor upload progress
 - **Polls** - Create, vote, and terminate polls
 - **Attachment Retrieval** - Retrieve attachments, avatars, and stickers
@@ -371,14 +378,14 @@ The SDK has comprehensive test coverage to ensure reliability and quality.
 
 ### Coverage by Module
 
-| Module | Statements | Branches | Functions | Lines | Status |
-|--------|-----------|----------|-----------|-------|--------|
-| **validators.ts** | 100% | 100% | 100% | 100% | ✅ Perfect |
-| **config.ts** | 100% | 97.22% | 100% | 100% | ✅ Excellent |
-| **errors.ts** | 100% | 100% | 100% | 100% | ✅ Perfect |
-| **retry.ts** | 96.15% | 85.71% | 100% | 97.95% | ✅ Excellent |
-| **SignalCli.ts** | 68.68% | 55.46% | 65.9% | 72.7% | ✅ Good |
-| **SignalBot.ts** | 24.33% | 16.94% | 29.68% | 24.59% | ⚠️ In Progress |
+| Module            | Statements | Branches | Functions | Lines  | Status         |
+| ----------------- | ---------- | -------- | --------- | ------ | -------------- |
+| **validators.ts** | 100%       | 100%     | 100%      | 100%   | ✅ Perfect     |
+| **config.ts**     | 100%       | 97.22%   | 100%      | 100%   | ✅ Excellent   |
+| **errors.ts**     | 100%       | 100%     | 100%      | 100%   | ✅ Perfect     |
+| **retry.ts**      | 96.15%     | 85.71%   | 100%      | 97.95% | ✅ Excellent   |
+| **SignalCli.ts**  | 68.68%     | 55.46%   | 65.9%     | 72.7%  | ✅ Good        |
+| **SignalBot.ts**  | 24.33%     | 16.94%   | 29.68%    | 24.59% | ⚠️ In Progress |
 
 ### Running Tests
 
@@ -408,7 +415,7 @@ npm test -- --watch
 8. **SignalBot.test.ts** - Bot framework
 9. **SignalBot.additional.test.ts** - Extended bot features
 
-```
+````
 
 ## Development
 
@@ -428,7 +435,7 @@ npm run build && node examples/sdk/01-basic-usage.js
 
 # Run tests
 npm test
-```
+````
 
 ## Configuration
 

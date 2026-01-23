@@ -40,7 +40,12 @@ describe('SignalCli Integration Tests', () => {
     afterEach(() => {
         if (signalCli) {
             signalCli.disconnect();
+            // Clean up all listeners
+            signalCli.removeAllListeners();
         }
+        // Clear all timers and mocks
+        jest.clearAllTimers();
+        jest.clearAllMocks();
     });
 
     describe('Connection Lifecycle', () => {
@@ -75,10 +80,11 @@ describe('SignalCli Integration Tests', () => {
 
             const shutdownPromise = signalCli.gracefulShutdown();
 
-            // Simulate timeout and force kill
-            setTimeout(() => {
+            // Simulate timeout and force kill with unref to prevent hanging
+            const timer = setTimeout(() => {
                 if (closeCallback) closeCallback(0);
             }, 100);
+            if (timer.unref) timer.unref();
 
             await expect(shutdownPromise).resolves.toBeUndefined();
         }, 10000); // Increase timeout to 10 seconds

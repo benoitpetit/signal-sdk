@@ -47,6 +47,12 @@ new SignalCli(account?: string, signalCliPath?: string, config?: SignalCliConfig
     - `minInterval`: Minimum interval between requests in ms (default: 100)
   - `logger`: Logger instance for structured logging
   - `timeout`: Operation timeout in ms (default: 30000)
+  - **Daemon Mode Options:**
+    - `socketPath`: Unix socket path for daemon connection
+    - `tcpHost`: TCP host for daemon connection
+    - `tcpPort`: TCP port for daemon connection
+    - `httpHost`: HTTP host for REST API
+    - `httpPort`: HTTP port for REST API
 
 #### Example with Configuration
 
@@ -112,6 +118,77 @@ Removes a linked device.
 #### `sendMessage(recipient: string, message: string, options?: SendMessageOptions): Promise<SendResponse>`
 
 Sends a message to a recipient (user or group).
+
+**Advanced Options** (SendMessageOptions):
+
+- `attachments`: File paths to attach (string[])
+- `textStyle`: Text styling ranges for bold/italic/etc.
+- `textMode`: Text mode ('normal' | 'styled')
+- `mention`: Mentions with start/length/uuid
+- `quoteTimestamp`: Timestamp of message to quote
+- `quoteAuthor`: Author of quoted message
+- `quoteMessage`: Text of quoted message
+- `quoteMention`: Mentions in quoted message
+- `editTimestamp`: Timestamp of message to edit
+- `previewUrl`: URL for preview generation
+- `storyTimestamp`: Timestamp to reply to a story
+- `storyAuthor`: Author of story to reply to
+
+**Example:**
+
+```typescript
+// Send with text styling and mention
+await signal.sendMessage("+1234567890", "Hello @John", {
+  textStyle: [{ start: 6, length: 5, style: "BOLD" }],
+  mention: [{ start: 6, length: 5, uuid: "user-uuid" }],
+});
+
+// Reply to a message
+await signal.sendMessage("+1234567890", "Great point!", {
+  quoteTimestamp: 1705843200000,
+  quoteAuthor: "+1234567890",
+  quoteMessage: "Original message text",
+});
+
+// Edit a previous message
+await signal.sendMessage("+1234567890", "Corrected text", {
+  editTimestamp: 1705843200000,
+});
+```
+
+#### `receive(options?: ReceiveOptions): Promise<Message[]>`
+
+Receives pending messages with advanced filtering options. Replaces the deprecated `receiveMessages()` method.
+
+**Parameters:**
+
+- `options`: Optional receive configuration
+  - `timeout`: Maximum time to wait for messages in seconds (default: 5)
+  - `maxMessages`: Maximum number of messages to retrieve
+  - `ignoreAttachments`: Skip downloading attachments (boolean)
+  - `ignoreStories`: Ignore story messages (boolean)
+  - `sendReadReceipts`: Automatically send read receipts (boolean, default: true)
+
+**Returns:** Array of received messages
+
+**Example:**
+
+```typescript
+// Receive with timeout
+const messages = await signal.receive({ timeout: 10 });
+
+// Receive without attachments (faster)
+const messages = await signal.receive({
+  timeout: 5,
+  ignoreAttachments: true,
+  ignoreStories: true,
+});
+
+// Receive without sending read receipts
+const messages = await signal.receive({
+  sendReadReceipts: false,
+});
+```
 
 #### `sendReaction(recipient: string, targetAuthor: string, targetTimestamp: number, emoji: string, remove?: boolean): Promise<SendResponse>`
 
@@ -282,6 +359,256 @@ Unblocks one or more contacts.
 
 Checks if phone numbers or usernames are registered with Signal.
 
+### Identity and Security Management
+
+#### `getSafetyNumber(recipient: string): Promise<SafetyNumberInfo>`
+
+Retrieves the safety number for identity verification with a contact.
+
+**Parameters:**
+
+- `recipient`: Phone number or UUID of the contact
+
+**Returns:** Safety number information:
+
+- `safetyNumber`: The 60-digit safety number
+- `identityKey`: The identity key (base64)
+- `trusted`: Whether the identity is trusted
+
+**Example:**
+
+```typescript
+const safetyInfo = await signal.getSafetyNumber("+1234567890");
+console.log("Safety Number:", safetyInfo.safetyNumber);
+console.log("Trusted:", safetyInfo.trusted);
+```
+
+#### `verifySafetyNumber(recipient: string, safetyNumber: string): Promise<VerificationResult>`
+
+Verifies a safety number matches the expected value and marks it as trusted.
+
+**Parameters:**
+
+- `recipient`: Phone number or UUID of the contact
+- `safetyNumber`: The 60-digit safety number to verify
+
+**Returns:** Verification result with success status
+
+**Example:**
+
+```typescript
+const result = await signal.verifySafetyNumber(
+  "+1234567890",
+  "123456789012345678901234567890123456789012345678901234567890",
+);
+console.log("Verified:", result.success);
+```
+
+#### `listUntrustedIdentities(recipient?: string): Promise<UntrustedIdentity[]>`
+
+Lists identities that have changed and need verification.
+
+**Parameters:**
+
+- `recipient`: Optional phone number to check specific contact
+
+**Returns:** Array of untrusted identities with details
+
+**Example:**
+
+```typescript
+const untrusted = await signal.listUntrustedIdentities();
+untrusted.forEach((identity) => {
+  console.log(`${identity.number}: ${identity.identityKey}`);
+});
+```
+
+### Username Management
+
+#### `setUsername(username: string): Promise<UsernameResult>`
+
+Sets or updates your Signal username.
+
+**Parameters:**
+
+- `username`: Desired username (alphanumeric with optional dots, no spaces)
+
+**Returns:** Username result with success status and username link
+
+**Example:**
+
+```typescript
+const result = await signal.setUsername("john.doe.42");
+console.log("Username set:", result.username);
+console.log("Share link:", result.usernameLink);
+```
+
+#### `deleteUsername(): Promise<void>`
+
+Deletes your Signal username.
+
+**Example:**
+
+```typescript
+await signal.deleteUsername();
+console.log("Username removed");
+```
+
+#### `getUsernameLink(): Promise<string>`
+
+Retrieves your username link for sharing.
+
+**Returns:** Username link URL
+
+**Example:**
+
+```typescript
+const link = await signal.getUsernameLink();
+console.log("Share your username:", link);
+```
+
+### Enhanced Parsing Helpers
+
+#### `parseContactProfile(contact: Contact): EnhancedContact`
+
+Parses and enriches contact information from raw Signal data.
+
+**Parameters:**
+
+- `contact`: Raw contact object
+
+**Returns:** Enhanced contact with additional fields:
+
+- `givenName`: First name
+- `familyName`: Last name
+- `mobileCoinAddress`: MobileCoin payment address
+- `profileKey`: Profile encryption key
+- `username`: Signal username
+- `registered`: Registration status
+
+**Example:**
+
+```typescript
+const contacts = await signal.listContacts();
+const enhanced = contacts.map((c) => signal.parseContactProfile(c));
+enhanced.forEach((contact) => {
+  console.log(`${contact.givenName} ${contact.familyName}`);
+  if (contact.username) console.log(`  @${contact.username}`);
+});
+```
+
+#### `getContactsWithProfiles(): Promise<EnhancedContact[]>`
+
+Returns all contacts with parsed profile information.
+
+**Returns:** Array of enhanced contacts
+
+**Example:**
+
+```typescript
+const contacts = await signal.getContactsWithProfiles();
+contacts.forEach((c) => {
+  console.log(`${c.givenName} ${c.familyName} (@${c.username})`);
+});
+```
+
+#### `parseGroupDetails(group: Group): EnhancedGroup`
+
+Parses and enriches group information from raw Signal data.
+
+**Parameters:**
+
+- `group`: Raw group object
+
+**Returns:** Enhanced group with additional fields:
+
+- `pendingMembers`: Members waiting for approval
+- `bannedMembers`: Banned members list
+- `inviteLink`: Group invitation link
+- `version`: Group version
+- `masterKey`: Group master key
+
+**Example:**
+
+```typescript
+const groups = await signal.listGroups();
+const enhanced = groups.map((g) => signal.parseGroupDetails(g));
+enhanced.forEach((group) => {
+  console.log(`${group.name}:`);
+  console.log(`  Members: ${group.members.length}`);
+  console.log(`  Pending: ${group.pendingMembers?.length || 0}`);
+  console.log(`  Banned: ${group.bannedMembers?.length || 0}`);
+  if (group.inviteLink) console.log(`  Invite: ${group.inviteLink}`);
+});
+```
+
+#### `getGroupsWithDetails(): Promise<EnhancedGroup[]>`
+
+Returns all groups with parsed detailed information.
+
+**Returns:** Array of enhanced groups
+
+**Example:**
+
+```typescript
+const groups = await signal.getGroupsWithDetails();
+groups.forEach((g) => {
+  console.log(`${g.name} - ${g.members.length} members`);
+  if (g.inviteLink) console.log(`  Join: ${g.inviteLink}`);
+});
+```
+
+### Advanced Group Management
+
+#### `sendGroupInviteLink(groupId: string): Promise<string>`
+
+Generates and retrieves the invite link for a group.
+
+**Parameters:**
+
+- `groupId`: Group identifier
+
+**Returns:** Group invite link URL
+
+**Example:**
+
+```typescript
+const inviteLink = await signal.sendGroupInviteLink("group-id-123");
+console.log("Share this link:", inviteLink);
+```
+
+#### `setBannedMembers(groupId: string, members: string[]): Promise<void>`
+
+Sets the list of banned members for a group.
+
+**Parameters:**
+
+- `groupId`: Group identifier
+- `members`: Array of phone numbers to ban
+
+**Example:**
+
+```typescript
+await signal.setBannedMembers("group-id-123", ["+1234567890", "+1987654321"]);
+```
+
+#### `resetGroupLink(groupId: string): Promise<string>`
+
+Resets the group invite link (invalidates old link).
+
+**Parameters:**
+
+- `groupId`: Group identifier
+
+**Returns:** New group invite link
+
+**Example:**
+
+```typescript
+const newLink = await signal.resetGroupLink("group-id-123");
+console.log("New invite link:", newLink);
+```
+
 ### Account Management
 
 #### `updateAccount(options: UpdateAccountOptions): Promise<AccountUpdateResult>`
@@ -422,13 +749,51 @@ Submits a rate limit challenge to lift the limitation.
 
 ### Phone Number Management
 
-#### `startChangeNumber(newNumber: string, voice?: boolean, captcha?: string): Promise<ChangeNumberSession>`
+#### `startChangeNumber(newNumber: string, voice?: boolean, captcha?: string): Promise<void>`
 
-Starts the process of changing a phone number.
+Starts the process of changing your account to a new phone number. Initiates SMS or voice verification.
 
-#### `finishChangeNumber(verificationCode: string, pin?: string): Promise<void>`
+**Parameters:**
 
-Completes the phone number change process.
+- `newNumber`: The new phone number in E164 format (e.g., `"+33612345678"`)
+- `voice`: Use voice verification instead of SMS (default: `false`)
+- `captcha`: Optional captcha token if required (get from https://signalcaptchas.org/registration/generate.html)
+
+**Throws:** Error if not a primary device or rate limited
+
+**Example:**
+
+```typescript
+// Start SMS verification
+await signal.startChangeNumber("+33612345678");
+
+// Or use voice verification
+await signal.startChangeNumber("+33612345678", true);
+
+// Wait for SMS/voice code, then call finishChangeNumber()
+```
+
+#### `finishChangeNumber(newNumber: string, verificationCode: string, pin?: string): Promise<void>`
+
+Completes the phone number change process. Verifies the code received via SMS or voice and changes your account to the new number.
+
+**Parameters:**
+
+- `newNumber`: The new phone number (same as `startChangeNumber`)
+- `verificationCode`: The verification code received via SMS or voice
+- `pin`: Optional registration lock PIN if one was set
+
+**Throws:** Error if verification fails or incorrect PIN
+
+**Example:**
+
+```typescript
+// After receiving verification code
+await signal.finishChangeNumber("+33612345678", "123456");
+
+// Or with PIN if registration lock is enabled
+await signal.finishChangeNumber("+33612345678", "123456", "1234");
+```
 
 ---
 
@@ -509,6 +874,241 @@ The `SignalBot` class emits several events:
 - `message`: Emitted upon receiving a new message.
 - `command`: Emitted when a command is executed.
 - `error`: Emitted when an error occurs.
+
+---
+
+## `MultiAccountManager` Class
+
+Manages multiple Signal accounts simultaneously with automatic event routing.
+
+### Constructor
+
+```typescript
+import { MultiAccountManager } from "signal-sdk";
+
+const manager = new MultiAccountManager();
+```
+
+### Account Management
+
+#### `addAccount(account: string, signalCliPath?: string, config?: SignalCliConfig): SignalCli`
+
+Adds a Signal account to the manager.
+
+**Parameters:**
+
+- `account`: Phone number for the account
+- `signalCliPath`: Optional path to signal-cli binary
+- `config`: Optional Signal CLI configuration
+
+**Returns:** SignalCli instance for the account
+
+**Example:**
+
+```typescript
+const account1 = manager.addAccount("+1234567890");
+const account2 = manager.addAccount("+1987654321");
+```
+
+#### `removeAccount(account: string): boolean`
+
+Removes an account from the manager.
+
+**Parameters:**
+
+- `account`: Phone number of account to remove
+
+**Returns:** true if account was removed
+
+**Example:**
+
+```typescript
+manager.removeAccount("+1234567890");
+```
+
+#### `getAccount(account: string): SignalCli | undefined`
+
+Retrieves a specific account instance.
+
+**Parameters:**
+
+- `account`: Phone number of account
+
+**Returns:** SignalCli instance or undefined
+
+**Example:**
+
+```typescript
+const account = manager.getAccount("+1234567890");
+if (account) {
+  await account.sendMessage("+1111111111", "Hello");
+}
+```
+
+#### `getAccounts(): Map<string, SignalCli>`
+
+Returns all managed accounts.
+
+**Returns:** Map of account number to SignalCli instance
+
+**Example:**
+
+```typescript
+const accounts = manager.getAccounts();
+console.log(`Managing ${accounts.size} accounts`);
+```
+
+### Connection Management
+
+#### `connectAll(): Promise<void>`
+
+Connects all managed accounts to their respective daemons.
+
+**Example:**
+
+```typescript
+await manager.connectAll();
+console.log("All accounts connected");
+```
+
+#### `disconnectAll(): void`
+
+Disconnects all managed accounts.
+
+**Example:**
+
+```typescript
+manager.disconnectAll();
+```
+
+### Messaging Operations
+
+#### `sendMessage(fromAccount: string, recipient: string, message: string, options?: SendMessageOptions): Promise<SendResponse>`
+
+Sends a message from a specific account.
+
+**Parameters:**
+
+- `fromAccount`: Phone number of sending account
+- `recipient`: Phone number or group ID of recipient
+- `message`: Message text
+- `options`: Optional send options
+
+**Returns:** Send response
+
+**Example:**
+
+```typescript
+await manager.sendMessage("+1234567890", "+1111111111", "Hello from account 1");
+```
+
+#### `receive(account: string, options?: ReceiveOptions): Promise<Message[]>`
+
+Receives messages for a specific account.
+
+**Parameters:**
+
+- `account`: Phone number of account
+- `options`: Optional receive options
+
+**Returns:** Array of received messages
+
+**Example:**
+
+```typescript
+const messages = await manager.receive("+1234567890", {
+  timeout: 5,
+  ignoreStories: true,
+});
+```
+
+### Status and Monitoring
+
+#### `getAllStatus(): AccountStatus[]`
+
+Retrives the status of all managed accounts.
+
+**Returns:** Array of account statuses:
+
+- `account`: Phone number
+- `connected`: Connection status
+- `deviceLinked`: Device linking status
+
+**Example:**
+
+```typescript
+const statuses = manager.getAllStatus();
+statuses.forEach((status) => {
+  console.log(
+    `${status.account}: ${status.connected ? "Connected" : "Disconnected"}`,
+  );
+});
+```
+
+### Events
+
+The `MultiAccountManager` extends EventEmitter and forwards all Signal events with account context:
+
+- `message:account`: Message received for specific account
+- `receipt:account`: Receipt received for specific account
+- `typing:account`: Typing indicator for specific account
+- `error:account`: Error occurred for specific account
+- `connected:account`: Account connected
+- `disconnected:account`: Account disconnected
+
+**Example:**
+
+```typescript
+// Listen to messages from specific account
+manager.on("message:+1234567890", (envelope) => {
+  console.log("Account 1 received:", envelope.dataMessage?.message);
+});
+
+// Listen to all messages
+manager.on("message", (account, envelope) => {
+  console.log(`${account} received: ${envelope.dataMessage?.message}`);
+});
+
+// Listen to connection events
+manager.on("connected:+1234567890", () => {
+  console.log("Account 1 connected");
+});
+```
+
+### Complete Multi-Account Example
+
+```typescript
+import { MultiAccountManager } from "signal-sdk";
+
+const manager = new MultiAccountManager();
+
+// Add accounts
+const account1 = manager.addAccount("+1234567890");
+const account2 = manager.addAccount("+1987654321");
+
+// Setup event handlers
+manager.on("message:+1234567890", (envelope) => {
+  console.log("Account 1:", envelope.dataMessage?.message);
+});
+
+manager.on("message:+1987654321", (envelope) => {
+  console.log("Account 2:", envelope.dataMessage?.message);
+});
+
+// Connect all
+await manager.connectAll();
+
+// Send from different accounts
+await manager.sendMessage("+1234567890", "+1111111111", "From account 1");
+await manager.sendMessage("+1987654321", "+1111111111", "From account 2");
+
+// Check status
+const statuses = manager.getAllStatus();
+console.log("Account statuses:", statuses);
+
+// Cleanup
+manager.disconnectAll();
+```
 
 ---
 

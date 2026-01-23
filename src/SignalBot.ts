@@ -40,6 +40,7 @@ export class SignalBot extends EventEmitter {
     private actionQueue: BotAction[] = [];
     private isProcessingQueue = false;
     private incomingMessageBuffer: any[] = [];
+    private activeTimers: NodeJS.Timeout[] = [];
 
     constructor(config: BotConfig, signalCliPath?: string) {
         super();
@@ -349,6 +350,11 @@ export class SignalBot extends EventEmitter {
     async stop(): Promise<void> {
         this.log('- Stopping Signal Bot...');
         this.isRunning = false;
+        
+        // Clear all active timers
+        this.activeTimers.forEach(timer => clearTimeout(timer));
+        this.activeTimers = [];
+        
         this.signalCli.disconnect();
         this.emit('stopped');
         this.log('- Bot stopped');
@@ -357,6 +363,10 @@ export class SignalBot extends EventEmitter {
     async gracefulShutdown(): Promise<void> {
         this.log('- Gracefully shutting down Signal Bot...');
         this.isRunning = false;
+        
+        // Clear all active timers
+        this.activeTimers.forEach(timer => clearTimeout(timer));
+        this.activeTimers = [];
         
         try {
             await this.signalCli.gracefulShutdown();
@@ -810,7 +820,6 @@ export class SignalBot extends EventEmitter {
     private async processActionQueue(): Promise<void> {
         if (this.isProcessingQueue || this.actionQueue.length === 0) {
             return;
-
         }
 
         this.isProcessingQueue = true;
@@ -834,11 +843,16 @@ export class SignalBot extends EventEmitter {
                             // Wait a bit for signal-cli to finish processing the files before cleanup
                             // signal-cli responds immediately but continues processing files in background
                             if (action.cleanup && action.cleanup.length > 0) {
-                                setTimeout(() => {
+                                const cleanupTimer = setTimeout(() => {
                                     action.cleanup!.forEach(filePath => {
                                         this.cleanupTempFile(filePath);
                                     });
+                                    // Remove timer from active list
+                                    const index = this.activeTimers.indexOf(cleanupTimer);
+                                    if (index > -1) this.activeTimers.splice(index, 1);
                                 }, 2000); // Wait 2 seconds for signal-cli to upload files
+                                if (cleanupTimer.unref) cleanupTimer.unref();
+                                this.activeTimers.push(cleanupTimer);
                             }
                             break;
                         case 'sendReaction':
@@ -854,7 +868,10 @@ export class SignalBot extends EventEmitter {
                     }
 
                     // Wait a bit between actions to be safe
-                    await new Promise(resolve => setTimeout(resolve, 250));
+                    await new Promise(resolve => {
+                        const timer = setTimeout(resolve, 250);
+                        if (timer.unref) timer.unref();
+                    });
                 } catch (error: any) {
                     this.log(`ERROR: Failed to execute action ${action.type}: ${error?.message || error}`, 'ERROR');
                     

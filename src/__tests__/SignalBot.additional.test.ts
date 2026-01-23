@@ -11,6 +11,9 @@ describe('SignalBot Additional Tests', () => {
     let mockConfig: BotConfig;
 
     beforeEach(() => {
+        // Use real timers for these tests
+        jest.useRealTimers();
+        
         mockConfig = {
             phoneNumber: '+1234567890',
             admins: ['+0987654321'],
@@ -28,8 +31,12 @@ describe('SignalBot Additional Tests', () => {
     afterEach(async () => {
         if (bot) {
             await bot.stop();
-            // Wait for any pending async operations to complete
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Remove all listeners to prevent memory leaks
+            bot.removeAllListeners();
+            bot.getSignalCli().removeAllListeners();
+            
+            // Wait a bit for any async operations to complete
+            await new Promise(resolve => process.nextTick(resolve));
         }
     });
 
@@ -140,6 +147,7 @@ describe('SignalBot Additional Tests', () => {
 
     describe('Message Sending', () => {
         test('should queue message for sending', async () => {
+            jest.useFakeTimers();
             bot = new SignalBot(mockConfig);
 
             const mockSignalCli = bot.getSignalCli();
@@ -148,14 +156,22 @@ describe('SignalBot Additional Tests', () => {
                 timestamp: Date.now()
             });
 
-            await bot.sendMessage('+1111111111', 'Test message');
-            // Wait for queue to process
-            await new Promise(resolve => setTimeout(resolve, 150));
+            // Send message (queued)
+            const sendPromise = bot.sendMessage('+1111111111', 'Test message');
+            
+            // Advance timers to process queue
+            jest.advanceTimersByTime(250);
+            await Promise.resolve(); // Let promises resolve
+            
+            await sendPromise;
 
             expect(sendMessageSpy).toHaveBeenCalledWith('+1111111111', 'Test message');
+            
+            jest.useRealTimers();
         });
 
         test('should queue reaction for sending', async () => {
+            jest.useFakeTimers();
             bot = new SignalBot(mockConfig);
 
             const mockSignalCli = bot.getSignalCli();
@@ -164,14 +180,22 @@ describe('SignalBot Additional Tests', () => {
                 timestamp: Date.now()
             });
 
-            await bot.sendReaction('+1111111111', '+2222222222', 123456, '👍');
-            // Wait for queue to process
-            await new Promise(resolve => setTimeout(resolve, 150));
+            // Send reaction (queued)
+            const sendPromise = bot.sendReaction('+1111111111', '+2222222222', 123456, '👍');
+            
+            // Advance timers to process queue
+            jest.advanceTimersByTime(250);
+            await Promise.resolve();
+            
+            await sendPromise;
 
             expect(sendReactionSpy).toHaveBeenCalledWith('+1111111111', '+2222222222', 123456, '👍');
+            
+            jest.useRealTimers();
         });
 
         test('should handle message with attachments', async () => {
+            jest.useFakeTimers();
             bot = new SignalBot(mockConfig);
 
             const mockSignalCli = bot.getSignalCli();
@@ -180,13 +204,20 @@ describe('SignalBot Additional Tests', () => {
                 timestamp: Date.now()
             });
 
-            await bot.sendMessageWithAttachment('+1111111111', 'Message with files', ['file1.txt', 'file2.jpg']);
-            // Wait for queue to process
-            await new Promise(resolve => setTimeout(resolve, 150));
+            // Send message with attachment (queued)
+            const sendPromise = bot.sendMessageWithAttachment('+1111111111', 'Message with files', ['file1.txt', 'file2.jpg']);
+            
+            // Advance timers to process queue and cleanup timer
+            jest.advanceTimersByTime(2500); // 250ms for queue + 2000ms for cleanup
+            await Promise.resolve();
+            
+            await sendPromise;
 
             expect(sendMessageSpy).toHaveBeenCalledWith('+1111111111', 'Message with files', {
                 attachments: ['file1.txt', 'file2.jpg']
             });
+            
+            jest.useRealTimers();
         });
     });
 

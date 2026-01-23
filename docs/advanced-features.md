@@ -6,6 +6,12 @@ This guide covers the advanced features of the Signal CLI SDK, offering a range 
 
 ## Table of Contents
 
+- [Advanced Messaging](#advanced-messaging)
+- [Identity Verification](#identity-verification)
+- [Username Management](#username-management)
+- [Multi-Account Management](#multi-account-management)
+- [Enhanced Parsing](#enhanced-parsing)
+- [Daemon Modes](#daemon-modes)
 - [Polls](#polls)
 - [Attachment Management](#attachment-management)
 - [Account Management](#account-management)
@@ -14,6 +20,638 @@ This guide covers the advanced features of the Signal CLI SDK, offering a range 
 - [Payment Notifications](#payment-notifications)
 - [Group Management](#group-management)
 - [Robust Infrastructure](#robust-infrastructure)
+
+---
+
+## Advanced Messaging
+
+Send messages with advanced formatting, mentions, quotes, and editing capabilities.
+
+### Text Styling
+
+```javascript
+const { SignalCli } = require("signal-sdk");
+const signal = new SignalCli("+1234567890");
+
+await signal.connect();
+
+// Send message with bold text
+await signal.sendMessage("+1987654321", "This is **bold** text", {
+  textStyle: [{ start: 8, length: 6, style: "BOLD" }],
+});
+
+// Send message with multiple styles
+await signal.sendMessage("+1987654321", "Bold, italic, and strikethrough", {
+  textStyle: [
+    { start: 0, length: 4, style: "BOLD" },
+    { start: 6, length: 6, style: "ITALIC" },
+    { start: 18, length: 13, style: "STRIKETHROUGH" },
+  ],
+});
+
+// Available styles: BOLD, ITALIC, STRIKETHROUGH, MONOSPACE, SPOILER
+```
+
+### Mentions
+
+```javascript
+// Send message with @mention
+await signal.sendMessage("+1987654321", "Hello @John, how are you?", {
+  mention: [
+    {
+      start: 6,
+      length: 5,
+      uuid: "user-uuid-here",
+    },
+  ],
+});
+
+// Multiple mentions
+await signal.sendMessage("group-id-123", "@Alice and @Bob, please review", {
+  mention: [
+    { start: 0, length: 6, uuid: "alice-uuid" },
+    { start: 11, length: 4, uuid: "bob-uuid" },
+  ],
+});
+```
+
+### Quote Messages (Replies)
+
+```javascript
+// Reply to a message
+await signal.sendMessage("+1987654321", "That's a great point!", {
+  quoteTimestamp: 1705843200000,
+  quoteAuthor: "+1987654321",
+  quoteMessage: "What do you think about the new SDK?",
+});
+
+// Reply with mentions in quoted message
+await signal.sendMessage("+1987654321", "I agree!", {
+  quoteTimestamp: 1705843200000,
+  quoteAuthor: "+1987654321",
+  quoteMessage: "@John has a good idea",
+  quoteMention: [{ start: 0, length: 5, uuid: "john-uuid" }],
+});
+```
+
+### Edit Messages
+
+```javascript
+// Edit a previously sent message
+await signal.sendMessage("+1987654321", "Corrected text here", {
+  editTimestamp: 1705843200000, // Timestamp of message to edit
+});
+
+// Note: Only works with messages sent recently (within edit window)
+```
+
+### Link Previews
+
+```javascript
+// Send message with link preview
+await signal.sendMessage("+1987654321", "Check out https://example.com", {
+  previewUrl: "https://example.com",
+});
+```
+
+### Reply to Stories
+
+```javascript
+// Reply to a story
+await signal.sendMessage("+1987654321", "Cool story!", {
+  storyTimestamp: 1705843200000,
+  storyAuthor: "+1987654321",
+});
+```
+
+### Receive Messages with Options
+
+```javascript
+// Receive with advanced options
+const messages = await signal.receive({
+  timeout: 10, // Wait up to 10 seconds
+  maxMessages: 50, // Receive maximum 50 messages
+  ignoreAttachments: true, // Skip downloading attachments (faster)
+  ignoreStories: true, // Ignore story messages
+  sendReadReceipts: false, // Don't send read receipts
+});
+
+// Process received messages
+messages.forEach((msg) => {
+  if (msg.dataMessage) {
+    console.log("From:", msg.source);
+    console.log("Message:", msg.dataMessage.message);
+
+    // Check for mentions
+    if (msg.dataMessage.mention) {
+      console.log("Mentions:", msg.dataMessage.mention);
+    }
+
+    // Check for quotes
+    if (msg.dataMessage.quote) {
+      console.log("Replying to:", msg.dataMessage.quote.text);
+    }
+  }
+});
+```
+
+### Advanced Messaging Use Cases
+
+- **Rich formatting**: Emphasize important text with bold/italic
+- **Team communication**: Mention team members to get their attention
+- **Threaded conversations**: Reply to specific messages with quotes
+- **Message corrections**: Edit typos or mistakes in sent messages
+- **Link sharing**: Share URLs with automatic previews
+- **Story engagement**: React and respond to stories
+
+---
+
+## Identity Verification
+
+Verify contact identities using safety numbers for secure communication.
+
+### Get Safety Number
+
+```javascript
+// Retrieve safety number for a contact
+const safetyInfo = await signal.getSafetyNumber("+1987654321");
+
+console.log("Safety Number:", safetyInfo.safetyNumber);
+console.log("Identity Key:", safetyInfo.identityKey);
+console.log("Trusted:", safetyInfo.trusted);
+
+// Display safety number in groups of 5 digits
+const formatted = safetyInfo.safetyNumber.match(/.{1,5}/g).join(" ");
+console.log("Formatted:", formatted);
+// Output: 12345 67890 12345 67890 12345 67890 12345 67890 12345 67890 12345 67890
+```
+
+### Verify Safety Number
+
+```javascript
+// Verify and mark as trusted
+const result = await signal.verifySafetyNumber(
+  "+1987654321",
+  "123456789012345678901234567890123456789012345678901234567890",
+);
+
+if (result.success) {
+  console.log("✓ Safety number verified and marked as trusted");
+} else {
+  console.log("✗ Safety number does not match");
+}
+```
+
+### List Untrusted Identities
+
+```javascript
+// Check for identity changes
+const untrusted = await signal.listUntrustedIdentities();
+
+if (untrusted.length > 0) {
+  console.log("⚠️  Identity changes detected:");
+  untrusted.forEach((identity) => {
+    console.log(`  ${identity.number}`);
+    console.log(`    New key: ${identity.identityKey}`);
+    console.log(`    Added: ${new Date(identity.addedDate).toLocaleString()}`);
+  });
+} else {
+  console.log("✓ All identities are trusted");
+}
+
+// Check specific contact
+const contactUntrusted = await signal.listUntrustedIdentities("+1987654321");
+if (contactUntrusted.length > 0) {
+  console.log("This contact's identity has changed - verification required");
+}
+```
+
+### Identity Verification Workflow
+
+```javascript
+// Complete verification workflow
+async function verifyContact(phoneNumber) {
+  // 1. Get safety number
+  const safetyInfo = await signal.getSafetyNumber(phoneNumber);
+
+  console.log("\nSafety Number Verification");
+  console.log("===========================");
+  console.log("Contact:", phoneNumber);
+  console.log("Safety Number:", safetyInfo.safetyNumber);
+  console.log("\n⚠️  Compare this number in person or via a trusted channel");
+
+  // 2. User confirms match (in real app, get user input)
+  const userConfirms = true; // Replace with actual user confirmation
+
+  if (userConfirms) {
+    // 3. Mark as trusted
+    const result = await signal.verifySafetyNumber(
+      phoneNumber,
+      safetyInfo.safetyNumber,
+    );
+
+    if (result.success) {
+      console.log("\n✓ Identity verified and marked as trusted");
+      return true;
+    }
+  }
+
+  console.log("\n✗ Verification cancelled or failed");
+  return false;
+}
+
+// Usage
+await verifyContact("+1987654321");
+```
+
+### Identity Verification Use Cases
+
+- **High-security communications**: Verify identities before sensitive conversations
+- **Key change monitoring**: Detect when contacts reinstall Signal
+- **Compliance requirements**: Meet security verification requirements
+- **Trust establishment**: Build trust in new contact relationships
+
+---
+
+## Username Management
+
+Manage Signal usernames for privacy-focused contact sharing.
+
+### Set Username
+
+```javascript
+// Set your Signal username
+const result = await signal.setUsername("john.doe.42");
+
+console.log("Username:", result.username);
+console.log("Username Link:", result.usernameLink);
+// Output: https://signal.me/#u/john.doe.42
+
+console.log(
+  "\nShare this link to let people contact you without your phone number!",
+);
+```
+
+### Get Username Link
+
+```javascript
+// Retrieve your username link
+const link = await signal.getUsernameLink();
+
+console.log("Your username link:", link);
+// Can be shared on social media, websites, etc.
+```
+
+### Delete Username
+
+```javascript
+// Remove your username
+await signal.deleteUsername();
+console.log("✓ Username deleted");
+```
+
+### Username Requirements
+
+- **Characters**: Alphanumeric and dots only (a-z, 0-9, .)
+- **No spaces**: Cannot contain spaces or special characters
+- **Unique**: Must be unique across all Signal users
+- **Case-insensitive**: john.doe and John.Doe are the same
+- **Minimum length**: At least 3 characters
+- **Dots**: Cannot start or end with a dot, no consecutive dots
+
+### Valid Username Examples
+
+```javascript
+// Valid usernames
+await signal.setUsername("john.doe"); // ✓
+await signal.setUsername("alice.2023"); // ✓
+await signal.setUsername("bob_crypto"); // ✓ (underscores allowed)
+await signal.setUsername("charlie.42"); // ✓
+
+// Invalid usernames
+await signal.setUsername("john doe"); // ✗ (space)
+await signal.setUsername("alice@signal"); // ✗ (special char)
+await signal.setUsername(".bob"); // ✗ (starts with dot)
+await signal.setUsername("charlie.."); // ✗ (consecutive dots)
+```
+
+### Username Management Use Cases
+
+- **Privacy**: Share contact info without revealing phone number
+- **Professional accounts**: Create business or professional Signal presence
+- **Public figures**: Allow fans/followers to contact you
+- **Bot services**: Provide easy-to-remember bot usernames
+- **Event coordination**: Share temporary contact for events
+
+---
+
+## Multi-Account Management
+
+Manage multiple Signal accounts simultaneously with automatic event routing.
+
+### Setup Multi-Account Manager
+
+```javascript
+const { MultiAccountManager } = require("signal-sdk");
+
+const manager = new MultiAccountManager();
+
+// Add accounts
+const account1 = manager.addAccount("+1234567890");
+const account2 = manager.addAccount("+1987654321");
+
+console.log("Added", manager.getAccounts().size, "accounts");
+```
+
+### Connect All Accounts
+
+```javascript
+// Connect all accounts simultaneously
+await manager.connectAll();
+console.log("✓ All accounts connected");
+
+// Check connection status
+const statuses = manager.getAllStatus();
+statuses.forEach((status) => {
+  console.log(
+    `${status.account}: ${status.connected ? "Connected" : "Disconnected"}`,
+  );
+});
+```
+
+### Send from Different Accounts
+
+```javascript
+// Send from account 1
+await manager.sendMessage(
+  "+1234567890",
+  "+1111111111",
+  "Message from account 1",
+);
+
+// Send from account 2
+await manager.sendMessage(
+  "+1987654321",
+  "+1111111111",
+  "Message from account 2",
+);
+```
+
+### Receive Messages by Account
+
+```javascript
+// Receive for specific account
+const messages1 = await manager.receive("+1234567890", {
+  timeout: 5,
+  ignoreStories: true,
+});
+
+const messages2 = await manager.receive("+1987654321", {
+  timeout: 5,
+  ignoreStories: true,
+});
+
+console.log(`Account 1: ${messages1.length} messages`);
+console.log(`Account 2: ${messages2.length} messages`);
+```
+
+### Event Handling by Account
+
+```javascript
+// Listen to specific account
+manager.on("message:+1234567890", (envelope) => {
+  console.log("Account 1 received:", envelope.dataMessage?.message);
+});
+
+manager.on("message:+1987654321", (envelope) => {
+  console.log("Account 2 received:", envelope.dataMessage?.message);
+});
+
+// Listen to all messages with account context
+manager.on("message", (account, envelope) => {
+  console.log(`${account}: ${envelope.dataMessage?.message}`);
+});
+
+// Connection events
+manager.on("connected:+1234567890", () => {
+  console.log("Account 1 connected");
+});
+
+manager.on("disconnected:+1987654321", () => {
+  console.log("Account 2 disconnected");
+});
+
+// Error handling
+manager.on("error:+1234567890", (error) => {
+  console.error("Account 1 error:", error);
+});
+```
+
+### Account Management
+
+```javascript
+// Get specific account
+const account = manager.getAccount("+1234567890");
+if (account) {
+  // Use SignalCli methods directly
+  const contacts = await account.listContacts();
+  console.log(`Account 1 has ${contacts.length} contacts`);
+}
+
+// Remove account
+manager.removeAccount("+1987654321");
+
+// Cleanup
+manager.disconnectAll();
+```
+
+### Multi-Account Use Cases
+
+- **Business & Personal**: Separate work and personal communications
+- **Customer Support**: Multiple agents with dedicated numbers
+- **Bot Services**: Manage multiple bot instances
+- **Testing**: Test interactions between accounts
+- **Organization**: Different accounts for different projects/teams
+
+---
+
+## Enhanced Parsing
+
+Extract detailed information from contacts and groups.
+
+### Parse Contact Profiles
+
+```javascript
+// Get contacts with enhanced parsing
+const contacts = await signal.getContactsWithProfiles();
+
+contacts.forEach((contact) => {
+  console.log("\nContact:", contact.number);
+  console.log("  Given Name:", contact.givenName || "N/A");
+  console.log("  Family Name:", contact.familyName || "N/A");
+  console.log("  Username:", contact.username ? `@${contact.username}` : "N/A");
+  console.log("  MobileCoin:", contact.mobileCoinAddress || "N/A");
+  console.log("  Profile Key:", contact.profileKey || "N/A");
+  console.log("  Registered:", contact.registered ? "Yes" : "No");
+});
+
+// Or parse manually
+const rawContacts = await signal.listContacts();
+const enhanced = rawContacts.map((c) => signal.parseContactProfile(c));
+```
+
+### Parse Group Details
+
+```javascript
+// Get groups with enhanced parsing
+const groups = await signal.getGroupsWithDetails();
+
+groups.forEach((group) => {
+  console.log("\nGroup:", group.name);
+  console.log("  ID:", group.groupId);
+  console.log("  Members:", group.members.length);
+  console.log("  Pending:", group.pendingMembers?.length || 0);
+  console.log("  Banned:", group.bannedMembers?.length || 0);
+
+  if (group.inviteLink) {
+    console.log("  Invite Link:", group.inviteLink);
+  }
+
+  console.log("  Version:", group.version);
+  console.log("  Master Key:", group.masterKey?.substring(0, 20) + "...");
+
+  // List pending members
+  if (group.pendingMembers && group.pendingMembers.length > 0) {
+    console.log("  Pending Members:");
+    group.pendingMembers.forEach((member) => {
+      console.log(`    - ${member}`);
+    });
+  }
+
+  // List banned members
+  if (group.bannedMembers && group.bannedMembers.length > 0) {
+    console.log("  Banned Members:");
+    group.bannedMembers.forEach((member) => {
+      console.log(`    - ${member}`);
+    });
+  }
+});
+```
+
+### Extract Payment Addresses
+
+```javascript
+// Find contacts with MobileCoin addresses
+const contacts = await signal.getContactsWithProfiles();
+
+const withPayment = contacts.filter((c) => c.mobileCoinAddress);
+
+console.log(`\n${withPayment.length} contacts have payment addresses:\n`);
+withPayment.forEach((contact) => {
+  console.log(`${contact.givenName} ${contact.familyName}`);
+  console.log(`  Address: ${contact.mobileCoinAddress}`);
+});
+```
+
+### Group Moderation
+
+```javascript
+// Get group with details
+const groups = await signal.getGroupsWithDetails();
+const myGroup = groups.find((g) => g.name === "My Group");
+
+if (myGroup) {
+  console.log("\nGroup Moderation Status:");
+  console.log("========================");
+  console.log("Active Members:", myGroup.members.length);
+  console.log("Pending Approval:", myGroup.pendingMembers?.length || 0);
+  console.log("Banned:", myGroup.bannedMembers?.length || 0);
+
+  // Manage banned members
+  if (myGroup.bannedMembers && myGroup.bannedMembers.length > 0) {
+    console.log("\n⚠️  Review banned members:");
+    myGroup.bannedMembers.forEach((member) => {
+      console.log(`  - ${member}`);
+    });
+  }
+}
+```
+
+### Enhanced Parsing Use Cases
+
+- **Contact directories**: Build detailed contact databases
+- **Payment integrations**: Identify contacts with payment capabilities
+- **Group moderation**: Manage pending and banned members
+- **Invite management**: Generate and share group invite links
+- **Profile analysis**: Analyze contact profile completeness
+
+---
+
+## Daemon Modes
+
+Connect to signal-cli daemon using different transport methods.
+
+### Unix Socket Mode
+
+```javascript
+const { SignalCli } = require("signal-sdk");
+
+const signal = new SignalCli("+1234567890", undefined, {
+  socketPath: "/var/run/signal-cli.sock",
+});
+
+await signal.connect();
+console.log("✓ Connected via Unix socket");
+```
+
+### TCP Mode
+
+```javascript
+// Connect to remote daemon via TCP
+const signal = new SignalCli("+1234567890", undefined, {
+  tcpHost: "localhost",
+  tcpPort: 7583,
+});
+
+await signal.connect();
+console.log("✓ Connected via TCP");
+
+// For remote servers
+const remoteSignal = new SignalCli("+1234567890", undefined, {
+  tcpHost: "signal-server.example.com",
+  tcpPort: 7583,
+});
+```
+
+### HTTP Mode
+
+```javascript
+// Connect to HTTP REST API
+const signal = new SignalCli("+1234567890", undefined, {
+  httpHost: "localhost",
+  httpPort: 8080,
+});
+
+await signal.connect();
+console.log("✓ Connected via HTTP");
+```
+
+### Default JSON-RPC Mode (STDIO)
+
+```javascript
+// Default mode - spawns signal-cli process
+const signal = new SignalCli("+1234567890");
+await signal.connect();
+// Uses stdin/stdout JSON-RPC communication
+```
+
+### Daemon Mode Use Cases
+
+- **Shared daemon**: Multiple applications connecting to one daemon
+- **Remote servers**: Connect to signal-cli running on different machines
+- **Containerized deployments**: Use sockets for inter-container communication
+- **Load balancing**: Distribute connections across multiple daemons
+- **HTTP APIs**: Build REST APIs on top of signal-cli
 
 ---
 
@@ -200,6 +838,84 @@ accounts.forEach((account) => {
 - **Multi-account management**: Manage multiple Signal accounts
 - **Backup and restore**: Export account settings for backup
 - **Bot profiles**: Set appropriate names and avatars for bots
+
+### Phone Number Change
+
+Change your Signal account to a new phone number with two-step verification process.
+
+```javascript
+// Step 1: Start the change number process
+await signal.startChangeNumber("+33612345678");
+
+// Wait for SMS/voice verification code...
+
+// Step 2: Complete the change with verification code
+await signal.finishChangeNumber("+33612345678", "123456");
+
+// With PIN if registration lock is enabled
+await signal.finishChangeNumber("+33612345678", "123456", "1234");
+```
+
+**Voice Verification:**
+
+```javascript
+// Use voice call instead of SMS
+await signal.startChangeNumber("+33612345678", true);
+```
+
+**With Captcha:**
+
+```javascript
+// If captcha is required
+const captcha = "captcha_token_from_signalcaptchas.org";
+await signal.startChangeNumber("+33612345678", false, captcha);
+```
+
+**Error Handling:**
+
+```javascript
+try {
+  await signal.startChangeNumber("+33612345678");
+} catch (error) {
+  if (error.message.includes("captcha")) {
+    // Get captcha from https://signalcaptchas.org/registration/generate.html
+    const captcha = await getCaptchaToken();
+    await signal.startChangeNumber("+33612345678", false, captcha);
+  } else if (error.message.includes("rate limit")) {
+    // Wait and retry
+    await sleep(3600000); // 1 hour
+  }
+}
+```
+
+### Payment Notifications
+
+Send MobileCoin payment notifications through Signal's cryptocurrency integration.
+
+```javascript
+// Send payment notification with receipt and note
+await signal.sendPaymentNotification("+33612345678", {
+  receipt: "base64EncodedMobileCoinReceipt",
+  note: "Thanks for dinner! 🍕",
+});
+
+// Without note
+await signal.sendPaymentNotification("+33612345678", {
+  receipt: "base64EncodedMobileCoinReceipt",
+});
+```
+
+**Use Cases:**
+
+- **Cryptocurrency payments**: Notify recipients of MobileCoin transactions
+- **Payment confirmations**: Send payment receipts with custom notes
+- **P2P payments**: Integrate MobileCoin payments in Signal conversations
+
+**Requirements:**
+
+- MobileCoin wallet integration
+- Valid payment receipt blob (base64 encoded)
+- Recipient must have Signal with MobileCoin enabled
 
 ---
 
@@ -572,29 +1288,6 @@ interface RateLimitChallengeResult {
   retryAfter?: number; // Seconds to wait before retry
   message?: string; // Additional server message
 }
-```
-
----
-
-## Phone Number Changes
-
-### Change Registered Number
-
-Change the phone number associated with your Signal account.
-
-```javascript
-// Step 1: Start the change process
-const changeSession = await signal.startChangeNumber("+1999999999");
-console.log(`Session ID: ${changeSession.session}`);
-
-// Step 2: Wait for SMS verification code
-// User receives SMS on new number
-
-// Step 3: Finish with verification code
-await signal.finishChangeNumber("123456"); // SMS code
-
-// Optional: Include PIN if registration lock is enabled
-await signal.finishChangeNumber("123456", "registration-pin");
 ```
 
 ---

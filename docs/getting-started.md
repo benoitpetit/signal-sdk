@@ -144,7 +144,22 @@ await signal.sendMessage("+33000000000", "Reliable messaging!");
 ### Receive Messages
 
 ```javascript
-// Listen for incoming messages
+// New receive() method with options (replaces receiveMessages())
+const messages = await signal.receive({
+  timeout: 10, // Wait up to 10 seconds
+  maxMessages: 50, // Maximum 50 messages
+  ignoreAttachments: true, // Skip downloading attachments (faster)
+  ignoreStories: true, // Ignore story messages
+  sendReadReceipts: false, // Don't send read receipts
+});
+
+messages.forEach((msg) => {
+  if (msg.dataMessage) {
+    console.log(`From ${msg.source}: ${msg.dataMessage.message}`);
+  }
+});
+
+// Or listen for incoming messages with events
 signal.on("message", (message) => {
   console.log(`New message from ${message.source}: ${message.body}`);
 

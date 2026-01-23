@@ -37,7 +37,13 @@ examples/
 │   ├── 02-quick-start.js         # Quick start guide
 │   ├── 03-group-management.js    # Groups & management
 │   ├── 04-contact-management.js  # Contacts & blocking
-│   └── 05-file-handling.js       # Files & attachments
+│   ├── 05-file-handling.js       # Files & attachments
+│   ├── 13-multi-account.js       # Multi-account management ✨ NEW
+│   ├── 14-advanced-messaging.js  # Text styling, mentions, quotes ✨ NEW
+│   ├── 15-identity-verification.js # Safety numbers ✨ NEW
+│   ├── 16-username-management.js # Username features ✨ NEW
+│   ├── 17-enhanced-parsing.js    # Profile & group parsing ✨ NEW
+│   └── 18-phone-number-change-payment.js # Number change & payments ✨ NEW
 ├── bot/                    # Bot framework examples
 │   ├── 01-minimal-bot.js         # Simple bot setup
 │   └── 02-advanced-bot.js        # Full-featured bot
@@ -202,16 +208,323 @@ node examples/sdk/05-file-handling.js
 
 **What it does**:
 
-- Sends a local file as an attachment
-- Sends multiple files at once
-- Downloads an image from a URL and sends it
-- Creates a temporary file to send
+- Sends files as attachments
+- Downloads attachments from messages
+- Handles different file types
+- Manages file cleanup
 
 **Key Features**:
 
-- Sending local files
-- Sending multiple attachments
-- Downloading and sending remote files
+- File attachments
+- Download management
+- Multiple file types
+
+### 13-multi-account.js - Multi-Account Management
+
+**Purpose**: Demonstrates managing multiple Signal accounts simultaneously
+
+```bash
+node examples/sdk/13-multi-account.js
+```
+
+**What it does**:
+
+- Creates a MultiAccountManager instance
+- Adds multiple Signal accounts
+- Connects all accounts simultaneously
+- Routes messages to/from different accounts
+- Monitors status of all accounts
+- Handles events per account
+
+**Key Features**:
+
+- Multi-account orchestration
+- Event routing per account
+- Simultaneous connections
+- Status monitoring
+- Account-specific messaging
+
+**Use Cases**:
+
+- Managing business and personal accounts
+- Bot services with multiple numbers
+- Testing and development
+- Customer service with multiple agents
+
+**Example Output**:
+
+```
+Multi-Account Manager Example
+=============================
+
+1. Adding accounts...
+✓ Added account: +1234567890
+✓ Added account: +1987654321
+
+2. Connecting all accounts...
+✓ All accounts connected
+
+3. Checking account status...
+Account: +1234567890 - Connected: true
+Account: +1987654321 - Connected: true
+
+4. Sending messages from different accounts...
+✓ Message sent from +1234567890
+✓ Message sent from +1987654321
+```
+
+### 14-advanced-messaging.js - Advanced Messaging Features
+
+**Purpose**: Demonstrates advanced message options (text styling, mentions, quotes)
+
+```bash
+node examples/sdk/14-advanced-messaging.js
+```
+
+**What it does**:
+
+- Sends messages with text styling (bold, italic, strikethrough)
+- Adds mentions to messages
+- Quotes previous messages
+- Edits sent messages
+- Replies to stories
+- Generates link previews
+
+**Key Features**:
+
+- **Text Styling**: Bold, italic, strikethrough, monospace
+- **Mentions**: Tag users with @mentions
+- **Quotes**: Reply to specific messages with context
+- **Edits**: Correct previously sent messages
+- **Story Replies**: Respond to stories
+- **Link Previews**: Rich URL previews
+
+**Example Output**:
+
+```
+Advanced Messaging Features
+===========================
+
+1. Sending message with text styling...
+Sent: **Bold text**, *italic text*, ~~strikethrough~~
+
+2. Sending message with mention...
+Sent: Hello @John, how are you?
+
+3. Replying to a message (quote)...
+Quoting: "Original message"
+Sent: That's a great point!
+
+4. Editing a previous message...
+Sent corrected message
+
+5. Replying to a story...
+Sent story reply
+```
+
+### 15-identity-verification.js - Identity Verification
+
+**Purpose**: Demonstrates safety number verification and identity management
+
+```bash
+node examples/sdk/15-identity-verification.js
+```
+
+**What it does**:
+
+- Retrieves safety numbers for contacts
+- Verifies safety numbers
+- Lists untrusted identities
+- Manages trust relationships
+- Handles identity key changes
+
+**Key Features**:
+
+- Safety number retrieval
+- Identity verification
+- Trust management
+- Security monitoring
+- Key change detection
+
+**Use Cases**:
+
+- Verifying new contacts
+- Monitoring identity changes
+- Security-critical communications
+- Compliance requirements
+
+**Example Output**:
+
+```
+Identity Verification Example
+=============================
+
+1. Getting safety number for contact...
+Contact: +1234567890
+Safety Number: 12345 67890 12345 67890 12345 67890 12345 67890 12345 67890 12345 67890
+Trusted: false
+
+2. Verifying safety number...
+✓ Safety number verified and marked as trusted
+
+3. Listing untrusted identities...
+Found 0 untrusted identities
+```
+
+### 16-username-management.js - Username Management
+
+**Purpose**: Demonstrates Signal username features
+
+```bash
+node examples/sdk/16-username-management.js
+```
+
+**What it does**:
+
+- Sets a Signal username
+- Retrieves username link for sharing
+- Deletes username
+- Manages username privacy
+
+**Key Features**:
+
+- Username creation
+- Username link generation
+- Username deletion
+- Privacy control
+
+**Username Requirements**:
+
+- Alphanumeric characters and dots only
+- No spaces or special characters
+- Must be unique across Signal
+- Case-insensitive
+
+**Use Cases**:
+
+- Privacy-focused sharing (no phone number)
+- Public contact information
+- Professional accounts
+- Bot services
+
+**Example Output**:
+
+```
+Username Management Example
+===========================
+
+1. Setting username...
+✓ Username set: john.doe.42
+✓ Username link: https://signal.me/#u/john.doe.42
+
+Share this link to let people contact you without revealing your phone number!
+
+2. Getting username link...
+Your username link: https://signal.me/#u/john.doe.42
+
+3. Deleting username...
+✓ Username deleted
+```
+
+### 17-enhanced-parsing.js - Enhanced Parsing
+
+**Purpose**: Demonstrates enhanced contact and group parsing with additional fields
+
+```bash
+node examples/sdk/17-enhanced-parsing.js
+```
+
+**What it does**:
+
+- Parses contact profiles with detailed information
+- Extracts group details with advanced fields
+- Retrieves pending and banned members
+- Gets group invite links
+- Accesses MobileCoin addresses
+
+**Key Features**:
+
+- **Contact Parsing**:
+  - Given name and family name
+  - MobileCoin payment address
+  - Profile key and username
+  - Registration status
+- **Group Parsing**:
+  - Pending members list
+  - Banned members list
+  - Group invite links
+  - Group version and master key
+
+**Use Cases**:
+
+- Building contact directories
+- Payment integrations
+- Advanced group management
+- Member moderation
+- Invite link management
+
+**Example Output**:
+
+```
+Enhanced Parsing Example
+========================
+
+1. Getting contacts with profiles...
+
+Contact: John Doe
+  Given Name: John
+  Family Name: Doe
+  Username: @john.doe.42
+  MobileCoin: mc1abc123...
+  Registered: true
+
+2. Getting groups with details...
+
+Group: Family Chat
+  Members: 5
+  Pending Members: 1
+  Banned Members: 0
+  Invite Link: https://signal.group/#abc123...
+  Version: 2
+```
+
+**Key Features**:
+
+- Enhanced profile parsing with givenName/familyName
+- MobileCoin address extraction
+- Detailed group membership information
+- Helper methods for parsing
+
+---
+
+### 18-phone-number-change-payment.js - Phone Number Change & Payments ✨
+
+**Purpose**: Demonstrates phone number change and payment notifications
+
+```bash
+node examples/sdk/18-phone-number-change-payment.js
+```
+
+**What it demonstrates**:
+
+- Starting phone number change process (SMS or voice)
+- Completing number change with verification code
+- Handling captcha challenges
+- Sending MobileCoin payment notifications
+- Payment receipts with custom notes
+
+**Key Features**:
+
+- Two-step phone number verification
+- Voice call and captcha support
+- MobileCoin payment integration
+- Error handling for rate limits
+
+**Use Cases**:
+
+- Migrating to a new phone number
+- Cryptocurrency payment notifications
+- Account recovery scenarios
 
 ---
 

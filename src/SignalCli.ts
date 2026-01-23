@@ -28,6 +28,7 @@ import {
     StickerPackUploadResult,
     RateLimitChallengeResult,
     ChangeNumberSession,
+    ReceiveOptions,
     UploadProgress,
     PollCreateOptions,
     PollVoteOptions,
@@ -108,6 +109,27 @@ export class SignalCli extends EventEmitter {
     }
 
     public async connect(): Promise<void> {
+        const daemonMode = this.config.daemonMode || 'json-rpc';
+        
+        switch (daemonMode) {
+            case 'json-rpc':
+                await this.connectJsonRpc();
+                break;
+            case 'unix-socket':
+                await this.connectUnixSocket();
+                break;
+            case 'tcp':
+                await this.connectTcp();
+                break;
+            case 'http':
+                await this.connectHttp();
+                break;
+            default:
+                throw new Error(`Invalid daemon mode: ${daemonMode}`);
+        }
+    }
+
+    private async connectJsonRpc(): Promise<void> {
         const args = this.account ? ['-a', this.account, 'jsonRpc'] : ['jsonRpc'];
         
         if (process.platform === 'win32') {
@@ -158,11 +180,142 @@ export class SignalCli extends EventEmitter {
         });
     }
 
+    private async connectUnixSocket(): Promise<void> {
+        const net = await import('net');
+        const socketPath = this.config.socketPath || '/tmp/signal-cli.sock';
+        
+        return new Promise((resolve, reject) => {
+            const socket = net.createConnection(socketPath);
+            
+            socket.on('connect', () => {
+                this.logger.debug('Connected to Unix socket:', socketPath);
+                
+                socket.on('data', (data) => this.handleRpcResponse(data.toString('utf8')));
+                socket.on('error', (err) => this.emit('error', err));
+                socket.on('close', () => {
+                    this.emit('close', 0);
+                });
+                
+                (this as any).socket = socket;
+                resolve();
+            });
+            
+            socket.on('error', (err) => {
+                reject(new ConnectionError(`Failed to connect to Unix socket: ${err.message}`));
+            });
+            
+            setTimeout(() => reject(new ConnectionError('Unix socket connection timeout')), this.config.connectionTimeout);
+        });
+    }
+
+    private async connectTcp(): Promise<void> {
+        const net = await import('net');
+        const host = this.config.tcpHost || 'localhost';
+        const port = this.config.tcpPort || 7583;
+        
+        return new Promise((resolve, reject) => {
+            const socket = net.createConnection(port, host);
+            
+            socket.on('connect', () => {
+                this.logger.debug(`Connected to TCP: ${host}:${port}`);
+                
+                socket.on('data', (data) => this.handleRpcResponse(data.toString('utf8')));
+                socket.on('error', (err) => this.emit('error', err));
+                socket.on('close', () => {
+                    this.emit('close', 0);
+                });
+                
+                (this as any).socket = socket;
+                resolve();
+            });
+            
+            socket.on('error', (err) => {
+                reject(new ConnectionError(`Failed to connect to TCP: ${err.message}`));
+            });
+            
+            setTimeout(() => reject(new ConnectionError('TCP connection timeout')), this.config.connectionTimeout);
+        });
+    }
+
+    private async connectHttp(): Promise<void> {
+        const baseUrl = this.config.httpBaseUrl || 'http://localhost:8080';
+        
+        // For HTTP mode, we don't maintain a persistent connection
+        // Instead, we'll use the httpRequest method for each operation
+        this.logger.debug('HTTP mode configured:', baseUrl);
+        (this as any).httpBaseUrl = baseUrl;
+        
+        // Test connection by sending a simple request
+        try {
+            await this.httpRequest({ jsonrpc: '2.0', method: 'version', params: {}, id: uuidv4() });
+            this.logger.debug('HTTP connection verified');
+        } catch (error) {
+            throw new ConnectionError(`Failed to connect to HTTP endpoint: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    private async httpRequest(request: JsonRpcRequest): Promise<any> {
+        const https = await import(this.config.httpBaseUrl?.startsWith('https:') ? 'https' : 'http');
+        const baseUrl = this.config.httpBaseUrl || 'http://localhost:8080';
+        const url = new URL('/api/v1/rpc', baseUrl);
+        
+        return new Promise((resolve, reject) => {
+            const data = JSON.stringify(request);
+            const options = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(data)
+                }
+            };
+            
+            const req = https.request(url, options, (res: any) => {
+                let body = '';
+                res.on('data', (chunk: any) => body += chunk);
+                res.on('end', () => {
+                    try {
+                        const response: JsonRpcResponse = JSON.parse(body);
+                        if (response.error) {
+                            reject(new Error(`[${response.error.code}] ${response.error.message}`));
+                        } else {
+                            resolve(response.result);
+                        }
+                    } catch (error) {
+                        reject(new Error(`Failed to parse HTTP response: ${body}`));
+                    }
+                });
+            });
+            
+            req.on('error', (err: any) => reject(new ConnectionError(`HTTP request failed: ${err.message}`)));
+            req.setTimeout(this.config.requestTimeout, () => {
+                req.destroy();
+                reject(new ConnectionError('HTTP request timeout'));
+            });
+            
+            req.write(data);
+            req.end();
+        });
+    }
+
     public disconnect(): void {
-        if (this.cliProcess) {
+        const daemonMode = this.config.daemonMode || 'json-rpc';
+        
+        // Close socket connections
+        if (daemonMode === 'unix-socket' || daemonMode === 'tcp') {
+            const socket = (this as any).socket;
+            if (socket && !socket.destroyed) {
+                socket.destroy();
+                (this as any).socket = null;
+            }
+        }
+        
+        // Close process for json-rpc mode
+        if (daemonMode === 'json-rpc' && this.cliProcess) {
             this.cliProcess.kill();
             this.cliProcess = null;
         }
+        
+        // For HTTP mode, nothing to disconnect (stateless)
     }
 
     public async gracefulShutdown(): Promise<void> {
@@ -182,13 +335,18 @@ export class SignalCli extends EventEmitter {
             this.cliProcess.kill('SIGTERM');
 
             // Force kill after 5 seconds if it doesn't close gracefully
-            setTimeout(() => {
+            const forceKillTimer = setTimeout(() => {
                 if (this.cliProcess) {
                     this.cliProcess.kill('SIGKILL');
                     this.cliProcess = null;
                     resolve();
                 }
             }, 5000);
+            
+            // Use unref() to prevent this timer from keeping the process alive
+            if (forceKillTimer.unref) {
+                forceKillTimer.unref();
+            }
         });
     }
 
@@ -267,8 +425,46 @@ export class SignalCli extends EventEmitter {
     }
 
     private async sendJsonRpcRequest(method: string, params?: any): Promise<any> {
+        const daemonMode = this.config.daemonMode || 'json-rpc';
+        
+        // For HTTP mode, use HTTP requests
+        if (daemonMode === 'http') {
+            const id = uuidv4();
+            const request: JsonRpcRequest = {
+                jsonrpc: '2.0',
+                method,
+                params,
+                id,
+            };
+            return await this.httpRequest(request);
+        }
+        
+        // For socket modes (Unix socket, TCP), write to socket
+        if (daemonMode === 'unix-socket' || daemonMode === 'tcp') {
+            const socket = (this as any).socket;
+            if (!socket || socket.destroyed) {
+                throw new ConnectionError('Not connected. Call connect() first.');
+            }
+
+            const id = uuidv4();
+            const request: JsonRpcRequest = {
+                jsonrpc: '2.0',
+                method,
+                params,
+                id,
+            };
+
+            const promise = new Promise((resolve, reject) => {
+                this.requestPromises.set(id, { resolve, reject });
+            });
+
+            socket.write(JSON.stringify(request) + '\n');
+            return promise;
+        }
+        
+        // Default JSON-RPC mode with stdin/stdout
         if (!this.cliProcess || !this.cliProcess.stdin) {
-            throw new Error('Not connected. Call connect() first.');
+            throw new ConnectionError('Not connected. Call connect() first.');
         }
 
         const id = uuidv4();
@@ -317,7 +513,7 @@ export class SignalCli extends EventEmitter {
             params.recipients = [recipient];
         }
 
-        // Only add safe, well-known options to avoid JSON parsing issues
+        // Add well-known options
         if (options.attachments && options.attachments.length > 0) {
             params.attachments = options.attachments;
         }
@@ -325,7 +521,72 @@ export class SignalCli extends EventEmitter {
             params.expiresInSeconds = options.expiresInSeconds;
         }
         if (options.isViewOnce) {
-            params.isViewOnce = options.isViewOnce;
+            params.viewOnce = options.isViewOnce;
+        }
+        
+        // Add advanced text formatting options
+        if (options.mentions && options.mentions.length > 0) {
+            params.mentions = options.mentions.map(m => ({
+                start: m.start,
+                length: m.length,
+                number: m.recipient || m.number
+            }));
+        }
+        
+        if (options.textStyles && options.textStyles.length > 0) {
+            params.textStyles = options.textStyles.map(ts => ({
+                start: ts.start,
+                length: ts.length,
+                style: ts.style
+            }));
+        }
+        
+        // Add quote/reply information
+        if (options.quote) {
+            params.quoteTimestamp = options.quote.timestamp;
+            params.quoteAuthor = options.quote.author;
+            if (options.quote.text) {
+                params.quoteMessage = options.quote.text;
+            }
+            if (options.quote.mentions && options.quote.mentions.length > 0) {
+                params.quoteMentions = options.quote.mentions.map(m => ({
+                    start: m.start,
+                    length: m.length,
+                    number: m.recipient || m.number
+                }));
+            }
+            if (options.quote.textStyles && options.quote.textStyles.length > 0) {
+                params.quoteTextStyles = options.quote.textStyles.map(ts => ({
+                    start: ts.start,
+                    length: ts.length,
+                    style: ts.style
+                }));
+            }
+        }
+        
+        // Add preview URL
+        if (options.previewUrl) {
+            params.previewUrl = options.previewUrl;
+        }
+        
+        // Add edit timestamp for editing existing messages
+        if (options.editTimestamp) {
+            params.editTimestamp = options.editTimestamp;
+        }
+        
+        // Add story reply information
+        if (options.storyTimestamp && options.storyAuthor) {
+            params.storyTimestamp = options.storyTimestamp;
+            params.storyAuthor = options.storyAuthor;
+        }
+        
+        // Add special flags
+        if (options.noteToSelf) {
+            params.noteToSelf = options.noteToSelf;
+        }
+        
+        if (options.endSession) {
+            params.endSession = options.endSession;
         }
         
         return this.sendJsonRpcRequest('send', params);
@@ -433,6 +694,88 @@ export class SignalCli extends EventEmitter {
 
     async trustIdentity(number: string, safetyNumber: string, verified: boolean = true): Promise<void> {
         await this.sendJsonRpcRequest('trust', { account: this.account, recipient: number, safetyNumber, verified });
+    }
+
+    /**
+     * Get the safety number for a specific contact.
+     * This is a helper method that extracts just the safety number from identity information.
+     * 
+     * @param number - The phone number of the contact
+     * @returns The safety number string, or null if not found
+     * 
+     * @example
+     * ```typescript
+     * const safetyNumber = await signal.getSafetyNumber('+33123456789');
+     * console.log(`Safety number: ${safetyNumber}`);
+     * ```
+     */
+    async getSafetyNumber(number: string): Promise<string | null> {
+        const identities = await this.listIdentities(number);
+        if (identities.length > 0 && identities[0].safetyNumber) {
+            return identities[0].safetyNumber;
+        }
+        return null;
+    }
+
+    /**
+     * Verify a safety number for a contact.
+     * Checks if the provided safety number matches the stored one and marks it as trusted if it does.
+     * 
+     * @param number - The phone number of the contact
+     * @param safetyNumber - The safety number to verify
+     * @returns True if the safety number matches and was trusted, false otherwise
+     * 
+     * @example
+     * ```typescript
+     * const verified = await signal.verifySafetyNumber('+33123456789', '123456 78901...');
+     * if (verified) {
+     *   console.log('Safety number verified and trusted');
+     * } else {
+     *   console.log('Safety number does not match!');
+     * }
+     * ```
+     */
+    async verifySafetyNumber(number: string, safetyNumber: string): Promise<boolean> {
+        const storedSafetyNumber = await this.getSafetyNumber(number);
+        
+        if (!storedSafetyNumber) {
+            return false;
+        }
+        
+        // Compare safety numbers (remove spaces for comparison)
+        const normalizedStored = storedSafetyNumber.replace(/\s/g, '');
+        const normalizedProvided = safetyNumber.replace(/\s/g, '');
+        
+        if (normalizedStored === normalizedProvided) {
+            await this.trustIdentity(number, safetyNumber, true);
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * List all untrusted identities.
+     * Returns identities that have not been explicitly trusted.
+     * 
+     * @returns Array of untrusted identity keys
+     * 
+     * @example
+     * ```typescript
+     * const untrusted = await signal.listUntrustedIdentities();
+     * console.log(`Found ${untrusted.length} untrusted identities`);
+     * untrusted.forEach(id => {
+     *   console.log(`${id.number}: ${id.safetyNumber}`);
+     * });
+     * ```
+     */
+    async listUntrustedIdentities(): Promise<IdentityKey[]> {
+        const allIdentities = await this.listIdentities();
+        return allIdentities.filter(identity => 
+            identity.trustLevel === 'UNTRUSTED' || 
+            identity.trustLevel === 'TRUST_ON_FIRST_USE' ||
+            !identity.trustLevel
+        );
     }
 
     async link(deviceName?: string): Promise<string> {
@@ -579,6 +922,8 @@ export class SignalCli extends EventEmitter {
         if (options.removeMembers) params.removeMembers = options.removeMembers;
         if (options.promoteAdmins) params.promoteAdmins = options.promoteAdmins;
         if (options.demoteAdmins) params.demoteAdmins = options.demoteAdmins;
+        if (options.banMembers) params.banMembers = options.banMembers;
+        if (options.unbanMembers) params.unbanMembers = options.unbanMembers;
         if (options.resetInviteLink) params.resetLink = true;
         if (options.permissionAddMember) params.permissionAddMember = options.permissionAddMember;
         if (options.permissionEditDetails) params.permissionEditDetails = options.permissionEditDetails;
@@ -589,6 +934,63 @@ export class SignalCli extends EventEmitter {
 
     async listGroups(): Promise<GroupInfo[]> {
         return this.sendJsonRpcRequest('listGroups', { account: this.account });
+    }
+
+    /**
+     * Send group invite link to a recipient.
+     * Retrieves and sends the invitation link for a group.
+     * 
+     * @param groupId - The group ID
+     * @param recipient - The recipient to send the invite link to
+     * @returns Send response
+     * 
+     * @example
+     * ```typescript
+     * await signal.sendGroupInviteLink('groupId123==', '+33123456789');
+     * ```
+     */
+    async sendGroupInviteLink(groupId: string, recipient: string): Promise<SendResponse> {
+        // Get group info to retrieve invite link
+        const groups = await this.listGroups();
+        const group = groups.find(g => g.groupId === groupId);
+        
+        const inviteLink = group?.groupInviteLink || group?.inviteLink;
+        if (!group || !inviteLink) {
+            throw new Error('Group not found or does not have an invite link');
+        }
+        
+        return this.sendMessage(recipient, `Join our group: ${inviteLink}`);
+    }
+
+    /**
+     * Set banned members for a group.
+     * Ban specific members from the group.
+     * 
+     * @param groupId - The group ID
+     * @param members - Array of phone numbers to ban
+     * 
+     * @example
+     * ```typescript
+     * await signal.setBannedMembers('groupId123==', ['+33111111111', '+33222222222']);
+     * ```
+     */
+    async setBannedMembers(groupId: string, members: string[]): Promise<void> {
+        await this.updateGroup(groupId, { banMembers: members });
+    }
+
+    /**
+     * Reset group invite link.
+     * Invalidates the current group invite link and generates a new one.
+     * 
+     * @param groupId - The group ID
+     * 
+     * @example
+     * ```typescript
+     * await signal.resetGroupLink('groupId123==');
+     * ```
+     */
+    async resetGroupLink(groupId: string): Promise<void> {
+        await this.updateGroup(groupId, { resetInviteLink: true });
     }
 
     async listContacts(): Promise<Contact[]> {
@@ -637,6 +1039,116 @@ export class SignalCli extends EventEmitter {
     stopDaemon(): void {
         console.warn("stopDaemon is deprecated. Use gracefulShutdown() or disconnect() instead.");
         this.gracefulShutdown();
+    }
+
+    // ############# MESSAGE RECEIVING #############
+    
+    /**
+     * Receive messages from Signal with configurable options.
+     * This is the modern replacement for the deprecated receiveMessages().
+     * 
+     * @param options - Options for receiving messages
+     * @returns Array of received messages
+     * 
+     * @example
+     * ```typescript
+     * // Receive with default timeout
+     * const messages = await signal.receive();
+     * 
+     * // Receive with custom options
+     * const messages = await signal.receive({
+     *   timeout: 10,
+     *   maxMessages: 5,
+     *   ignoreAttachments: true,
+     *   sendReadReceipts: true
+     * });
+     * ```
+     */
+    async receive(options: ReceiveOptions = {}): Promise<Message[]> {
+        const params: any = { account: this.account };
+        
+        // Set timeout (default: 5 seconds)
+        if (options.timeout !== undefined) {
+            params.timeout = options.timeout;
+        }
+        
+        // Set maximum number of messages
+        if (options.maxMessages !== undefined) {
+            params.maxMessages = options.maxMessages;
+        }
+        
+        // Skip attachment downloads
+        if (options.ignoreAttachments) {
+            params.ignoreAttachments = true;
+        }
+        
+        // Skip stories
+        if (options.ignoreStories) {
+            params.ignoreStories = true;
+        }
+        
+        // Send read receipts automatically
+        if (options.sendReadReceipts) {
+            params.sendReadReceipts = true;
+        }
+        
+        try {
+            const result = await this.sendJsonRpcRequest('receive', params);
+            
+            // Parse and return messages
+            if (Array.isArray(result)) {
+                return result.map(envelope => this.parseEnvelope(envelope));
+            }
+            
+            return [];
+        } catch (error) {
+            this.logger.error('Failed to receive messages:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Parse a message envelope from signal-cli into a Message object.
+     * @private
+     */
+    private parseEnvelope(envelope: any): Message {
+        const message: Message = {
+            timestamp: envelope.timestamp || Date.now(),
+            source: envelope.source || envelope.sourceNumber,
+            sourceUuid: envelope.sourceUuid,
+            sourceDevice: envelope.sourceDevice,
+        };
+        
+        // Parse data message
+        if (envelope.dataMessage) {
+            const data = envelope.dataMessage;
+            message.text = data.message || data.body;
+            message.groupId = data.groupInfo?.groupId;
+            message.attachments = data.attachments;
+            message.mentions = data.mentions;
+            message.quote = data.quote;
+            message.reaction = data.reaction;
+            message.sticker = data.sticker;
+            message.expiresInSeconds = data.expiresInSeconds;
+            message.viewOnce = data.viewOnce;
+        }
+        
+        // Parse sync message
+        if (envelope.syncMessage) {
+            message.syncMessage = envelope.syncMessage;
+        }
+        
+        // Parse receipt message
+        if (envelope.receiptMessage) {
+            message.receipt = envelope.receiptMessage;
+        }
+        
+        // Parse typing message
+        if (envelope.typingMessage) {
+            message.typing = envelope.typingMessage;
+        }
+        
+        return message;
     }
 
     // ############# NEW FEATURES - Missing signal-cli Commands #############
@@ -690,15 +1202,35 @@ export class SignalCli extends EventEmitter {
     }
 
     /**
-     * Send a payment notification to a recipient.
-     * @param recipient - Phone number or group ID to send the notification to
-     * @param paymentData - Payment notification data including receipt
-     * @returns Send response with timestamp and other details
+     * Send a payment notification to a recipient (MobileCoin).
+     * Sends a notification about a cryptocurrency payment made through Signal's MobileCoin integration.
+     * 
+     * @param recipient - The phone number or group ID of the recipient
+     * @param paymentData - Payment notification data including receipt and optional note
+     * @returns Send result with timestamp
+     * @throws {Error} If receipt is invalid or sending fails
+     * 
+     * @example
+     * ```typescript
+     * const receiptBlob = 'base64EncodedReceiptData...';
+     * await signal.sendPaymentNotification('+33612345678', {
+     *   receipt: receiptBlob,
+     *   note: 'Thanks for dinner!'
+     * });
+     * ```
      */
     async sendPaymentNotification(
         recipient: string, 
         paymentData: PaymentNotificationData
     ): Promise<SendResponse> {
+        this.logger.info(`Sending payment notification to ${recipient}`);
+        
+        validateRecipient(recipient);
+        
+        if (!paymentData.receipt || paymentData.receipt.trim().length === 0) {
+            throw new Error('Payment receipt is required');
+        }
+        
         const params: any = {
             receipt: paymentData.receipt,
             account: this.account
@@ -763,17 +1295,24 @@ export class SignalCli extends EventEmitter {
     }
 
     /**
-     * Start the process of changing phone number.
-     * @param newNumber - The new phone number to change to
-     * @param voice - Whether to use voice verification instead of SMS
-     * @param captcha - Captcha token if required
-     * @returns Change number session information
+     * Start the phone number change process.
+     * Initiates SMS or voice verification for changing your account to a new phone number.
+     * After calling this, you must verify the new number with finishChangeNumber().
+     * 
+     * @param newNumber - The new phone number in E164 format (e.g., "+33612345678")
+     * @param voice - Use voice verification instead of SMS (default: false)
+     * @param captcha - Optional captcha token if required
+     * @throws {Error} If not a primary device or rate limited
      */
     async startChangeNumber(
         newNumber: string, 
         voice: boolean = false, 
         captcha?: string
-    ): Promise<ChangeNumberSession> {
+    ): Promise<void> {
+        this.logger.info(`Starting change number to ${newNumber} (voice: ${voice})`);
+        
+        validatePhoneNumber(newNumber);
+        
         const params: any = {
             account: this.account,
             number: newNumber,
@@ -782,24 +1321,32 @@ export class SignalCli extends EventEmitter {
         
         if (captcha) params.captcha = captcha;
         
-        const result = await this.sendJsonRpcRequest('startChangeNumber', params);
-        
-        return {
-            session: result.session,
-            newNumber,
-            challenge: result.challenge
-        };
+        await this.sendJsonRpcRequest('startChangeNumber', params);
     }
 
     /**
-     * Finish the phone number change process with verification code.
-     * @param verificationCode - The verification code received via SMS/voice
-     * @param pin - Registration lock PIN if enabled
+     * Complete the phone number change process.
+     * Verifies the code received via SMS or voice and changes your account to the new number.
+     * Must be called after startChangeNumber().
+     * 
+     * @param newNumber - The new phone number (same as startChangeNumber)
+     * @param verificationCode - The verification code received via SMS or voice
+     * @param pin - Optional registration lock PIN if one was set
+     * @throws {Error} If verification fails or incorrect PIN
      */
-    async finishChangeNumber(verificationCode: string, pin?: string): Promise<void> {
+    async finishChangeNumber(newNumber: string, verificationCode: string, pin?: string): Promise<void> {
+        this.logger.info(`Finishing change number to ${newNumber}`);
+        
+        validatePhoneNumber(newNumber);
+        
+        if (!verificationCode || verificationCode.trim().length === 0) {
+            throw new Error('Verification code is required');
+        }
+        
         const params: any = {
             account: this.account,
-            code: verificationCode
+            number: newNumber,
+            verificationCode
         };
         
         if (pin) params.pin = pin;
@@ -1002,6 +1549,42 @@ export class SignalCli extends EventEmitter {
     }
 
     /**
+     * Set or update the username for this account.
+     * Helper method that wraps updateAccount() for simpler username management.
+     * 
+     * @param username - The username to set (without discriminator)
+     * @returns Account update result with username and link
+     * 
+     * @example
+     * ```typescript
+     * const result = await signal.setUsername('myusername');
+     * console.log(`Username: ${result.username}`);
+     * console.log(`Link: ${result.usernameLink}`);
+     * ```
+     */
+    async setUsername(username: string): Promise<AccountUpdateResult> {
+        return this.updateAccount({ username });
+    }
+
+    /**
+     * Delete the current username from this account.
+     * Helper method that wraps updateAccount() for simpler username deletion.
+     * 
+     * @returns Account update result
+     * 
+     * @example
+     * ```typescript
+     * const result = await signal.deleteUsername();
+     * if (result.success) {
+     *   console.log('Username deleted successfully');
+     * }
+     * ```
+     */
+    async deleteUsername(): Promise<AccountUpdateResult> {
+        return this.updateAccount({ deleteUsername: true });
+    }
+
+    /**
      * Get raw attachment data as base64 string.
      * @param options Attachment retrieval options
      * @returns Base64 encoded attachment data
@@ -1126,5 +1709,99 @@ export class SignalCli extends EventEmitter {
         const result = await this.sendJsonRpcRequest('listAccounts');
         return result.accounts || [];
     }
-}
 
+    /**
+     * Extract profile information from a contact.
+     * Parses givenName, familyName, mobileCoinAddress from profile data.
+     * 
+     * @param contact - The contact object to parse
+     * @returns Enhanced contact with extracted profile fields
+     * 
+     * @example
+     * ```typescript
+     * const contacts = await signal.listContacts();
+     * const enriched = signal.parseContactProfile(contacts[0]);
+     * console.log(enriched.givenName, enriched.familyName);
+     * ```
+     */
+    parseContactProfile(contact: Contact): Contact {
+        // signal-cli already provides these fields if available
+        // This method normalizes and validates the data
+        return {
+            ...contact,
+            givenName: contact.givenName || undefined,
+            familyName: contact.familyName || undefined,
+            mobileCoinAddress: contact.mobileCoinAddress || undefined,
+            profileName: contact.profileName || 
+                         (contact.givenName && contact.familyName 
+                          ? `${contact.givenName} ${contact.familyName}` 
+                          : contact.givenName || contact.familyName),
+        };
+    }
+
+    /**
+     * Extract group membership details.
+     * Parses pendingMembers, bannedMembers, inviteLink from group data.
+     * 
+     * @param group - The group info to parse
+     * @returns Enhanced group with extracted membership fields
+     * 
+     * @example
+     * ```typescript
+     * const groups = await signal.listGroups();
+     * const enriched = signal.parseGroupDetails(groups[0]);
+     * console.log(enriched.pendingMembers, enriched.bannedMembers);
+     * ```
+     */
+    parseGroupDetails(group: GroupInfo): GroupInfo {
+        return {
+            ...group,
+            // Normalize inviteLink field
+            inviteLink: group.groupInviteLink || group.inviteLink,
+            groupInviteLink: group.groupInviteLink || group.inviteLink,
+            // Ensure arrays exist
+            pendingMembers: group.pendingMembers || [],
+            banned: group.banned || [],
+            requestingMembers: group.requestingMembers || [],
+            admins: group.admins || [],
+            members: group.members || [],
+        };
+    }
+
+    /**
+     * Get enriched contacts list with parsed profile information.
+     * 
+     * @returns Array of contacts with full profile data
+     * 
+     * @example
+     * ```typescript
+     * const contacts = await signal.getContactsWithProfiles();
+     * contacts.forEach(c => {
+     *   console.log(`${c.givenName} ${c.familyName} - ${c.mobileCoinAddress}`);
+     * });
+     * ```
+     */
+    async getContactsWithProfiles(): Promise<Contact[]> {
+        const contacts = await this.listContacts();
+        return contacts.map(c => this.parseContactProfile(c));
+    }
+
+    /**
+     * Get enriched groups list with parsed membership details.
+     * 
+     * @param options - List groups options
+     * @returns Array of groups with full membership data
+     * 
+     * @example
+     * ```typescript
+     * const groups = await signal.getGroupsWithDetails();
+     * groups.forEach(g => {
+     *   console.log(`${g.name}: ${g.members.length} members, ${g.pendingMembers.length} pending`);
+     * });
+     * ```
+     */
+    async getGroupsWithDetails(options: ListGroupsOptions = {}): Promise<GroupInfo[]> {
+        const groups = await this.listGroupsDetailed(options);
+        return groups.map(g => this.parseGroupDetails(g));
+    }
+}

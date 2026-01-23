@@ -87,7 +87,7 @@ describe('SignalCli Methods Tests', () => {
             await signalCli.sendMessage('+1234567890', 'View once', { isViewOnce: true });
             
             expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('send', expect.objectContaining({
-                isViewOnce: true
+                viewOnce: true
             }));
         });
 
@@ -594,4 +594,111 @@ describe('SignalCli Methods Tests', () => {
             }));
         });
     });
-});
+
+    describe('Phone Number Change Methods', () => {
+        it('should start change number with SMS', async () => {
+            await signalCli.startChangeNumber('+33612345678');
+            
+            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('startChangeNumber', {
+                account: '+1234567890',
+                number: '+33612345678',
+                voice: false
+            });
+        });
+
+        it('should start change number with voice verification', async () => {
+            await signalCli.startChangeNumber('+33612345678', true);
+            
+            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('startChangeNumber', {
+                account: '+1234567890',
+                number: '+33612345678',
+                voice: true
+            });
+        });
+
+        it('should start change number with captcha', async () => {
+            const captcha = 'captcha_token_12345';
+            await signalCli.startChangeNumber('+33612345678', false, captcha);
+            
+            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('startChangeNumber', {
+                account: '+1234567890',
+                number: '+33612345678',
+                voice: false,
+                captcha
+            });
+        });
+
+        it('should validate phone number in startChangeNumber', async () => {
+            await expect(signalCli.startChangeNumber('invalid')).rejects.toThrow();
+        });
+
+        it('should finish change number without PIN', async () => {
+            await signalCli.finishChangeNumber('+33612345678', '123456');
+            
+            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('finishChangeNumber', {
+                account: '+1234567890',
+                number: '+33612345678',
+                verificationCode: '123456'
+            });
+        });
+
+        it('should finish change number with PIN', async () => {
+            await signalCli.finishChangeNumber('+33612345678', '123456', '1234');
+            
+            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('finishChangeNumber', {
+                account: '+1234567890',
+                number: '+33612345678',
+                verificationCode: '123456',
+                pin: '1234'
+            });
+        });
+
+        it('should validate phone number in finishChangeNumber', async () => {
+            await expect(signalCli.finishChangeNumber('invalid', '123456')).rejects.toThrow();
+        });
+
+        it('should require verification code in finishChangeNumber', async () => {
+            await expect(signalCli.finishChangeNumber('+33612345678', '')).rejects.toThrow('Verification code is required');
+        });
+    });
+
+    describe('Payment Notification Methods', () => {
+        it('should send payment notification', async () => {
+            const receipt = 'base64EncodedReceipt';
+            const note = 'Thanks for dinner!';
+            const recipient = '+1111111111';
+            
+            sendJsonRpcRequestSpy.mockResolvedValue({ timestamp: 1234567890 });
+            
+            const result = await signalCli.sendPaymentNotification(recipient, { receipt, note });
+            
+            expect(result.timestamp).toBe(1234567890);
+            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('sendPaymentNotification', {
+                account: '+1234567890',
+                recipient,
+                receipt,
+                note
+            });
+        });
+
+        it('should send payment notification without note', async () => {
+            const receipt = 'base64EncodedReceipt';
+            const recipient = '+1111111111';
+            
+            await signalCli.sendPaymentNotification(recipient, { receipt });
+            
+            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('sendPaymentNotification', {
+                account: '+1234567890',
+                recipient,
+                receipt
+            });
+        });
+
+        it('should validate recipient in sendPaymentNotification', async () => {
+            await expect(signalCli.sendPaymentNotification('invalid', { receipt: 'test' })).rejects.toThrow();
+        });
+
+        it('should require receipt in sendPaymentNotification', async () => {
+            await expect(signalCli.sendPaymentNotification('+1111111111', { receipt: '' })).rejects.toThrow('Payment receipt is required');
+        });
+    });});
