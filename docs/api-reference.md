@@ -109,6 +109,25 @@ Links a new device to an existing Signal account with QR code support.
 
 Lists all linked devices for the account.
 
+#### `updateDevice(options: UpdateDeviceOptions): Promise<void>`
+
+Updates a linked device's name. Requires signal-cli v0.13.23 or newer.
+
+**Parameters:**
+
+- `options.deviceId`: Device ID to update (number)
+- `options.deviceName`: New name for the device (string)
+
+**Example:**
+
+```typescript
+const devices = await signal.listDevices();
+await signal.updateDevice({
+  deviceId: 2,
+  deviceName: "Work Laptop",
+});
+```
+
 #### `removeDevice(deviceId: number): Promise<void>`
 
 Removes a linked device.

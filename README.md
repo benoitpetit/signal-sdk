@@ -14,7 +14,7 @@
 
 [![npm version](https://badge.fury.io/js/signal-sdk.svg)](https://badge.fury.io/js/signal-sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![signal-cli](https://img.shields.io/badge/signal--cli-v0.13.22-blue.svg)](https://github.com/AsamK/signal-cli)
+[![signal-cli](https://img.shields.io/badge/signal--cli-v0.13.23-blue.svg)](https://github.com/AsamK/signal-cli)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![Tests](https://img.shields.io/badge/tests-310%20passing-brightgreen.svg)](./src/__tests__)
@@ -364,7 +364,7 @@ await bot.start();
 - **TypeScript**: 5.8+ with strict mode
 - **Test Coverage**: 225 passing tests across 9 suites
 - **Code Coverage**: 57.52% overall, critical modules at 96-100%
-- **signal-cli**: Compatible with v0.13.22
+- **signal-cli**: Compatible with v0.13.23
 
 ## Testing
 
@@ -570,7 +570,7 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 ## API Methods
 
-Compatible with signal-cli v0.13.22 - **100% Feature Coverage**
+Compatible with signal-cli v0.13.23 - **100% Feature Coverage**
 
 | Category        | Method                     | Description                        | Status |
 | --------------- | -------------------------- | ---------------------------------- | ------ |
@@ -595,6 +595,8 @@ Compatible with signal-cli v0.13.22 - **100% Feature Coverage**
 |                 | `getUserStatus`            | Check registration status          | ✅     |
 | **Account**     | `updateAccount`            | Update account settings            | ✅     |
 |                 | `listAccountsDetailed`     | List accounts with detailed info   | ✅     |
+| **Devices**     | `listDevices`              | List linked devices                | ✅     |
+|                 | `updateDevice`             | Update device name (v0.13.23+)     | ✅     |
 | **Attachments** | `getAttachment`            | Retrieve attachment by ID          | ✅     |
 |                 | `getAvatar`                | Retrieve avatar by ID              | ✅     |
 |                 | `getSticker`               | Retrieve sticker by ID             | ✅     |

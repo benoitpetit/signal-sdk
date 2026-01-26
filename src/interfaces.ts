@@ -1211,6 +1211,18 @@ export interface AccountUpdateResult {
   error?: string;
 }
 
+// ===== DEVICE MANAGEMENT =====
+
+/**
+ * Options for updating a linked device
+ */
+export interface UpdateDeviceOptions {
+  /** Device ID to update */
+  deviceId: number;
+  /** New device name */
+  deviceName: string;
+}
+
 // ===== SYNC AND CONTACTS =====
 
 /**

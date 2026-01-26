@@ -497,6 +497,60 @@ describe('SignalCli', () => {
     });
   });
 
+  // Test device management (v0.13.23+)
+  describe('Device Management', () => {
+    beforeEach(() => {
+      jest.spyOn(signalCli as any, 'sendJsonRpcRequest').mockResolvedValue({});
+    });
+
+    it('should list devices', async () => {
+      const mockDevices = [
+        { id: 1, name: 'Device 1' },
+        { id: 2, name: 'Device 2' }
+      ];
+      const sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest')
+        .mockResolvedValue(mockDevices);
+
+      const result = await signalCli.listDevices();
+
+      expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('listDevices', {
+        account: '+1234567890'
+      });
+      expect(result).toEqual(mockDevices);
+    });
+
+    it('should update device name', async () => {
+      const sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest')
+        .mockResolvedValue(undefined);
+
+      await signalCli.updateDevice({
+        deviceId: 2,
+        deviceName: 'My Updated Device'
+      });
+
+      expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('updateDevice', {
+        account: '+1234567890',
+        deviceId: 2,
+        deviceName: 'My Updated Device'
+      });
+    });
+
+    it('should validate device ID when updating', async () => {
+      await expect(signalCli.updateDevice({
+        deviceId: -1,
+        deviceName: 'Invalid'
+      })).rejects.toThrow();
+    });
+
+    it('should validate device name length', async () => {
+      const longName = 'a'.repeat(201);
+      await expect(signalCli.updateDevice({
+        deviceId: 2,
+        deviceName: longName
+      })).rejects.toThrow();
+    });
+  });
+
   // Test v0.1.0 features: Synchronization
   describe('Synchronization', () => {
     beforeEach(() => {

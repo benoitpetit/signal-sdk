@@ -558,6 +558,115 @@ describe('SignalCli Methods Tests', () => {
             const result = await signalCli.updateAccount({ deviceName: 'Device' });
             
             expect(result.success).toBe(false);
+        });
+    });
+
+    describe('Device Management Methods (v0.13.23+)', () => {
+        it('should list devices', async () => {
+            const mockDevices = [
+                { id: 1, name: 'Primary', lastSeen: Date.now() },
+                { id: 2, name: 'Tablet', lastSeen: Date.now() }
+            ];
+            sendJsonRpcRequestSpy.mockResolvedValue(mockDevices);
+            
+            const result = await signalCli.listDevices();
+            
+            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('listDevices', {
+                account: '+1234567890'
+            });
+            expect(result).toEqual(mockDevices);
+        });
+
+        it('should update device name', async () => {
+            sendJsonRpcRequestSpy.mockResolvedValue(undefined);
+            
+            await signalCli.updateDevice({
+                deviceId: 3,
+                deviceName: 'My Laptop'
+            });
+            
+            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('updateDevice', {
+                account: '+1234567890',
+                deviceId: 3,
+                deviceName: 'My Laptop'
+            });
+        });
+
+        it('should validate device ID', async () => {
+            await expect(signalCli.updateDevice({
+                deviceId: 0,
+                deviceName: 'Invalid'
+            })).rejects.toThrow();
+            
+            await expect(signalCli.updateDevice({
+                deviceId: -5,
+                deviceName: 'Invalid'
+            })).rejects.toThrow();
+        });
+
+        it('should validate device name is not too long', async () => {
+            const longName = 'x'.repeat(300);
+            
+            await expect(signalCli.updateDevice({
+                deviceId: 2,
+                deviceName: longName
+            })).rejects.toThrow();
+        });
+    });
+
+    describe('Update Account Methods', () => {
+        it('should update account with device name', async () => {
+            sendJsonRpcRequestSpy.mockResolvedValue({ username: 'user.123' });
+            
+            const result = await signalCli.updateAccount({ deviceName: 'New Device' });
+            
+            expect(result.success).toBe(true);
+            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('updateAccount', expect.objectContaining({
+                deviceName: 'New Device'
+            }));
+        });
+
+        it('should update account with username', async () => {
+            sendJsonRpcRequestSpy.mockResolvedValue({ username: 'newuser.456', usernameLink: 'link' });
+            
+            const result = await signalCli.updateAccount({ username: 'newuser.456' });
+            
+            expect(result.success).toBe(true);
+            expect(result.username).toBe('newuser.456');
+        });
+
+        it('should delete username', async () => {
+            sendJsonRpcRequestSpy.mockResolvedValue({});
+            
+            await signalCli.updateAccount({ deleteUsername: true });
+            
+            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('updateAccount', expect.objectContaining({
+                deleteUsername: true
+            }));
+        });
+
+        it('should update privacy settings', async () => {
+            sendJsonRpcRequestSpy.mockResolvedValue({});
+            
+            await signalCli.updateAccount({
+                unrestrictedUnidentifiedSender: true,
+                discoverableByNumber: false,
+                numberSharing: false
+            });
+            
+            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('updateAccount', expect.objectContaining({
+                unrestrictedUnidentifiedSender: true,
+                discoverableByNumber: false,
+                numberSharing: false
+            }));
+        });
+
+        it('should handle update account error', async () => {
+            sendJsonRpcRequestSpy.mockRejectedValue(new Error('Update failed'));
+            
+            const result = await signalCli.updateAccount({ deviceName: 'Device' });
+            
+            expect(result.success).toBe(false);
             expect(result.error).toBe('Update failed');
         });
     });

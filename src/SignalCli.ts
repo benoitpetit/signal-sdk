@@ -40,7 +40,8 @@ import {
     UpdateAccountOptions,
     AccountUpdateResult,
     SendContactsOptions,
-    ListGroupsOptions
+    ListGroupsOptions,
+    UpdateDeviceOptions
 } from './interfaces';
 import { EventEmitter } from 'events';
 import * as path from 'path';
@@ -999,6 +1000,38 @@ export class SignalCli extends EventEmitter {
 
     async listDevices(): Promise<Device[]> {
         return this.sendJsonRpcRequest('listDevices', { account: this.account });
+    }
+
+    /**
+     * Update a linked device name (signal-cli v0.13.23+).
+     * Allows changing the display name of a linked device.
+     * 
+     * @param options - Device update options
+     * @returns Promise that resolves when device is updated
+     * 
+     * @example
+     * ```typescript
+     * // List devices to get device IDs
+     * const devices = await signal.listDevices();
+     * 
+     * // Update device name
+     * await signal.updateDevice({
+     *   deviceId: 2,
+     *   deviceName: 'My New Device Name'
+     * });
+     * ```
+     */
+    async updateDevice(options: UpdateDeviceOptions): Promise<void> {
+        this.logger.debug('Updating device', options);
+        
+        validateDeviceId(options.deviceId);
+        validateMessage(options.deviceName, 200);
+        
+        await this.sendJsonRpcRequest('updateDevice', {
+            deviceId: options.deviceId,
+            deviceName: options.deviceName,
+            account: this.account
+        });
     }
 
     async listAccounts(): Promise<string[]> {
