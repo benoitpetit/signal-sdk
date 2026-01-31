@@ -89,6 +89,30 @@ describe('SignalCli', () => {
         expect(mockProcess.kill).toHaveBeenCalled();
     });
 
+    it('should not reconnect if shutdown was intentional', async () => {
+        // Mock logger to verify it's NOT calling warn about reconnecting
+        const loggerWarnSpy = jest.spyOn((signalCli as any).logger, 'warn');
+        const loggerDebugSpy = jest.spyOn((signalCli as any).logger, 'debug');
+
+        // Connect first
+        mockProcess.stdout.once.mockImplementation((event: string, callback: () => void) => {
+            if (event === 'data') setTimeout(callback, 0);
+        });
+        await signalCli.connect();
+
+        // Now disconnect intentionally
+        signalCli.disconnect();
+
+        // Manually trigger process close event (which happens after kill)
+        // Extract the close handler from mockProcess.on calls
+        const closeHandler = mockProcess.on.mock.calls.find((call: any) => call[0] === 'close')[1];
+        await closeHandler(0);
+
+        // Verify it didn't try to reconnect
+        expect(loggerWarnSpy).not.toHaveBeenCalledWith(expect.stringContaining('Reconnecting'));
+        expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining('closed intentionally'));
+    });
+
     // Test new features
     describe('New Features', () => {
         beforeEach(() => {

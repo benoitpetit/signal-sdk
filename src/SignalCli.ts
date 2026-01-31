@@ -63,6 +63,7 @@ export class SignalCli extends EventEmitter {
     private rateLimiter: RateLimiter;
     private reconnectAttempts = 0;
     private maxReconnectAttempts = 5;
+    private isIntentionalShutdown = false;
 
     // Managers
     public readonly messages: MessageManager;
@@ -140,6 +141,7 @@ export class SignalCli extends EventEmitter {
     }
 
     public async connect(): Promise<void> {
+        this.isIntentionalShutdown = false;
         const daemonMode = this.config.daemonMode || 'json-rpc';
 
         switch (daemonMode) {
@@ -332,6 +334,7 @@ export class SignalCli extends EventEmitter {
     }
 
     public disconnect(): void {
+        this.isIntentionalShutdown = true;
         const daemonMode = this.config.daemonMode || 'json-rpc';
 
         // Close socket connections
@@ -353,6 +356,7 @@ export class SignalCli extends EventEmitter {
     }
 
     public async gracefulShutdown(): Promise<void> {
+        this.isIntentionalShutdown = true;
         return new Promise((resolve) => {
             if (!this.cliProcess) {
                 resolve();
@@ -465,6 +469,12 @@ export class SignalCli extends EventEmitter {
     private async handleProcessClose(code: number | null): Promise<void> {
         this.cliProcess = null;
         this.emit('close', code);
+
+        // Skip reconnection if shutdown was intentional
+        if (this.isIntentionalShutdown) {
+            this.logger.debug(`Signal process closed intentionally (code ${code}). Skipping reconnection.`);
+            return;
+        }
 
         // Auto-reconnect logic if not explicitly disconnected
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
