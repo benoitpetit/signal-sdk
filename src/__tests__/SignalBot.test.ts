@@ -11,8 +11,8 @@ describe('SignalBot', () => {
             admins: ['+0987654321'],
             group: {
                 name: 'Test Bot Group',
-                createIfNotExists: false
-            }
+                createIfNotExists: false,
+            },
         };
     });
 
@@ -29,7 +29,7 @@ describe('SignalBot', () => {
 
     test('should create bot with minimal config', () => {
         bot = new SignalBot({
-            phoneNumber: '+1234567890'
+            phoneNumber: '+1234567890',
         });
 
         expect(bot).toBeDefined();
@@ -50,7 +50,7 @@ describe('SignalBot', () => {
         const testCommand = {
             name: 'test',
             description: 'Test command',
-            handler: jest.fn()
+            handler: jest.fn(),
         };
 
         bot.addCommand(testCommand);
@@ -81,16 +81,16 @@ describe('SignalBot', () => {
             phoneNumber: '+1234567890',
             group: {
                 name: 'Test Group',
-                createIfNotExists: false
-            }
+                createIfNotExists: false,
+            },
         });
 
         // Mock SignalCli methods to avoid actual Signal operations
         const mockSignalCli = bot.getSignalCli();
         jest.spyOn(mockSignalCli, 'listDevices').mockResolvedValue([
-            { id: 1, name: 'Test Device', created: Date.now(), lastSeen: Date.now() }
+            { id: 1, name: 'Test Device', created: Date.now(), lastSeen: Date.now() },
         ]);
-        jest.spyOn(mockSignalCli, 'startDaemon').mockImplementation(() => { });
+        jest.spyOn(mockSignalCli, 'startDaemon').mockImplementation(() => {});
         jest.spyOn(mockSignalCli, 'connect').mockResolvedValue(undefined);
         jest.spyOn(mockSignalCli, 'on').mockReturnValue(mockSignalCli);
 
@@ -121,7 +121,7 @@ describe('SignalBot', () => {
     test('should handle admin permissions', () => {
         bot = new SignalBot({
             phoneNumber: '+1234567890',
-            admins: ['+0987654321', '+1111111111']
+            admins: ['+0987654321', '+1111111111'],
         });
 
         expect(bot.isAdmin('+0987654321')).toBe(true);

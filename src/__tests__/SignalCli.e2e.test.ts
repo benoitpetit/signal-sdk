@@ -19,17 +19,12 @@ describe('SignalCli - E2E Workflow Tests (Phase 6)', () => {
 
     describe('Complete Messaging Workflow', () => {
         it('should send message with full options and handle response', async () => {
-            (signal as any).sendJsonRpcRequest = jest.fn()
-                .mockResolvedValue(mockSendResponse);
+            (signal as any).sendJsonRpcRequest = jest.fn().mockResolvedValue(mockSendResponse);
 
             const result = await signal.sendMessage('+33987654321', 'Hello!', {
                 attachments: ['/path/to/image.jpg'],
-                textStyles: [
-                    { start: 0, length: 5, style: 'BOLD' },
-                ],
-                mentions: [
-                    { start: 0, length: 5, number: '+33987654321' },
-                ],
+                textStyles: [{ start: 0, length: 5, style: 'BOLD' }],
+                mentions: [{ start: 0, length: 5, number: '+33987654321' }],
             });
 
             expect(result.timestamp).toBeDefined();
@@ -37,8 +32,7 @@ describe('SignalCli - E2E Workflow Tests (Phase 6)', () => {
         });
 
         it('should send quoted message with attachments', async () => {
-            (signal as any).sendJsonRpcRequest = jest.fn()
-                .mockResolvedValue(mockSendResponse);
+            (signal as any).sendJsonRpcRequest = jest.fn().mockResolvedValue(mockSendResponse);
 
             const result = await signal.sendMessage('+33987654321', 'Reply', {
                 quote: {
@@ -70,7 +64,8 @@ describe('SignalCli - E2E Workflow Tests (Phase 6)', () => {
                 },
             ];
 
-            (signal as any).sendJsonRpcRequest = jest.fn()
+            (signal as any).sendJsonRpcRequest = jest
+                .fn()
                 .mockResolvedValueOnce(mockContacts)
                 .mockResolvedValueOnce(undefined)
                 .mockResolvedValueOnce([mockContacts[0]]);
@@ -94,10 +89,7 @@ describe('SignalCli - E2E Workflow Tests (Phase 6)', () => {
                 isMember: true,
                 isBlocked: false,
                 messageExpirationTime: 0,
-                members: [
-                    { number: '+33111111111' },
-                    { number: '+33222222222' },
-                ],
+                members: [{ number: '+33111111111' }, { number: '+33222222222' }],
                 pendingMembers: [],
                 requestingMembers: [],
                 admins: [{ number: '+33111111111' }],
@@ -108,17 +100,15 @@ describe('SignalCli - E2E Workflow Tests (Phase 6)', () => {
                 groupInviteLink: 'https://signal.group/test',
             };
 
-            (signal as any).sendJsonRpcRequest = jest.fn()
+            (signal as any).sendJsonRpcRequest = jest
+                .fn()
                 .mockResolvedValueOnce([mockGroup])
                 .mockResolvedValueOnce(undefined)
                 .mockResolvedValueOnce(mockSendResponse)
                 .mockResolvedValueOnce([
                     {
                         ...mockGroup,
-                        members: [
-                            ...mockGroup.members,
-                            { number: '+33333333333' },
-                        ],
+                        members: [...mockGroup.members, { number: '+33333333333' }],
                     },
                 ]);
 
@@ -140,15 +130,18 @@ describe('SignalCli - E2E Workflow Tests (Phase 6)', () => {
     describe('Identity Management Workflow', () => {
         it('should verify safety number before sending', async () => {
             const mockSafetyNumber = '12345 67890 12345 67890 12345 67890';
-            const mockIdentities = [{
-                safetyNumber: mockSafetyNumber,
-                number: '+33987654321',
-            }];
+            const mockIdentities = [
+                {
+                    safetyNumber: mockSafetyNumber,
+                    number: '+33987654321',
+                },
+            ];
 
-            (signal as any).sendJsonRpcRequest = jest.fn()
-                .mockResolvedValueOnce(mockIdentities)  // listIdentities
-                .mockResolvedValueOnce(mockIdentities)  // listIdentities again for verify
-                .mockResolvedValueOnce(undefined)       // trust
+            (signal as any).sendJsonRpcRequest = jest
+                .fn()
+                .mockResolvedValueOnce(mockIdentities) // listIdentities
+                .mockResolvedValueOnce(mockIdentities) // listIdentities again for verify
+                .mockResolvedValueOnce(undefined) // trust
                 .mockResolvedValueOnce(mockSendResponse); // send
 
             const safetyNumberResult = await signal.getSafetyNumber('+33987654321');
@@ -164,7 +157,8 @@ describe('SignalCli - E2E Workflow Tests (Phase 6)', () => {
 
     describe('Username Management Workflow', () => {
         it('should manage username lifecycle', async () => {
-            (signal as any).sendJsonRpcRequest = jest.fn()
+            (signal as any).sendJsonRpcRequest = jest
+                .fn()
                 .mockResolvedValueOnce({ username: 'alice.01' })
                 .mockResolvedValueOnce(mockSendResponse)
                 .mockResolvedValueOnce(undefined);
@@ -208,7 +202,8 @@ describe('SignalCli - E2E Workflow Tests (Phase 6)', () => {
                 },
             ];
 
-            (signal as any).sendJsonRpcRequest = jest.fn()
+            (signal as any).sendJsonRpcRequest = jest
+                .fn()
                 .mockResolvedValueOnce(mockMessages)
                 .mockResolvedValueOnce(mockSendResponse)
                 .mockResolvedValueOnce(mockSendResponse);
@@ -219,18 +214,18 @@ describe('SignalCli - E2E Workflow Tests (Phase 6)', () => {
             // Only send messages if the source/groupId fields exist
             const msg0 = messages[0] as any;
             const msg1 = messages[1] as any;
-            
+
             if (msg0.envelope && msg0.envelope.source) {
                 await signal.sendMessage(msg0.envelope.source, 'Hello back!');
             }
 
-            if (msg1.envelope && msg1.envelope.dataMessage && 
-                msg1.envelope.dataMessage.groupInfo && 
-                msg1.envelope.dataMessage.groupInfo.groupId) {
-                await signal.sendMessage(
-                    msg1.envelope.dataMessage.groupInfo.groupId,
-                    'Hi everyone!'
-                );
+            if (
+                msg1.envelope &&
+                msg1.envelope.dataMessage &&
+                msg1.envelope.dataMessage.groupInfo &&
+                msg1.envelope.dataMessage.groupInfo.groupId
+            ) {
+                await signal.sendMessage(msg1.envelope.dataMessage.groupInfo.groupId, 'Hi everyone!');
             }
 
             // Verify at least receive was called (message sending depends on data structure)
@@ -242,7 +237,8 @@ describe('SignalCli - E2E Workflow Tests (Phase 6)', () => {
         it('should create group, add members, and send announcement', async () => {
             const mockGroupId = 'newgroup123==';
 
-            (signal as any).sendJsonRpcRequest = jest.fn()
+            (signal as any).sendJsonRpcRequest = jest
+                .fn()
                 .mockResolvedValueOnce({ groupId: mockGroupId })
                 .mockResolvedValueOnce(undefined)
                 .mockResolvedValueOnce(undefined)
@@ -268,31 +264,26 @@ describe('SignalCli - E2E Workflow Tests (Phase 6)', () => {
 
     describe('Error Handling in Workflows', () => {
         it('should handle errors gracefully in message sending workflow', async () => {
-            (signal as any).sendJsonRpcRequest = jest.fn()
+            (signal as any).sendJsonRpcRequest = jest
+                .fn()
                 .mockRejectedValueOnce(new Error('Network error'))
                 .mockResolvedValueOnce(mockSendResponse);
 
-            await expect(
-                signal.sendMessage('+33987654321', 'Test')
-            ).rejects.toThrow('Network error');
+            await expect(signal.sendMessage('+33987654321', 'Test')).rejects.toThrow('Network error');
 
             const result = await signal.sendMessage('+33987654321', 'Test');
             expect(result.timestamp).toBeDefined();
         });
 
         it('should handle non-existent group in workflow', async () => {
-            (signal as any).sendJsonRpcRequest = jest.fn()
-                .mockResolvedValue([]);
+            (signal as any).sendJsonRpcRequest = jest.fn().mockResolvedValue([]);
 
             const groups = await signal.getGroupsWithDetails();
             expect(groups).toHaveLength(0);
 
-            (signal as any).sendJsonRpcRequest = jest.fn()
-                .mockRejectedValue(new Error('Group not found'));
+            (signal as any).sendJsonRpcRequest = jest.fn().mockRejectedValue(new Error('Group not found'));
 
-            await expect(
-                signal.sendMessage('nonexistent==', 'Test')
-            ).rejects.toThrow('Group not found');
+            await expect(signal.sendMessage('nonexistent==', 'Test')).rejects.toThrow('Group not found');
         });
     });
 });

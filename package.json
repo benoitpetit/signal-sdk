@@ -1,6 +1,6 @@
 {
   "name": "signal-sdk",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "A comprehensive TypeScript SDK for Signal Messenger with native JSON-RPC support, providing high-performance messaging, bot framework, and full signal-cli integration.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -27,7 +27,9 @@
     "example:file-handling": "node examples/sdk/05-file-handling.js",
     "example:minimal-bot": "node examples/bot/01-minimal-bot.js",
     "example:advanced-bot": "node examples/bot/02-advanced-bot.js",
-    "example:advanced-bot-2": "node examples/bot/03-advanced-bot.js"
+    "example:advanced-bot-2": "node examples/bot/03-advanced-bot.js",
+    "lint": "eslint 'src/**/*.{ts,js}'",
+    "format": "prettier --write 'src/**/*.{ts,js}'"
   },
   "keywords": [
     "signal",
@@ -55,10 +57,15 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.10",
-    "dotenv": "^16.4.5",
     "@types/qrcode-terminal": "^0.12.2",
     "@types/uuid": "^9.0.8",
+    "@typescript-eslint/eslint-plugin": "^8.54.0",
+    "@typescript-eslint/parser": "^8.54.0",
+    "dotenv": "^16.4.5",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
     "jest": "^30.0.4",
+    "prettier": "^3.8.1",
     "ts-jest": "^29.4.0",
     "typescript": "^5.8.3"
   },

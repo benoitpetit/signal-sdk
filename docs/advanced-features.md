@@ -667,38 +667,41 @@ const signal = new SignalCli("+1234567890");
 
 await signal.connect();
 
-// Create a poll in a group or with a contact
-await signal.sendPollCreate(
-  "group-id-or-phone",
-  "What's your favorite programming language?",
-  {
-    answers: ["JavaScript", "Python", "Rust", "Go"],
-    multipleAnswers: false, // Single choice poll
-  },
-);
+// Create a poll in a group
+await signal.sendPollCreate({
+  groupId: "group-id-here",
+  question: "What's your favorite programming language?",
+  options: ["JavaScript", "Python", "Rust", "Go"],
+  multiSelect: false, // Single choice poll
+});
 
-// Create a multiple-choice poll
-await signal.sendPollCreate("+1987654321", "Which features do you want next?", {
-  answers: ["Dark Mode", "File Sync", "Video Calls", "Screen Share"],
-  multipleAnswers: true, // Allow multiple selections
+// Create a multiple-choice poll with individual recipients
+await signal.sendPollCreate({
+  recipients: ["+1987654321", "+1112223334"],
+  question: "Which features do you want next?",
+  options: ["Dark Mode", "File Sync", "Video Calls", "Screen Share"],
+  multiSelect: true, // Allow multiple selections
 });
 ```
 
 ### Vote on a Poll
 
 ```javascript
-// Vote on a poll (use timestamp from poll message)
+// Vote on a poll
 await signal.sendPollVote(
-  "group-id-or-phone",
-  1705843200000, // Poll message timestamp
+  "group-id-or-phone", // Where the poll was sent
   {
-    votes: [1], // Vote for second option (0-indexed)
-  },
+    pollAuthor: "+1234567890", // Author of the poll
+    pollTimestamp: 1705843200000, // Poll message timestamp
+    optionIndexes: [1], // Vote for second option (0-indexed)
+  }
 );
 
 // Vote for multiple options (if poll allows)
-await signal.sendPollVote("group-id-or-phone", 1705843200000, {
-  votes: [0, 2, 3], // Vote for first, third, and fourth options
+await signal.sendPollVote("group-id-or-phone", {
+  pollAuthor: "+1234567890",
+  pollTimestamp: 1705843200000,
+  optionIndexes: [0, 2, 3], // Vote for first, third, and fourth options
 });
 ```
 
@@ -708,7 +711,9 @@ await signal.sendPollVote("group-id-or-phone", 1705843200000, {
 // Stop accepting votes (creator only)
 await signal.sendPollTerminate(
   "group-id-or-phone",
-  1705843200000, // Poll message timestamp
+  {
+    pollTimestamp: 1705843200000, // Poll message timestamp
+  }
 );
 ```
 

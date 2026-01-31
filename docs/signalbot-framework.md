@@ -8,9 +8,8 @@ SignalBot is a high-level framework built on top of SignalCli that simplifies bo
 
 - **Command System** - Built-in command parsing and routing
 - **Admin Controls** - Role-based permissions
-- **Anti-Spam** - Built-in rate limiting and spam protection
 - **Auto-Management** - Automatic group creation and management
-- **Event Handling** - Rich event system for custom logic
+- **Event Handling** - Event system for custom logic
 - **Error Recovery** - Automatic reconnection and error handling
 
 ## Quick Start
@@ -22,7 +21,7 @@ const { SignalBot } = require("signal-sdk");
 
 const bot = new SignalBot({
   phoneNumber: "+33111111111",
-  admins: ["+33000000000", "+33200000000"],
+  admins: ["+33000000000"],
   group: {
     name: "My Awesome Bot",
     createIfNotExists: true,
@@ -52,7 +51,7 @@ Every SignalBot automatically includes these commands:
 - `/help` - List all available commands
 - `/ping` - Test bot responsiveness
 - `/stats` - Show bot statistics
-- `/admin help` - Admin-only commands (for admins only)
+- `/info` - Detailed bot information (admin-only)
 
 ## Configuration Options
 
@@ -72,43 +71,17 @@ const bot = new SignalBot({
     createIfNotExists: true,
     description: "My bot group",
     avatar: "./group-avatar.jpg", // Optional
+    initialMembers: ["+33222222222"], // Optional
   },
 
-  // Anti-spam settings
-  rateLimit: {
-    maxMessages: 10, // Max messages per window
-    windowMs: 60000, // Time window (1 minute)
-    banDuration: 300000, // Ban duration (5 minutes)
-  },
-
-  // Bot behavior
-  commandPrefix: "/", // Default command prefix
-  caseSensitive: false, // Case-insensitive commands
-  allowDM: true, // Allow direct messages
-  logLevel: "info", // Logging level
-});
-```
-
-### Environment Variables
-
-Create a `.env` file for sensitive data:
-
-```bash
-SIGNAL_PHONE_NUMBER="+33111111111"
-BOT_ADMINS="+33000000000,+33200000000"
-GROUP_NAME="My Bot Group"
-```
-
-And use them in your code:
-
-```javascript
-require("dotenv").config();
-
-const bot = new SignalBot({
-  phoneNumber: process.env.SIGNAL_PHONE_NUMBER,
-  admins: process.env.BOT_ADMINS.split(","),
-  group: {
-    name: process.env.GROUP_NAME,
+  // Bot settings
+  settings: {
+    commandPrefix: "/", // Default command prefix
+    autoReact: false, // Automatically react to messages
+    logMessages: true, // Log incoming messages
+    welcomeNewMembers: true, // Welcome message for new members
+    cooldownSeconds: 2, // Per-user command cooldown
+    maxMessageLength: 1000, // Maximum message length
   },
 });
 ```
@@ -123,12 +96,8 @@ Use `bot.addCommand()` to add new commands.
 bot.addCommand({
   name: "weather",
   description: "Get the weather for a city",
-  usage: "<city>",
   handler: async (message, args) => {
-    if (args.length === 0) {
-      return "Please provide a city. Usage: /weather <city>";
-    }
-    const city = args.join(" ");
+    const city = args.join(" ") || "Paris";
     // Fetch weather from an API...
     return `The weather in ${city} is sunny.`;
   },
@@ -142,83 +111,72 @@ bot.addCommand({
 | `name`        | `string`   | Command name (e.g., 'hello')                  |
 | `description` | `string`   | Description for `/help` command               |
 | `handler`     | `function` | Async function to execute the command         |
-| `usage`       | `string`   | Optional usage instructions                   |
 | `adminOnly`   | `boolean`  | Restrict command to admins (default: `false`) |
-| `aliases`     | `string[]` | Alternative names for the command             |
-| `cooldown`    | `number`   | Per-user cooldown in seconds                  |
 
 ### Command Handler
 
-The `handler` function receives two arguments:
+The `handler` function receives three arguments:
 
-1.  `message`: The full message object (`IMessage`).
+1.  `message`: The parsed message object (`ParsedMessage`).
 2.  `args`: An array of arguments passed to the command.
+3.  `bot`: The `SignalBot` instance.
 
-The handler should return a `string` or `Promise<string>` to be sent as a reply.
-
-### Sub-commands
-
-Create nested commands for better organization.
-
-```javascript
-bot.addCommand({
-  name: "admin",
-  description: "Admin commands",
-  adminOnly: true,
-  subCommands: [
-    {
-      name: "broadcast",
-      description: "Send a message to all users",
-      handler: async (message, args) => {
-        const text = args.join(" ");
-        // ... broadcast logic ...
-        return "Broadcast sent!";
-      },
-    },
-    {
-      name: "restart",
-      description: "Restart the bot",
-      handler: async () => {
-        await bot.gracefulShutdown();
-        process.exit(0);
-      },
-    },
-  ],
-});
-```
-
-Usage: `/admin broadcast Hello everyone!`
+The handler can return a `string` (to be sent as a reply) or `void` (if you send the response manually).
 
 ## Event System
 
 Listen to events using `bot.on()`.
 
 ```javascript
-// Listen for new members joining the group
-bot.on("groupMemberJoined", (event) => {
-  console.log(`${event.member.number} joined the group.`);
-  bot.sendMessage(event.groupId, `Welcome ${event.member.number}!`);
-});
-
 // Listen for all incoming messages
 bot.on("message", (message) => {
-  if (message.body.toLowerCase().includes("thank you")) {
-    bot.sendReaction(message, "👍");
-  }
+  console.log(`Message from ${message.source}: ${message.text}`);
+});
+
+// Listen for executed commands
+bot.on("command", (event) => {
+  console.log(`Command ${event.command} executed by ${event.user}`);
 });
 ```
 
 ### Common Events
 
-| Event               | Description                   |
-| ------------------- | ----------------------------- |
-| `ready`             | Bot is connected and ready    |
-| `message`           | Any incoming message          |
-| `command`           | A command is executed         |
-| `groupCreated`      | Bot created a new group       |
-| `groupMemberJoined` | A new member joined the group |
-| `groupMemberLeft`   | A member left the group       |
-| `error`             | An error occurred             |
+| Event           | Description                |
+| --------------- | -------------------------- |
+| `ready`         | Bot is connected and ready |
+| `stopped`       | Bot is stopped             |
+| `message`       | Any incoming message       |
+| `command`       | A command is executed      |
+| `error`         | An error occurred          |
+| `daemon-closed` | The Signal daemon closed   |
+
+## Bot Actions
+
+The `SignalBot` class provides methods to interact with Signal.
+
+### Send Message
+
+```javascript
+await bot.sendMessage("+33123456789", "Hello!");
+```
+
+### Send Reaction
+
+```javascript
+await bot.sendReaction(recipient, targetAuthor, targetTimestamp, "👍");
+```
+
+### Send Message with Attachment
+
+```javascript
+await bot.sendMessageWithAttachment(recipient, "Check this out!", ["./path/to/file.jpg"]);
+```
+
+### Send Message with Image from URL
+
+```javascript
+await bot.sendMessageWithImage(recipient, "Look at this!", "https://example.com/image.jpg");
+```
 
 ## Group Management
 

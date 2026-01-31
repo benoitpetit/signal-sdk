@@ -31,21 +31,22 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
     isRetryable: (error: any) => {
         // Retry on connection errors, timeouts, and certain server errors
         if (!error) return false;
-        
+
         const errorMessage = error.message?.toLowerCase() || '';
-        const isConnectionError = errorMessage.includes('connection') ||
-                                 errorMessage.includes('timeout') ||
-                                 errorMessage.includes('econnrefused') ||
-                                 errorMessage.includes('econnreset');
-        
+        const isConnectionError =
+            errorMessage.includes('connection') ||
+            errorMessage.includes('timeout') ||
+            errorMessage.includes('econnrefused') ||
+            errorMessage.includes('econnreset');
+
         const isServerError = error.code === 500 || error.code === 502 || error.code === 503;
-        
+
         // Don't retry on authentication or validation errors
         const isClientError = error.code === 401 || error.code === 403 || error.code === 400;
-        
+
         return (isConnectionError || isServerError) && !isClientError;
     },
-    onRetry: () => {}
+    onRetry: () => {},
 };
 
 /**
@@ -54,13 +55,10 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
  * @param options Retry configuration options
  * @returns Result of the operation
  */
-export async function withRetry<T>(
-    operation: () => Promise<T>,
-    options: RetryOptions = {}
-): Promise<T> {
+export async function withRetry<T>(operation: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
     const config = { ...DEFAULT_RETRY_OPTIONS, ...options };
     let lastError: any;
-    
+
     for (let attempt = 1; attempt <= config.maxAttempts; attempt++) {
         try {
             // Execute with timeout
@@ -68,28 +66,28 @@ export async function withRetry<T>(
             return result;
         } catch (error) {
             lastError = error;
-            
+
             // Check if we should retry
             const shouldRetry = attempt < config.maxAttempts && config.isRetryable(error);
-            
+
             if (!shouldRetry) {
                 throw error;
             }
-            
+
             // Calculate delay with exponential backoff
             const delay = Math.min(
                 config.initialDelay * Math.pow(config.backoffMultiplier, attempt - 1),
-                config.maxDelay
+                config.maxDelay,
             );
-            
+
             // Notify about retry
             config.onRetry(attempt, error);
-            
+
             // Wait before retrying
             await sleep(delay);
         }
     }
-    
+
     throw lastError;
 }
 
@@ -99,23 +97,20 @@ export async function withRetry<T>(
  * @param timeoutMs Timeout in milliseconds
  * @returns Result of the promise
  */
-export async function withTimeout<T>(
-    promise: Promise<T>,
-    timeoutMs: number
-): Promise<T> {
+export async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
     let timeoutHandle: NodeJS.Timeout | null = null;
-    
+
     const timeoutPromise = new Promise<T>((_, reject) => {
         timeoutHandle = setTimeout(() => {
             reject(new TimeoutError(`Operation timed out after ${timeoutMs}ms`));
         }, timeoutMs);
-        
+
         // Use unref() to prevent this timer from keeping the process alive
         if (timeoutHandle.unref) {
             timeoutHandle.unref();
         }
     });
-    
+
     try {
         const result = await Promise.race([promise, timeoutPromise]);
         // Clear the timeout if the promise resolves first
@@ -137,7 +132,7 @@ export async function withTimeout<T>(
  * @param ms Duration in milliseconds
  */
 export function sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -146,12 +141,12 @@ export function sleep(ms: number): Promise<void> {
 export class RateLimiter {
     private queue: Array<() => void> = [];
     private activeRequests = 0;
-    
+
     constructor(
         private maxConcurrent: number = 5,
-        private minInterval: number = 100
+        private minInterval: number = 100,
     ) {}
-    
+
     /**
      * Execute an operation with rate limiting
      * @param operation Function to execute
@@ -160,31 +155,31 @@ export class RateLimiter {
     async execute<T>(operation: () => Promise<T>): Promise<T> {
         // Wait for slot and reserve it
         await this.reserveSlot();
-        
+
         try {
             const result = await operation();
             return result;
         } finally {
             // Wait minimum interval before allowing next request
             await sleep(this.minInterval);
-            
+
             // Release slot
             this.activeRequests--;
-            
+
             const next = this.queue.shift();
             if (next) {
                 next();
             }
         }
     }
-    
+
     private reserveSlot(): Promise<void> {
         if (this.activeRequests < this.maxConcurrent) {
             this.activeRequests++;
             return Promise.resolve();
         }
-        
-        return new Promise(resolve => {
+
+        return new Promise((resolve) => {
             this.queue.push(() => {
                 this.activeRequests++;
                 resolve();

@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-01-31
+
+### Added - Full Feature Parity with signal-cli v0.13.23
+
+#### Story Interactions
+- Support for story reactions in `sendReaction()` via the `isStory` parameter
+- Updated `JsonRpcReactionParams` with `story` field support
+
+#### Enhanced Link Previews
+- Added comprehensive link preview fields to `sendMessage()`: `previewTitle`, `previewDescription`, and `previewImage`
+- Allows manual specification of link preview metadata for better control
+
+#### Advanced Contact Management
+- Expanded `updateContact()` with support for multiple new fields:
+  - `givenName` and `familyName`
+  - `nickGivenName` and `nickFamilyName`
+  - `note` (contact notes)
+  - `expiration` (disappearing messages timer per contact)
+
+#### Profile Management Improvements
+- Updated `updateProfile()` with new options:
+  - `familyName` support
+  - `mobileCoinAddress` for Signal payments
+  - `removeAvatar` flag for easier profile management
+
+### Changed
+- Improved type definitions in `interfaces.ts` to reflect the latest signal-cli JSON-RPC specifications
+- Refactored `ContactManager.updateContact()` to use a more flexible parameter structure
+- Updated `MessageManager.sendMessage()` to handle full link preview metadata
+
+### Compatibility
+- Achieves 100% parameter coverage for core signal-cli v0.13.23 JSON-RPC methods
+- Fully backward compatible with version 0.1.2
+- Verified with 393 passing unit and integration tests
+
 ## [0.1.2] - 2026-01-26
 
 ### Added - signal-cli v0.13.23 Compatibility

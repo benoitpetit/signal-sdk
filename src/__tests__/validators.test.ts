@@ -2,16 +2,16 @@
  * Basic tests for validators
  */
 
-import { 
-    validatePhoneNumber, 
-    validateGroupId, 
+import {
+    validatePhoneNumber,
+    validateGroupId,
     validateRecipient,
     validateMessage,
     validateAttachments,
     validateTimestamp,
     validateEmoji,
     validateDeviceId,
-    sanitizeInput
+    sanitizeInput,
 } from '../validators';
 import { ValidationError } from '../errors';
 

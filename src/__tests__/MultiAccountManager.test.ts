@@ -15,7 +15,7 @@ describe('MultiAccountManager', () => {
         jest.clearAllMocks();
         manager = new MultiAccountManager({
             dataPath: '/tmp/test-data',
-            verbose: false
+            verbose: false,
         });
     });
 
@@ -46,9 +46,7 @@ describe('MultiAccountManager', () => {
         it('should throw error when adding duplicate account', async () => {
             await manager.addAccount('+33123456789');
 
-            await expect(
-                manager.addAccount('+33123456789')
-            ).rejects.toThrow('Account +33123456789 already exists');
+            await expect(manager.addAccount('+33123456789')).rejects.toThrow('Account +33123456789 already exists');
         });
 
         it('should remove an account', async () => {
@@ -70,9 +68,7 @@ describe('MultiAccountManager', () => {
         });
 
         it('should throw error when removing non-existent account', async () => {
-            await expect(
-                manager.removeAccount('+33123456789')
-            ).rejects.toThrow('Account +33123456789 not found');
+            await expect(manager.removeAccount('+33123456789')).rejects.toThrow('Account +33123456789 not found');
         });
 
         it('should get specific account instance', async () => {
@@ -148,7 +144,7 @@ describe('MultiAccountManager', () => {
         it('should connect all accounts', async () => {
             const instance1 = await manager.addAccount('+33123456789');
             const instance2 = await manager.addAccount('+33987654321');
-            
+
             (instance1.connect as jest.Mock) = jest.fn().mockResolvedValue(undefined);
             (instance2.connect as jest.Mock) = jest.fn().mockResolvedValue(undefined);
 
@@ -161,7 +157,7 @@ describe('MultiAccountManager', () => {
         it('should disconnect all accounts', async () => {
             const instance1 = await manager.addAccount('+33123456789');
             const instance2 = await manager.addAccount('+33987654321');
-            
+
             (instance1.connect as jest.Mock) = jest.fn().mockResolvedValue(undefined);
             (instance2.connect as jest.Mock) = jest.fn().mockResolvedValue(undefined);
             (instance1.disconnect as jest.Mock) = jest.fn().mockResolvedValue(undefined);
@@ -185,9 +181,9 @@ describe('MultiAccountManager', () => {
     describe('Message Sending', () => {
         it('should send message from specific account', async () => {
             const instance = await manager.addAccount('+33123456789');
-            (instance.sendMessage as jest.Mock) = jest.fn().mockResolvedValue({ 
-                timestamp: Date.now(), 
-                results: [] 
+            (instance.sendMessage as jest.Mock) = jest.fn().mockResolvedValue({
+                timestamp: Date.now(),
+                results: [],
             });
 
             await manager.sendMessage('+33123456789', '+33111111111', 'Hello!');
@@ -196,16 +192,16 @@ describe('MultiAccountManager', () => {
         });
 
         it('should throw error when sending from non-existent account', async () => {
-            await expect(
-                manager.sendMessage('+33999999999', '+33111111111', 'Hello!')
-            ).rejects.toThrow('Account +33999999999 not found');
+            await expect(manager.sendMessage('+33999999999', '+33111111111', 'Hello!')).rejects.toThrow(
+                'Account +33999999999 not found',
+            );
         });
 
         it('should send message with options', async () => {
             const instance = await manager.addAccount('+33123456789');
-            (instance.sendMessage as jest.Mock) = jest.fn().mockResolvedValue({ 
-                timestamp: Date.now(), 
-                results: [] 
+            (instance.sendMessage as jest.Mock) = jest.fn().mockResolvedValue({
+                timestamp: Date.now(),
+                results: [],
             });
 
             const options = { attachments: ['file.jpg'] };
@@ -218,7 +214,7 @@ describe('MultiAccountManager', () => {
     describe('Event Forwarding', () => {
         it('should setup event forwarding on account addition', async () => {
             const instance = await manager.addAccount('+33123456789');
-            
+
             // Verify instance was created
             expect(instance).toBeDefined();
             expect(manager.hasAccount('+33123456789')).toBe(true);
@@ -228,7 +224,7 @@ describe('MultiAccountManager', () => {
     describe('Status Information', () => {
         it('should get status for specific account', async () => {
             await manager.addAccount('+33123456789');
-            
+
             const status = manager.getStatus('+33123456789');
 
             expect(status).toHaveProperty('account', '+33123456789');
@@ -269,7 +265,7 @@ describe('MultiAccountManager', () => {
         it('should shutdown and cleanup all accounts', async () => {
             const instance1 = await manager.addAccount('+33123456789');
             const instance2 = await manager.addAccount('+33987654321');
-            
+
             (instance1.connect as jest.Mock) = jest.fn().mockResolvedValue(undefined);
             (instance2.connect as jest.Mock) = jest.fn().mockResolvedValue(undefined);
             (instance1.disconnect as jest.Mock) = jest.fn().mockResolvedValue(undefined);

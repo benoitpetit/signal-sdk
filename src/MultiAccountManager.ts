@@ -1,6 +1,6 @@
 /**
  * Multi-Account Manager for Signal SDK
- * 
+ *
  * Manages multiple Signal accounts simultaneously with event routing
  * and isolated process management.
  */
@@ -40,28 +40,28 @@ export interface MultiAccountOptions {
 
 /**
  * Multi-Account Manager
- * 
+ *
  * Manages multiple Signal accounts with event routing and lifecycle management.
- * 
+ *
  * @example
  * ```typescript
  * const manager = new MultiAccountManager({
  *   dataPath: '/path/to/data',
  *   autoReconnect: true
  * });
- * 
+ *
  * // Add accounts
  * await manager.addAccount('+33123456789');
  * await manager.addAccount('+33987654321');
- * 
+ *
  * // Listen to events from all accounts
  * manager.on('message', (account, message) => {
  *   console.log(`Message from ${account}: ${message.text}`);
  * });
- * 
+ *
  * // Connect all accounts
  * await manager.connectAll();
- * 
+ *
  * // Send from specific account
  * await manager.sendMessage('+33123456789', '+33111111111', 'Hello!');
  * ```
@@ -76,15 +76,15 @@ export class MultiAccountManager extends EventEmitter {
         this.options = options;
         this.logger = new Logger({
             level: options.verbose ? 'debug' : 'info',
-            enableFile: false
+            enableFile: false,
         });
-        
+
         this.logger.info('MultiAccountManager initialized');
     }
 
     /**
      * Add an account to the manager
-     * 
+     *
      * @param account - Phone number of the account
      * @param config - Optional SignalCli configuration
      * @returns The SignalCli instance
@@ -100,7 +100,7 @@ export class MultiAccountManager extends EventEmitter {
         const signalConfig: SignalCliConfig = {
             signalCliPath: this.options.signalCliPath,
             verbose: this.options.verbose,
-            ...config
+            ...config,
         };
 
         const instance = new SignalCli(account, undefined, signalConfig);
@@ -113,7 +113,7 @@ export class MultiAccountManager extends EventEmitter {
             account,
             instance,
             connected: false,
-            lastActivity: Date.now()
+            lastActivity: Date.now(),
         };
 
         this.accounts.set(account, managedAccount);
@@ -125,7 +125,7 @@ export class MultiAccountManager extends EventEmitter {
 
     /**
      * Remove an account from the manager
-     * 
+     *
      * @param account - Phone number of the account
      */
     async removeAccount(account: string): Promise<void> {
@@ -153,7 +153,7 @@ export class MultiAccountManager extends EventEmitter {
 
     /**
      * Get a specific account instance
-     * 
+     *
      * @param account - Phone number of the account
      * @returns The SignalCli instance
      */
@@ -163,7 +163,7 @@ export class MultiAccountManager extends EventEmitter {
 
     /**
      * Get all managed accounts
-     * 
+     *
      * @returns Array of account phone numbers
      */
     getAccounts(): string[] {
@@ -172,7 +172,7 @@ export class MultiAccountManager extends EventEmitter {
 
     /**
      * Check if an account exists
-     * 
+     *
      * @param account - Phone number of the account
      * @returns True if the account exists
      */
@@ -182,7 +182,7 @@ export class MultiAccountManager extends EventEmitter {
 
     /**
      * Connect a specific account
-     * 
+     *
      * @param account - Phone number of the account
      */
     async connect(account: string): Promise<void> {
@@ -203,23 +203,23 @@ export class MultiAccountManager extends EventEmitter {
             managedAccount.connected = true;
             managedAccount.lastActivity = Date.now();
             this.emit('accountConnected', account);
-            
+
             this.logger.info(`Account ${account} connected successfully`);
         } catch (error) {
             this.logger.error(`Failed to connect account ${account}:`, error);
-            
+
             if (this.options.autoReconnect) {
                 this.logger.info(`Will retry connection for ${account}`);
                 setTimeout(() => this.connect(account), 5000);
             }
-            
+
             throw error;
         }
     }
 
     /**
      * Disconnect a specific account
-     * 
+     *
      * @param account - Phone number of the account
      */
     async disconnect(account: string): Promise<void> {
@@ -248,10 +248,10 @@ export class MultiAccountManager extends EventEmitter {
     async connectAll(): Promise<void> {
         this.logger.info('Connecting all accounts');
 
-        const promises = Array.from(this.accounts.keys()).map(account =>
-            this.connect(account).catch(error => {
+        const promises = Array.from(this.accounts.keys()).map((account) =>
+            this.connect(account).catch((error) => {
                 this.logger.error(`Failed to connect ${account}:`, error);
-            })
+            }),
         );
 
         await Promise.all(promises);
@@ -264,10 +264,10 @@ export class MultiAccountManager extends EventEmitter {
     async disconnectAll(): Promise<void> {
         this.logger.info('Disconnecting all accounts');
 
-        const promises = Array.from(this.accounts.keys()).map(account =>
-            this.disconnect(account).catch(error => {
+        const promises = Array.from(this.accounts.keys()).map((account) =>
+            this.disconnect(account).catch((error) => {
                 this.logger.error(`Failed to disconnect ${account}:`, error);
-            })
+            }),
         );
 
         await Promise.all(promises);
@@ -276,18 +276,13 @@ export class MultiAccountManager extends EventEmitter {
 
     /**
      * Send a message from a specific account
-     * 
+     *
      * @param fromAccount - Account to send from
      * @param recipient - Recipient phone number or group ID
      * @param message - Message text
      * @param options - Send options
      */
-    async sendMessage(
-        fromAccount: string,
-        recipient: string,
-        message: string,
-        options: any = {}
-    ): Promise<any> {
+    async sendMessage(fromAccount: string, recipient: string, message: string, options: any = {}): Promise<any> {
         const managedAccount = this.accounts.get(fromAccount);
         if (!managedAccount) {
             throw new Error(`Account ${fromAccount} not found`);
@@ -299,7 +294,7 @@ export class MultiAccountManager extends EventEmitter {
 
     /**
      * Get account status information
-     * 
+     *
      * @param account - Phone number of the account (optional)
      * @returns Status information for all or specific account
      */
@@ -314,7 +309,7 @@ export class MultiAccountManager extends EventEmitter {
                 account: managedAccount.account,
                 connected: managedAccount.connected,
                 lastActivity: managedAccount.lastActivity,
-                uptime: Date.now() - managedAccount.lastActivity
+                uptime: Date.now() - managedAccount.lastActivity,
             };
         }
 
@@ -322,7 +317,7 @@ export class MultiAccountManager extends EventEmitter {
         const status: any = {
             totalAccounts: this.accounts.size,
             connectedAccounts: 0,
-            accounts: []
+            accounts: [],
         };
 
         for (const [account, managed] of this.accounts) {
@@ -334,7 +329,7 @@ export class MultiAccountManager extends EventEmitter {
                 account,
                 connected: managed.connected,
                 lastActivity: managed.lastActivity,
-                uptime: Date.now() - managed.lastActivity
+                uptime: Date.now() - managed.lastActivity,
             });
         }
 
@@ -343,31 +338,23 @@ export class MultiAccountManager extends EventEmitter {
 
     /**
      * Setup event forwarding from an account instance
-     * 
+     *
      * @private
      */
     private setupEventForwarding(account: string, instance: SignalCli): void {
         // Forward all events with account prefix
-        const events = [
-            'message',
-            'receipt',
-            'typing',
-            'reaction',
-            'error',
-            'connected',
-            'disconnected'
-        ];
+        const events = ['message', 'receipt', 'typing', 'reaction', 'error', 'connected', 'disconnected'];
 
-        events.forEach(event => {
+        events.forEach((event) => {
             instance.on(event, (...args: any[]) => {
                 // Emit with account information
                 this.emit(event, account, ...args);
-                
+
                 // Also emit a generic event with account
                 this.emit('accountEvent', {
                     account,
                     event,
-                    data: args
+                    data: args,
                 });
 
                 // Update last activity

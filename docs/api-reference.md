@@ -329,6 +329,97 @@ groups.forEach((group) => {
 });
 ```
 
+#### `unregister(): Promise<void>`
+
+Unregisters the Signal account from the server. This deletes the account on the Signal server but keeps local data.
+
+#### `deleteLocalAccountData(): Promise<void>`
+
+Deletes all local data associated with the account.
+
+#### `updateAccountConfiguration(config: AccountConfiguration): Promise<void>`
+
+Updates account-wide configuration settings.
+
+#### `setPin(pin: string): Promise<void>`
+
+Sets a registration lock PIN for the account.
+
+#### `removePin(): Promise<void>`
+
+Removes the registration lock PIN.
+
+#### `listIdentities(number?: string): Promise<IdentityKey[]>`
+
+Lists known identities and their trust levels.
+
+**Parameters:**
+- `number`: Optional phone number to filter identities
+
+#### `trustIdentity(number: string, safetyNumber: string, verified: boolean = true): Promise<void>`
+
+Manually marks an identity as trusted or untrusted.
+
+#### `getSafetyNumber(number: string): Promise<string | null>`
+
+Retrieves the 60-digit safety number for a contact.
+
+**Returns:** The safety number string or null if not found.
+
+#### `verifySafetyNumber(number: string, safetyNumber: string): Promise<boolean>`
+
+Verifies a safety number and marks the identity as trusted if it matches.
+
+#### `listUntrustedIdentities(): Promise<IdentityKey[]>`
+
+Lists all identities that are not currently trusted.
+
+#### `sendSyncRequest(): Promise<void>`
+
+Sends a synchronization request to other linked devices.
+
+#### `sendMessageRequestResponse(recipient: string, response: MessageRequestResponseType): Promise<void>`
+
+Responds to a message request from a non-contact.
+
+#### `getVersion(): Promise<any>`
+
+Retrieves the version of the underlying `signal-cli`.
+
+#### `isRegistered(number: string): Promise<boolean>`
+
+Helper method to check if a phone number is registered on Signal.
+
+#### `sendNoteToSelf(message: string, options?: Omit<SendMessageOptions, 'message' | 'noteToSelf'>): Promise<SendResponse>`
+
+Sends a message to your own "Note to Self" conversation.
+
+### Group Management
+
+#### `createGroup(name: string, members: string[]): Promise<GroupInfo>`
+
+Creates a new Signal group.
+
+#### `updateGroup(groupId: string, options: GroupUpdateOptions): Promise<void>`
+
+Updates a group's settings and members.
+
+#### `listGroups(): Promise<GroupInfo[]>`
+
+Lists all groups.
+
+#### `listGroupsDetailed(options?: ListGroupsOptions): Promise<GroupInfo[]>`
+
+Lists all groups with detailed information.
+
+#### `sendGroupInviteLink(groupId: string, recipient: string): Promise<SendResponse>`
+
+Sends the group's invite link to a recipient.
+
+#### `resetGroupLink(groupId: string): Promise<void>`
+
+Resets the group's invite link.
+
 #### `joinGroup(uri: string): Promise<void>`
 
 Joins a group via an invitation link.
@@ -343,28 +434,21 @@ Leaves a group.
 
 Lists all contacts.
 
-#### `updateContact(number: string, name: string, options?: ContactUpdateOptions): Promise<void>`
+#### `getContactsWithProfiles(): Promise<Contact[]>`
 
-Updates a contact's name.
+Returns all contacts with enriched profile information.
+
+#### `updateContact(number: string, name?: string, options?: Omit<ContactUpdateOptions, 'name'>): Promise<void>`
+
+Updates a contact's information.
 
 #### `removeContact(number: string, options?: RemoveContactOptions): Promise<void>`
 
 Removes a contact from the contact list.
 
-#### `sendContacts(recipient: string): Promise<SendResponse>`
+#### `sendContacts(options?: SendContactsOptions): Promise<void>`
 
-Exports and sends contact list to a recipient. Useful for contact sharing and backup.
-
-**Parameters:**
-
-- `recipient`: Phone number or group ID to send contacts to
-
-**Example:**
-
-```typescript
-// Send your contact list to another user
-await signal.sendContacts("+1234567890");
-```
+Exports and sends contact data.
 
 #### `block(recipients: string[], groupId?: string): Promise<void>`
 
@@ -376,389 +460,43 @@ Unblocks one or more contacts.
 
 #### `getUserStatus(numbers?: string[], usernames?: string[]): Promise<UserStatusResult[]>`
 
-Checks if phone numbers or usernames are registered with Signal.
+Checks registration status on Signal.
 
-### Identity and Security Management
+#### `getAvatar(options: GetAvatarOptions): Promise<string>`
 
-#### `getSafetyNumber(recipient: string): Promise<SafetyNumberInfo>`
+Retrieves a contact's or group's avatar. Returns the path to the saved file.
 
-Retrieves the safety number for identity verification with a contact.
+### Messaging
 
-**Parameters:**
+#### `sendReceipt(recipient: string, targetTimestamp: number, type?: ReceiptType): Promise<void>`
 
-- `recipient`: Phone number or UUID of the contact
+Sends a delivery or read receipt for a message.
 
-**Returns:** Safety number information:
+#### `receive(options?: ReceiveOptions): Promise<Message[]>`
 
-- `safetyNumber`: The 60-digit safety number
-- `identityKey`: The identity key (base64)
-- `trusted`: Whether the identity is trusted
+Receives pending messages.
 
-**Example:**
+#### `getAttachment(options: GetAttachmentOptions): Promise<string>`
 
-```typescript
-const safetyInfo = await signal.getSafetyNumber("+1234567890");
-console.log("Safety Number:", safetyInfo.safetyNumber);
-console.log("Trusted:", safetyInfo.trusted);
-```
+Retrieves an attachment. Returns the path to the saved file.
 
-#### `verifySafetyNumber(recipient: string, safetyNumber: string): Promise<VerificationResult>`
-
-Verifies a safety number matches the expected value and marks it as trusted.
-
-**Parameters:**
-
-- `recipient`: Phone number or UUID of the contact
-- `safetyNumber`: The 60-digit safety number to verify
-
-**Returns:** Verification result with success status
-
-**Example:**
-
-```typescript
-const result = await signal.verifySafetyNumber(
-  "+1234567890",
-  "123456789012345678901234567890123456789012345678901234567890",
-);
-console.log("Verified:", result.success);
-```
-
-#### `listUntrustedIdentities(recipient?: string): Promise<UntrustedIdentity[]>`
-
-Lists identities that have changed and need verification.
-
-**Parameters:**
-
-- `recipient`: Optional phone number to check specific contact
-
-**Returns:** Array of untrusted identities with details
-
-**Example:**
-
-```typescript
-const untrusted = await signal.listUntrustedIdentities();
-untrusted.forEach((identity) => {
-  console.log(`${identity.number}: ${identity.identityKey}`);
-});
-```
-
-### Username Management
-
-#### `setUsername(username: string): Promise<UsernameResult>`
-
-Sets or updates your Signal username.
-
-**Parameters:**
-
-- `username`: Desired username (alphanumeric with optional dots, no spaces)
-
-**Returns:** Username result with success status and username link
-
-**Example:**
-
-```typescript
-const result = await signal.setUsername("john.doe.42");
-console.log("Username set:", result.username);
-console.log("Share link:", result.usernameLink);
-```
-
-#### `deleteUsername(): Promise<void>`
-
-Deletes your Signal username.
-
-**Example:**
-
-```typescript
-await signal.deleteUsername();
-console.log("Username removed");
-```
-
-#### `getUsernameLink(): Promise<string>`
-
-Retrieves your username link for sharing.
-
-**Returns:** Username link URL
-
-**Example:**
-
-```typescript
-const link = await signal.getUsernameLink();
-console.log("Share your username:", link);
-```
-
-### Enhanced Parsing Helpers
-
-#### `parseContactProfile(contact: Contact): EnhancedContact`
-
-Parses and enriches contact information from raw Signal data.
-
-**Parameters:**
-
-- `contact`: Raw contact object
-
-**Returns:** Enhanced contact with additional fields:
-
-- `givenName`: First name
-- `familyName`: Last name
-- `mobileCoinAddress`: MobileCoin payment address
-- `profileKey`: Profile encryption key
-- `username`: Signal username
-- `registered`: Registration status
-
-**Example:**
-
-```typescript
-const contacts = await signal.listContacts();
-const enhanced = contacts.map((c) => signal.parseContactProfile(c));
-enhanced.forEach((contact) => {
-  console.log(`${contact.givenName} ${contact.familyName}`);
-  if (contact.username) console.log(`  @${contact.username}`);
-});
-```
-
-#### `getContactsWithProfiles(): Promise<EnhancedContact[]>`
-
-Returns all contacts with parsed profile information.
-
-**Returns:** Array of enhanced contacts
-
-**Example:**
-
-```typescript
-const contacts = await signal.getContactsWithProfiles();
-contacts.forEach((c) => {
-  console.log(`${c.givenName} ${c.familyName} (@${c.username})`);
-});
-```
-
-#### `parseGroupDetails(group: Group): EnhancedGroup`
-
-Parses and enriches group information from raw Signal data.
-
-**Parameters:**
-
-- `group`: Raw group object
-
-**Returns:** Enhanced group with additional fields:
-
-- `pendingMembers`: Members waiting for approval
-- `bannedMembers`: Banned members list
-- `inviteLink`: Group invitation link
-- `version`: Group version
-- `masterKey`: Group master key
-
-**Example:**
-
-```typescript
-const groups = await signal.listGroups();
-const enhanced = groups.map((g) => signal.parseGroupDetails(g));
-enhanced.forEach((group) => {
-  console.log(`${group.name}:`);
-  console.log(`  Members: ${group.members.length}`);
-  console.log(`  Pending: ${group.pendingMembers?.length || 0}`);
-  console.log(`  Banned: ${group.bannedMembers?.length || 0}`);
-  if (group.inviteLink) console.log(`  Invite: ${group.inviteLink}`);
-});
-```
-
-#### `getGroupsWithDetails(): Promise<EnhancedGroup[]>`
-
-Returns all groups with parsed detailed information.
-
-**Returns:** Array of enhanced groups
-
-**Example:**
-
-```typescript
-const groups = await signal.getGroupsWithDetails();
-groups.forEach((g) => {
-  console.log(`${g.name} - ${g.members.length} members`);
-  if (g.inviteLink) console.log(`  Join: ${g.inviteLink}`);
-});
-```
-
-### Advanced Group Management
-
-#### `sendGroupInviteLink(groupId: string): Promise<string>`
-
-Generates and retrieves the invite link for a group.
-
-**Parameters:**
-
-- `groupId`: Group identifier
-
-**Returns:** Group invite link URL
-
-**Example:**
-
-```typescript
-const inviteLink = await signal.sendGroupInviteLink("group-id-123");
-console.log("Share this link:", inviteLink);
-```
-
-#### `setBannedMembers(groupId: string, members: string[]): Promise<void>`
-
-Sets the list of banned members for a group.
-
-**Parameters:**
-
-- `groupId`: Group identifier
-- `members`: Array of phone numbers to ban
-
-**Example:**
-
-```typescript
-await signal.setBannedMembers("group-id-123", ["+1234567890", "+1987654321"]);
-```
-
-#### `resetGroupLink(groupId: string): Promise<string>`
-
-Resets the group invite link (invalidates old link).
-
-**Parameters:**
-
-- `groupId`: Group identifier
-
-**Returns:** New group invite link
-
-**Example:**
-
-```typescript
-const newLink = await signal.resetGroupLink("group-id-123");
-console.log("New invite link:", newLink);
-```
-
-### Account Management
-
-#### `updateAccount(options: UpdateAccountOptions): Promise<AccountUpdateResult>`
-
-Updates account settings including name, avatar, and profile.
-
-**Parameters:**
-
-- `options`:
-  - `name`: Account display name (string)
-  - `avatar`: Path to avatar image file (string)
-  - `removeAvatar`: Remove current avatar (boolean)
-  - `about`: About/status text (string)
-  - `aboutEmoji`: About emoji (string)
-  - `mobileCoinAddress`: MobileCoin address for payments (string)
-
-**Returns:** Account update result with success status
-
-**Example:**
-
-```typescript
-const result = await signal.updateAccount({
-  name: "John Doe",
-  avatar: "./profile-pic.jpg",
-  about: "Signal SDK Developer",
-  aboutEmoji: "💻",
-});
-console.log("Account updated:", result.success);
-```
-
-#### `listAccountsDetailed(): Promise<DetailedAccountInfo[]>`
-
-Lists all registered accounts with detailed information.
-
-**Returns:** Array of detailed account information:
-
-- `number`: Phone number
-- `uuid`: Account UUID
-- `username`: Signal username
-- `name`: Display name
-- `about`: About text
-- `aboutEmoji`: About emoji
-- `avatar`: Avatar information
-- `deviceId`: Device identifier
-- `registered`: Registration status
-
-**Example:**
-
-```typescript
-const accounts = await signal.listAccountsDetailed();
-accounts.forEach((account) => {
-  console.log(`${account.name} (${account.number})`);
-  if (account.about) console.log(`  About: ${account.about}`);
-});
-```
-
-### Attachment Management
-
-#### `getAttachment(attachmentId: string, outputPath?: string): Promise<AttachmentData>`
-
-Retrieves an attachment by its ID.
-
-**Parameters:**
-
-- `attachmentId`: Unique attachment identifier
-- `outputPath`: Optional path to save the attachment
-
-**Returns:** Attachment data with content type and data
-
-**Example:**
-
-```typescript
-const attachment = await signal.getAttachment(
-  "abc123...",
-  "./downloads/file.pdf",
-);
-console.log("Downloaded:", attachment.contentType);
-```
-
-#### `getAvatar(contact: string, outputPath?: string): Promise<AvatarData>`
-
-Retrieves a contact's or group's avatar by contact identifier.
-
-**Parameters:**
-
-- `contact`: Phone number, UUID, or group ID
-- `outputPath`: Optional path to save the avatar
-
-**Returns:** Avatar data with image information
-
-**Example:**
-
-```typescript
-const avatar = await signal.getAvatar("+1234567890", "./avatars/contact.jpg");
-```
-
-#### `getSticker(stickerId: string, outputPath?: string): Promise<StickerData>`
-
-Retrieves a sticker by its ID.
-
-**Parameters:**
-
-- `stickerId`: Unique sticker identifier from pack
-- `outputPath`: Optional path to save the sticker
-
-**Returns:** Sticker data with image information
-
-**Example:**
-
-```typescript
-const sticker = await signal.getSticker(
-  "sticker-id-123",
-  "./stickers/my-sticker.webp",
-);
-```
-
-### Payment Features
-
-#### `sendPaymentNotification(recipient: string, paymentData: PaymentNotificationData): Promise<SendResponse>`
-
-Sends a payment notification with a receipt to a recipient.
-
-### Custom Sticker Management
-
-#### `uploadStickerPack(manifest: StickerPackManifest): Promise<StickerPackUploadResult>`
-
-Uploads a custom sticker pack to Signal.
+### Stickers
 
 #### `listStickerPacks(): Promise<StickerPack[]>`
 
 Lists installed sticker packs.
+
+#### `addStickerPack(packId: string, packKey: string): Promise<void>`
+
+Adds a sticker pack by ID and key.
+
+#### `uploadStickerPack(manifest: StickerPackManifest): Promise<StickerPackUploadResult>`
+
+Uploads a custom sticker pack.
+
+#### `getSticker(options: GetStickerOptions): Promise<string>`
+
+Retrieves a sticker. Returns the path to the saved file.
 
 ### Rate Limit Management
 
@@ -880,6 +618,26 @@ Sends a message with attachments.
 
 Downloads an image from a URL and sends it as an attachment.
 
+#### `downloadImageFromUrl(imageUrl: string, prefix?: string): Promise<string>`
+
+Downloads an image from a URL to a temporary file. Returns the path to the temporary file.
+
+#### `isAdmin(phoneNumber: string): boolean`
+
+Checks if a phone number is in the bot's admin list.
+
+#### `getBotGroupId(): string | null`
+
+Retrieves the ID of the group managed by the bot.
+
+#### `getSignalCli(): SignalCli`
+
+Returns the underlying `SignalCli` instance for advanced operations.
+
+#### `getStats(): BotStats`
+
+Retrieves bot statistics including messages received and commands executed.
+
 #### `sendReaction(recipient: string, targetAuthor: string, targetTimestamp: number, emoji: string): Promise<void>`
 
 Sends a reaction to a message.
@@ -910,159 +668,44 @@ const manager = new MultiAccountManager();
 
 ### Account Management
 
-#### `addAccount(account: string, signalCliPath?: string, config?: SignalCliConfig): SignalCli`
+#### `addAccount(account: string, config?: Partial<SignalCliConfig>): Promise<SignalCli>`
 
 Adds a Signal account to the manager.
 
 **Parameters:**
 
 - `account`: Phone number for the account
-- `signalCliPath`: Optional path to signal-cli binary
-- `config`: Optional Signal CLI configuration
+- `config`: Optional Signal CLI configuration overrides
 
 **Returns:** SignalCli instance for the account
 
-**Example:**
+#### `removeAccount(account: string): Promise<void>`
 
-```typescript
-const account1 = manager.addAccount("+1234567890");
-const account2 = manager.addAccount("+1987654321");
-```
+Removes an account from the manager and disconnects it.
 
-#### `removeAccount(account: string): boolean`
+#### `getAccounts(): string[]`
 
-Removes an account from the manager.
+Returns all managed account phone numbers.
 
-**Parameters:**
+#### `hasAccount(account: string): boolean`
 
-- `account`: Phone number of account to remove
+Checks if an account is managed.
 
-**Returns:** true if account was removed
+#### `connect(account: string): Promise<void>`
 
-**Example:**
+Connects a specific account.
 
-```typescript
-manager.removeAccount("+1234567890");
-```
+#### `disconnect(account: string): Promise<void>`
 
-#### `getAccount(account: string): SignalCli | undefined`
+Disconnects a specific account.
 
-Retrieves a specific account instance.
+#### `getStatus(account?: string): any`
 
-**Parameters:**
+Retrieves status information for all accounts or a specific one.
 
-- `account`: Phone number of account
+#### `shutdown(): Promise<void>`
 
-**Returns:** SignalCli instance or undefined
-
-**Example:**
-
-```typescript
-const account = manager.getAccount("+1234567890");
-if (account) {
-  await account.sendMessage("+1111111111", "Hello");
-}
-```
-
-#### `getAccounts(): Map<string, SignalCli>`
-
-Returns all managed accounts.
-
-**Returns:** Map of account number to SignalCli instance
-
-**Example:**
-
-```typescript
-const accounts = manager.getAccounts();
-console.log(`Managing ${accounts.size} accounts`);
-```
-
-### Connection Management
-
-#### `connectAll(): Promise<void>`
-
-Connects all managed accounts to their respective daemons.
-
-**Example:**
-
-```typescript
-await manager.connectAll();
-console.log("All accounts connected");
-```
-
-#### `disconnectAll(): void`
-
-Disconnects all managed accounts.
-
-**Example:**
-
-```typescript
-manager.disconnectAll();
-```
-
-### Messaging Operations
-
-#### `sendMessage(fromAccount: string, recipient: string, message: string, options?: SendMessageOptions): Promise<SendResponse>`
-
-Sends a message from a specific account.
-
-**Parameters:**
-
-- `fromAccount`: Phone number of sending account
-- `recipient`: Phone number or group ID of recipient
-- `message`: Message text
-- `options`: Optional send options
-
-**Returns:** Send response
-
-**Example:**
-
-```typescript
-await manager.sendMessage("+1234567890", "+1111111111", "Hello from account 1");
-```
-
-#### `receive(account: string, options?: ReceiveOptions): Promise<Message[]>`
-
-Receives messages for a specific account.
-
-**Parameters:**
-
-- `account`: Phone number of account
-- `options`: Optional receive options
-
-**Returns:** Array of received messages
-
-**Example:**
-
-```typescript
-const messages = await manager.receive("+1234567890", {
-  timeout: 5,
-  ignoreStories: true,
-});
-```
-
-### Status and Monitoring
-
-#### `getAllStatus(): AccountStatus[]`
-
-Retrives the status of all managed accounts.
-
-**Returns:** Array of account statuses:
-
-- `account`: Phone number
-- `connected`: Connection status
-- `deviceLinked`: Device linking status
-
-**Example:**
-
-```typescript
-const statuses = manager.getAllStatus();
-statuses.forEach((status) => {
-  console.log(
-    `${status.account}: ${status.connected ? "Connected" : "Disconnected"}`,
-  );
-});
-```
+Gracefully shuts down the manager and all managed accounts.
 
 ### Events
 

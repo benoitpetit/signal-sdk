@@ -44,12 +44,14 @@ export interface SignalCliConfig {
     httpBaseUrl?: string;
 }
 
-export const DEFAULT_CONFIG: Required<Omit<SignalCliConfig, 'socketPath' | 'tcpHost' | 'tcpPort' | 'httpBaseUrl'> & {
-    socketPath: string;
-    tcpHost: string;
-    tcpPort: number;
-    httpBaseUrl: string;
-}> = {
+export const DEFAULT_CONFIG: Required<
+    Omit<SignalCliConfig, 'socketPath' | 'tcpHost' | 'tcpPort' | 'httpBaseUrl'> & {
+        socketPath: string;
+        tcpHost: string;
+        tcpPort: number;
+        httpBaseUrl: string;
+    }
+> = {
     signalCliPath: '',
     account: '',
     connectionTimeout: 30000,
@@ -68,7 +70,7 @@ export const DEFAULT_CONFIG: Required<Omit<SignalCliConfig, 'socketPath' | 'tcpH
     socketPath: '/tmp/signal-cli.sock',
     tcpHost: 'localhost',
     tcpPort: 7583,
-    httpBaseUrl: 'http://localhost:8080'
+    httpBaseUrl: 'http://localhost:8080',
 };
 
 /**
@@ -78,32 +80,32 @@ export const DEFAULT_CONFIG: Required<Omit<SignalCliConfig, 'socketPath' | 'tcpH
  */
 export function validateConfig(userConfig: SignalCliConfig = {}): Required<SignalCliConfig> {
     const config = { ...DEFAULT_CONFIG, ...userConfig };
-    
+
     // Validate numeric values
     if (config.connectionTimeout < 0) {
         throw new Error('connectionTimeout must be non-negative');
     }
-    
+
     if (config.requestTimeout < 0) {
         throw new Error('requestTimeout must be non-negative');
     }
-    
+
     if (config.maxRetries < 0) {
         throw new Error('maxRetries must be non-negative');
     }
-    
+
     if (config.retryDelay < 0) {
         throw new Error('retryDelay must be non-negative');
     }
-    
+
     if (config.maxConcurrentRequests < 1) {
         throw new Error('maxConcurrentRequests must be at least 1');
     }
-    
+
     if (config.minRequestInterval < 0) {
         throw new Error('minRequestInterval must be non-negative');
     }
-    
+
     return config;
 }
 
@@ -124,7 +126,7 @@ export const DEFAULT_LOGGER_CONFIG: LoggerConfig = {
     enableConsole: true,
     enableFile: false,
     includeTimestamp: true,
-    includeLevel: true
+    includeLevel: true,
 };
 
 /**
@@ -136,55 +138,55 @@ export class Logger {
         debug: 0,
         info: 1,
         warn: 2,
-        error: 3
+        error: 3,
     };
-    
+
     constructor(config: Partial<LoggerConfig> = {}) {
         this.config = { ...DEFAULT_LOGGER_CONFIG, ...config };
     }
-    
+
     private shouldLog(level: keyof typeof this.levels): boolean {
         return this.levels[level] >= this.levels[this.config.level];
     }
-    
+
     private format(level: string, message: string, data?: any): string {
         const parts: string[] = [];
-        
+
         if (this.config.includeTimestamp) {
             parts.push(`[${new Date().toISOString()}]`);
         }
-        
+
         if (this.config.includeLevel) {
             parts.push(`[${level.toUpperCase()}]`);
         }
-        
+
         parts.push(message);
-        
+
         if (data !== undefined) {
             parts.push(JSON.stringify(data, null, 2));
         }
-        
+
         return parts.join(' ');
     }
-    
+
     debug(message: string, data?: any): void {
         if (this.shouldLog('debug') && this.config.enableConsole) {
             console.debug(this.format('debug', message, data));
         }
     }
-    
+
     info(message: string, data?: any): void {
         if (this.shouldLog('info') && this.config.enableConsole) {
             console.info(this.format('info', message, data));
         }
     }
-    
+
     warn(message: string, data?: any): void {
         if (this.shouldLog('warn') && this.config.enableConsole) {
             console.warn(this.format('warn', message, data));
         }
     }
-    
+
     error(message: string, data?: any): void {
         if (this.shouldLog('error') && this.config.enableConsole) {
             console.error(this.format('error', message, data));

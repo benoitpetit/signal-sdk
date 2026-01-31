@@ -113,20 +113,11 @@ describe('SignalCli - Enhanced Parsing (Phase 5)', () => {
                 isMember: true,
                 isBlocked: false,
                 messageExpirationTime: 0,
-                members: [
-                    { number: '+33111111111' },
-                    { number: '+33222222222' },
-                ],
-                pendingMembers: [
-                    { number: '+33333333333' },
-                ],
+                members: [{ number: '+33111111111' }, { number: '+33222222222' }],
+                pendingMembers: [{ number: '+33333333333' }],
                 requestingMembers: [],
-                admins: [
-                    { number: '+33111111111' },
-                ],
-                banned: [
-                    { number: '+33444444444' },
-                ],
+                admins: [{ number: '+33111111111' }],
+                banned: [{ number: '+33444444444' }],
                 permissionAddMember: 'ONLY_ADMINS',
                 permissionEditDetails: 'ONLY_ADMINS',
                 permissionSendMessage: 'EVERY_MEMBER',
@@ -295,7 +286,7 @@ describe('SignalCli - Enhanced Parsing (Phase 5)', () => {
 
             expect((signal as any).sendJsonRpcRequest).toHaveBeenCalledWith(
                 'listGroups',
-                expect.objectContaining({ detailed: true })
+                expect.objectContaining({ detailed: true }),
             );
         });
     });

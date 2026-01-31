@@ -13,7 +13,7 @@ describe('SignalBot Additional Tests', () => {
     beforeEach(() => {
         // Use real timers for these tests
         jest.useRealTimers();
-        
+
         mockConfig = {
             phoneNumber: '+1234567890',
             admins: ['+0987654321'],
@@ -23,8 +23,8 @@ describe('SignalBot Additional Tests', () => {
                 logMessages: true,
                 welcomeNewMembers: true,
                 cooldownSeconds: 2,
-                maxMessageLength: 1000
-            }
+                maxMessageLength: 1000,
+            },
         };
     });
 
@@ -34,9 +34,9 @@ describe('SignalBot Additional Tests', () => {
             // Remove all listeners to prevent memory leaks
             bot.removeAllListeners();
             bot.getSignalCli().removeAllListeners();
-            
+
             // Wait a bit for any async operations to complete
-            await new Promise(resolve => process.nextTick(resolve));
+            await new Promise((resolve) => process.nextTick(resolve));
         }
     });
 
@@ -48,11 +48,11 @@ describe('SignalBot Additional Tests', () => {
             bot.addCommand({
                 name: 'custom',
                 description: 'Custom command',
-                handler: customHandler
+                handler: customHandler,
             });
 
             const commands = bot.getCommands();
-            expect(commands.find(c => c.name === 'custom')).toBeDefined();
+            expect(commands.find((c) => c.name === 'custom')).toBeDefined();
         });
 
         test('should remove command successfully', () => {
@@ -61,7 +61,7 @@ describe('SignalBot Additional Tests', () => {
             bot.addCommand({
                 name: 'temp',
                 description: 'Temporary command',
-                handler: async () => 'temp'
+                handler: async () => 'temp',
             });
 
             expect(bot.removeCommand('temp')).toBe(true);
@@ -74,17 +74,17 @@ describe('SignalBot Additional Tests', () => {
             bot.addCommand({
                 name: 'test',
                 description: 'Test command',
-                handler: async () => 'test1'
+                handler: async () => 'test1',
             });
 
             bot.addCommand({
                 name: 'test',
                 description: 'Test command 2',
-                handler: async () => 'test2'
+                handler: async () => 'test2',
             });
 
             const commands = bot.getCommands();
-            const testCommands = commands.filter(c => c.name === 'test');
+            const testCommands = commands.filter((c) => c.name === 'test');
             expect(testCommands.length).toBe(1);
         });
     });
@@ -123,7 +123,7 @@ describe('SignalBot Additional Tests', () => {
 
         test('should create bot without group config', () => {
             bot = new SignalBot({
-                phoneNumber: '+1234567890'
+                phoneNumber: '+1234567890',
             });
 
             expect(bot).toBeDefined();
@@ -137,8 +137,8 @@ describe('SignalBot Additional Tests', () => {
                     name: 'Test Group',
                     description: 'Test Description',
                     createIfNotExists: true,
-                    initialMembers: ['+1111111111', '+2222222222']
-                }
+                    initialMembers: ['+1111111111', '+2222222222'],
+                },
             });
 
             expect(bot).toBeDefined();
@@ -153,20 +153,20 @@ describe('SignalBot Additional Tests', () => {
             const mockSignalCli = bot.getSignalCli();
             const sendMessageSpy = jest.spyOn(mockSignalCli, 'sendMessage').mockResolvedValue({
                 results: [{ type: 'SUCCESS' }],
-                timestamp: Date.now()
+                timestamp: Date.now(),
             });
 
             // Send message (queued)
             const sendPromise = bot.sendMessage('+1111111111', 'Test message');
-            
+
             // Advance timers to process queue
             jest.advanceTimersByTime(250);
             await Promise.resolve(); // Let promises resolve
-            
+
             await sendPromise;
 
             expect(sendMessageSpy).toHaveBeenCalledWith('+1111111111', 'Test message');
-            
+
             jest.useRealTimers();
         });
 
@@ -177,20 +177,20 @@ describe('SignalBot Additional Tests', () => {
             const mockSignalCli = bot.getSignalCli();
             const sendReactionSpy = jest.spyOn(mockSignalCli, 'sendReaction').mockResolvedValue({
                 results: [{ type: 'SUCCESS' }],
-                timestamp: Date.now()
+                timestamp: Date.now(),
             });
 
             // Send reaction (queued)
             const sendPromise = bot.sendReaction('+1111111111', '+2222222222', 123456, '👍');
-            
+
             // Advance timers to process queue
             jest.advanceTimersByTime(250);
             await Promise.resolve();
-            
+
             await sendPromise;
 
             expect(sendReactionSpy).toHaveBeenCalledWith('+1111111111', '+2222222222', 123456, '👍');
-            
+
             jest.useRealTimers();
         });
 
@@ -201,22 +201,25 @@ describe('SignalBot Additional Tests', () => {
             const mockSignalCli = bot.getSignalCli();
             const sendMessageSpy = jest.spyOn(mockSignalCli, 'sendMessage').mockResolvedValue({
                 results: [{ type: 'SUCCESS' }],
-                timestamp: Date.now()
+                timestamp: Date.now(),
             });
 
             // Send message with attachment (queued)
-            const sendPromise = bot.sendMessageWithAttachment('+1111111111', 'Message with files', ['file1.txt', 'file2.jpg']);
-            
+            const sendPromise = bot.sendMessageWithAttachment('+1111111111', 'Message with files', [
+                'file1.txt',
+                'file2.jpg',
+            ]);
+
             // Advance timers to process queue and cleanup timer
             jest.advanceTimersByTime(2500); // 250ms for queue + 2000ms for cleanup
             await Promise.resolve();
-            
+
             await sendPromise;
 
             expect(sendMessageSpy).toHaveBeenCalledWith('+1111111111', 'Message with files', {
-                attachments: ['file1.txt', 'file2.jpg']
+                attachments: ['file1.txt', 'file2.jpg'],
             });
-            
+
             jest.useRealTimers();
         });
     });
@@ -224,7 +227,7 @@ describe('SignalBot Additional Tests', () => {
     describe('Configuration', () => {
         test('should use default settings when not provided', () => {
             bot = new SignalBot({
-                phoneNumber: '+1234567890'
+                phoneNumber: '+1234567890',
             });
 
             const commands = bot.getCommands();
@@ -235,8 +238,8 @@ describe('SignalBot Additional Tests', () => {
             bot = new SignalBot({
                 phoneNumber: '+1234567890',
                 settings: {
-                    commandPrefix: '!'
-                }
+                    commandPrefix: '!',
+                },
             });
 
             expect(bot).toBeDefined();
@@ -252,8 +255,8 @@ describe('SignalBot Additional Tests', () => {
                     logMessages: false,
                     welcomeNewMembers: false,
                     cooldownSeconds: 5,
-                    maxMessageLength: 2000
-                }
+                    maxMessageLength: 2000,
+                },
             });
 
             expect(bot).toBeDefined();
@@ -308,13 +311,13 @@ describe('SignalBot Additional Tests', () => {
                 phoneNumber: '+1234567890',
                 group: {
                     name: 'Test Group',
-                    createIfNotExists: false
-                }
+                    createIfNotExists: false,
+                },
             });
 
             const mockSignalCli = bot.getSignalCli();
             jest.spyOn(mockSignalCli, 'listDevices').mockResolvedValue([
-                { id: 1, name: 'Test Device', created: Date.now(), lastSeen: Date.now() }
+                { id: 1, name: 'Test Device', created: Date.now(), lastSeen: Date.now() },
             ]);
             jest.spyOn(mockSignalCli, 'connect').mockResolvedValue(undefined);
             jest.spyOn(mockSignalCli, 'on').mockReturnValue(mockSignalCli);
@@ -343,7 +346,7 @@ describe('SignalBot Additional Tests', () => {
             bot = new SignalBot(mockConfig);
 
             const commands = bot.getCommands();
-            const helpCmd = commands.find(c => c.name === 'help');
+            const helpCmd = commands.find((c) => c.name === 'help');
 
             expect(helpCmd).toBeDefined();
             expect(helpCmd?.description).toBeDefined();
@@ -353,7 +356,7 @@ describe('SignalBot Additional Tests', () => {
             bot = new SignalBot(mockConfig);
 
             const commands = bot.getCommands();
-            const statsCmd = commands.find(c => c.name === 'stats');
+            const statsCmd = commands.find((c) => c.name === 'stats');
 
             expect(statsCmd).toBeDefined();
             expect(statsCmd?.description).toBeDefined();
@@ -363,7 +366,7 @@ describe('SignalBot Additional Tests', () => {
             bot = new SignalBot(mockConfig);
 
             const commands = bot.getCommands();
-            const pingCmd = commands.find(c => c.name === 'ping');
+            const pingCmd = commands.find((c) => c.name === 'ping');
 
             expect(pingCmd).toBeDefined();
             expect(pingCmd?.description).toBeDefined();
@@ -373,7 +376,7 @@ describe('SignalBot Additional Tests', () => {
             bot = new SignalBot(mockConfig);
 
             const commands = bot.getCommands();
-            const infoCmd = commands.find(c => c.name === 'info');
+            const infoCmd = commands.find((c) => c.name === 'info');
 
             expect(infoCmd).toBeDefined();
             expect(infoCmd?.description).toBeDefined();
@@ -389,8 +392,8 @@ describe('SignalBot Additional Tests', () => {
                     description: 'Test Description',
                     createIfNotExists: true,
                     initialMembers: ['+1111111111'],
-                    avatar: 'https://example.com/avatar.jpg'
-                }
+                    avatar: 'https://example.com/avatar.jpg',
+                },
             });
 
             expect(bot).toBeDefined();
@@ -404,8 +407,8 @@ describe('SignalBot Additional Tests', () => {
                     description: 'Test Description',
                     createIfNotExists: true,
                     initialMembers: ['+1111111111'],
-                    avatar: '/path/to/local/avatar.jpg'
-                }
+                    avatar: '/path/to/local/avatar.jpg',
+                },
             });
 
             expect(bot).toBeDefined();
@@ -416,7 +419,7 @@ describe('SignalBot Additional Tests', () => {
         test('should handle empty admins list', () => {
             bot = new SignalBot({
                 phoneNumber: '+1234567890',
-                admins: []
+                admins: [],
             });
 
             expect(bot.isAdmin('+1234567890')).toBe(false);
@@ -425,7 +428,7 @@ describe('SignalBot Additional Tests', () => {
         test('should handle undefined settings', () => {
             bot = new SignalBot({
                 phoneNumber: '+1234567890',
-                settings: undefined
+                settings: undefined,
             });
 
             expect(bot).toBeDefined();
@@ -435,9 +438,9 @@ describe('SignalBot Additional Tests', () => {
             bot = new SignalBot({
                 phoneNumber: '+1234567890',
                 settings: {
-                    commandPrefix: '!'
+                    commandPrefix: '!',
                     // Other settings will use defaults
-                }
+                },
             });
 
             expect(bot).toBeDefined();

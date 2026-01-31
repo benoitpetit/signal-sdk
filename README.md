@@ -17,7 +17,7 @@
 [![signal-cli](https://img.shields.io/badge/signal--cli-v0.13.23-blue.svg)](https://github.com/AsamK/signal-cli)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
-[![Tests](https://img.shields.io/badge/tests-310%20passing-brightgreen.svg)](./src/__tests__)
+[![Tests](https://img.shields.io/badge/tests-393%20passing-brightgreen.svg)](./src/__tests__)
 [![Donate on Liberapay](https://img.shields.io/badge/Liberapay-Donate-yellow.svg)](https://liberapay.com/devbyben/donate)
 
   </div>
@@ -70,7 +70,8 @@
 - **Progress Tracking** - Monitor upload progress
 - **Polls** - Create, vote, and terminate polls
 - **Attachment Retrieval** - Retrieve attachments, avatars, and stickers
-- **Account Management** - Update account settings
+- **Account Management** - Update account settings, PIN, and registration
+- **Note to Self** - Send private notes to your own account
 - **Stories** - View and interact with Signal stories
 - **Group Information** - Retrieve detailed group permissions
 
@@ -213,7 +214,7 @@ bot.on("ready", () => {
 });
 
 bot.on("message", (message) => {
-  console.log(`Received: ${message.text} from ${message.sender}`);
+  console.log(`Received: ${message.text} from ${message.source}`);
 });
 
 // Start the bot
@@ -362,8 +363,8 @@ await bot.start();
 
 - **Node.js**: >=18.0.0
 - **TypeScript**: 5.8+ with strict mode
-- **Test Coverage**: 225 passing tests across 9 suites
-- **Code Coverage**: 57.52% overall, critical modules at 96-100%
+- **Test Coverage**: 393 passing tests across 21 suites
+- **Code Coverage**: 83.54% overall, critical modules at 96-100%
 - **signal-cli**: Compatible with v0.13.23
 
 ## Testing
@@ -372,9 +373,9 @@ The SDK has comprehensive test coverage to ensure reliability and quality.
 
 ### Test Statistics
 
-- **Total Tests**: 225 passing
-- **Test Suites**: 9 suites
-- **Overall Coverage**: 57.52%
+- **Total Tests**: 393 passing
+- **Test Suites**: 21 suites
+- **Overall Coverage**: 83.54%
 
 ### Coverage by Module
 
@@ -607,6 +608,15 @@ Compatible with signal-cli v0.13.23 - **100% Feature Coverage**
 |                 | `startChangeNumber`        | Start phone number change          | ✅     |
 |                 | `finishChangeNumber`       | Complete phone number change       | ✅     |
 |                 | `sendMessageWithProgress`  | Enhanced messaging with progress   | ✅     |
+|                 | `sendNoteToSelf`           | Send message to own conversation   | ✅     |
+|                 | `unregister`               | Unregister account from server     | ✅     |
+| **Identities**  | `listIdentities`           | List known identities              | ✅     |
+|                 | `trustIdentity`            | Mark identity as trusted           | ✅     |
+|                 | `getSafetyNumber`          | Get safety number for contact      | ✅     |
+|                 | `verifySafetyNumber`       | Verify and trust safety number     | ✅     |
+| **Multi-Account**| `addAccount`              | Add account to manager             | ✅     |
+|                 | `connectAll`               | Connect all managed accounts       | ✅     |
+|                 | `getStatus`                | Get status for all accounts        | ✅     |
 
 [Complete API documentation](./docs/api-reference.md)
 

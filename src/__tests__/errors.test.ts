@@ -11,7 +11,7 @@ import {
     ValidationError,
     TimeoutError,
     GroupError,
-    MessageError
+    MessageError,
 } from '../errors';
 
 describe('Error Classes Additional Tests', () => {
@@ -283,10 +283,10 @@ describe('Error Classes Additional Tests', () => {
                 new ValidationError('test'),
                 new TimeoutError('test'),
                 new GroupError('test'),
-                new MessageError('test')
+                new MessageError('test'),
             ];
 
-            errors.forEach(error => {
+            errors.forEach((error) => {
                 expect(error.stack).toBeDefined();
                 expect(error.stack?.length).toBeGreaterThan(0);
             });

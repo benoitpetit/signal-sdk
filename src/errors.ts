@@ -4,7 +4,10 @@
  */
 
 export class SignalError extends Error {
-    constructor(message: string, public code?: string) {
+    constructor(
+        message: string,
+        public code?: string,
+    ) {
         super(message);
         this.name = 'SignalError';
         Object.setPrototypeOf(this, SignalError.prototype);
@@ -31,7 +34,7 @@ export class RateLimitError extends SignalError {
     constructor(
         message: string,
         public retryAfter?: number,
-        public challenge?: string
+        public challenge?: string,
     ) {
         super(message, 'RATE_LIMIT');
         this.name = 'RateLimitError';
@@ -40,7 +43,10 @@ export class RateLimitError extends SignalError {
 }
 
 export class ValidationError extends SignalError {
-    constructor(message: string, public field?: string) {
+    constructor(
+        message: string,
+        public field?: string,
+    ) {
         super(message, 'VALIDATION_ERROR');
         this.name = 'ValidationError';
         Object.setPrototypeOf(this, ValidationError.prototype);

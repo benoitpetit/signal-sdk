@@ -101,19 +101,13 @@ describe('SignalCli Integration Tests', () => {
             expect(errorHandler).toHaveBeenCalled();
 
             handleStderrData('WARN   Component - Warning message');
-            expect(logHandler).toHaveBeenCalledWith(
-                expect.objectContaining({ level: 'warn' })
-            );
+            expect(logHandler).toHaveBeenCalledWith(expect.objectContaining({ level: 'warn' }));
 
             handleStderrData('INFO   Component - Info message');
-            expect(logHandler).toHaveBeenCalledWith(
-                expect.objectContaining({ level: 'info' })
-            );
+            expect(logHandler).toHaveBeenCalledWith(expect.objectContaining({ level: 'info' }));
 
             handleStderrData('DEBUG  Component - Debug message');
-            expect(logHandler).toHaveBeenCalledWith(
-                expect.objectContaining({ level: 'debug' })
-            );
+            expect(logHandler).toHaveBeenCalledWith(expect.objectContaining({ level: 'debug' }));
         });
 
         it('should filter out informational WARN messages', async () => {
@@ -160,8 +154,8 @@ describe('SignalCli Integration Tests', () => {
 
             expect(errorHandler).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    message: expect.stringContaining('Failed to parse JSON-RPC response')
-                })
+                    message: expect.stringContaining('Failed to parse JSON-RPC response'),
+                }),
             );
         });
 
@@ -189,23 +183,17 @@ describe('SignalCli Integration Tests', () => {
                 if (event === 'data') callback();
             });
             await signalCli.connect();
-            
+
             jest.spyOn(signalCli as any, 'sendJsonRpcRequest').mockResolvedValue({});
-            
+
             // Valid phone
-            await expect(
-                signalCli.sendMessage('+1234567890', 'test')
-            ).resolves.toBeDefined();
+            await expect(signalCli.sendMessage('+1234567890', 'test')).resolves.toBeDefined();
 
             // Valid UUID
-            await expect(
-                signalCli.sendMessage('12345678-1234-1234-1234-123456789012', 'test')
-            ).resolves.toBeDefined();
+            await expect(signalCli.sendMessage('12345678-1234-1234-1234-123456789012', 'test')).resolves.toBeDefined();
 
             // Valid username
-            await expect(
-                signalCli.sendMessage('u:username.123', 'test')
-            ).resolves.toBeDefined();
+            await expect(signalCli.sendMessage('u:username.123', 'test')).resolves.toBeDefined();
         });
     });
 
@@ -226,9 +214,7 @@ describe('SignalCli Integration Tests', () => {
 
             await signalCli.receiveMessages();
 
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('deprecated')
-            );
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('deprecated'));
 
             consoleSpy.mockRestore();
         });
@@ -241,9 +227,7 @@ describe('SignalCli Integration Tests', () => {
 
             await signalCli.startDaemon();
 
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('deprecated')
-            );
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('deprecated'));
 
             consoleSpy.mockRestore();
         });
@@ -253,9 +237,7 @@ describe('SignalCli Integration Tests', () => {
 
             signalCli.stopDaemon();
 
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('deprecated')
-            );
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('deprecated'));
 
             consoleSpy.mockRestore();
         });
@@ -267,19 +249,21 @@ describe('SignalCli Integration Tests', () => {
         });
 
         it('should handle group message with options', async () => {
-            const sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest')
+            const sendJsonRpcRequestSpy = jest
+                .spyOn(signalCli as any, 'sendJsonRpcRequest')
                 .mockResolvedValue({ results: [{ type: 'SUCCESS' }], timestamp: 123456 });
 
             await signalCli.sendMessage('groupId==', 'Group message', {
-                mentions: [{ start: 0, length: 4, number: '+1111111111' }]
+                mentions: [{ start: 0, length: 4, number: '+1111111111' }],
             });
 
             expect(sendJsonRpcRequestSpy).toHaveBeenCalled();
-            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('send', 
+            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith(
+                'send',
                 expect.objectContaining({
                     message: 'Group message',
-                    groupId: 'groupId=='
-                })
+                    groupId: 'groupId==',
+                }),
             );
         });
     });
@@ -288,9 +272,7 @@ describe('SignalCli Integration Tests', () => {
         it('should reject when not connected', async () => {
             const disconnectedSignal = new SignalCli('signal-cli', '+1234567890');
 
-            await expect(
-                disconnectedSignal.sendMessage('+0987654321', 'test')
-            ).rejects.toThrow('Not connected');
+            await expect(disconnectedSignal.sendMessage('+0987654321', 'test')).rejects.toThrow('Not connected');
         });
 
         it('should handle JSON-RPC errors correctly', () => {
@@ -302,14 +284,15 @@ describe('SignalCli Integration Tests', () => {
 
             (signalCli as any).requestPromises.set('error-id', mockPromise);
 
-            const errorResponse = '{"jsonrpc":"2.0","id":"error-id","error":{"code":-32600,"message":"Invalid Request"}}';
+            const errorResponse =
+                '{"jsonrpc":"2.0","id":"error-id","error":{"code":-32600,"message":"Invalid Request"}}';
 
             handleRpcResponse(errorResponse);
 
             expect(mockPromise.reject).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    message: expect.stringContaining('Invalid Request')
-                })
+                    message: expect.stringContaining('Invalid Request'),
+                }),
             );
         });
     });

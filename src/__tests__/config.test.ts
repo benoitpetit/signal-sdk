@@ -16,7 +16,7 @@ describe('Config Additional Tests', () => {
         test('should merge user config with defaults', () => {
             const userConfig = {
                 verbose: true,
-                maxRetries: 5
+                maxRetries: 5,
             };
 
             const config = validateConfig(userConfig);
@@ -27,45 +27,41 @@ describe('Config Additional Tests', () => {
         });
 
         test('should throw error for negative connectionTimeout', () => {
-            expect(() => validateConfig({ connectionTimeout: -1 }))
-                .toThrow('connectionTimeout must be non-negative');
+            expect(() => validateConfig({ connectionTimeout: -1 })).toThrow('connectionTimeout must be non-negative');
         });
 
         test('should throw error for negative requestTimeout', () => {
-            expect(() => validateConfig({ requestTimeout: -100 }))
-                .toThrow('requestTimeout must be non-negative');
+            expect(() => validateConfig({ requestTimeout: -100 })).toThrow('requestTimeout must be non-negative');
         });
 
         test('should throw error for negative maxRetries', () => {
-            expect(() => validateConfig({ maxRetries: -5 }))
-                .toThrow('maxRetries must be non-negative');
+            expect(() => validateConfig({ maxRetries: -5 })).toThrow('maxRetries must be non-negative');
         });
 
         test('should throw error for negative retryDelay', () => {
-            expect(() => validateConfig({ retryDelay: -1000 }))
-                .toThrow('retryDelay must be non-negative');
+            expect(() => validateConfig({ retryDelay: -1000 })).toThrow('retryDelay must be non-negative');
         });
 
         test('should throw error for maxConcurrentRequests less than 1', () => {
-            expect(() => validateConfig({ maxConcurrentRequests: 0 }))
-                .toThrow('maxConcurrentRequests must be at least 1');
+            expect(() => validateConfig({ maxConcurrentRequests: 0 })).toThrow(
+                'maxConcurrentRequests must be at least 1',
+            );
 
-            expect(() => validateConfig({ maxConcurrentRequests: -1 }))
-                .toThrow('maxConcurrentRequests must be at least 1');
+            expect(() => validateConfig({ maxConcurrentRequests: -1 })).toThrow(
+                'maxConcurrentRequests must be at least 1',
+            );
         });
 
         test('should throw error for negative minRequestInterval', () => {
-            expect(() => validateConfig({ minRequestInterval: -50 }))
-                .toThrow('minRequestInterval must be non-negative');
+            expect(() => validateConfig({ minRequestInterval: -50 })).toThrow(
+                'minRequestInterval must be non-negative',
+            );
         });
 
         test('should accept all valid trustNewIdentities values', () => {
-            expect(() => validateConfig({ trustNewIdentities: 'on-first-use' }))
-                .not.toThrow();
-            expect(() => validateConfig({ trustNewIdentities: 'always' }))
-                .not.toThrow();
-            expect(() => validateConfig({ trustNewIdentities: 'never' }))
-                .not.toThrow();
+            expect(() => validateConfig({ trustNewIdentities: 'on-first-use' })).not.toThrow();
+            expect(() => validateConfig({ trustNewIdentities: 'always' })).not.toThrow();
+            expect(() => validateConfig({ trustNewIdentities: 'never' })).not.toThrow();
         });
 
         test('should accept zero values for valid fields', () => {
@@ -74,7 +70,7 @@ describe('Config Additional Tests', () => {
                 requestTimeout: 0,
                 maxRetries: 0,
                 retryDelay: 0,
-                minRequestInterval: 0
+                minRequestInterval: 0,
             });
 
             expect(config.connectionTimeout).toBe(0);
@@ -99,7 +95,7 @@ describe('Config Additional Tests', () => {
                 minRequestInterval: 200,
                 autoReconnect: false,
                 trustNewIdentities: 'never' as const,
-                disableSendLog: true
+                disableSendLog: true,
             };
 
             const config = validateConfig(fullConfig);
@@ -117,7 +113,7 @@ describe('Config Additional Tests', () => {
                 enableConsole: true,
                 enableFile: false,
                 includeTimestamp: true,
-                includeLevel: true
+                includeLevel: true,
             });
         });
 
@@ -132,9 +128,7 @@ describe('Config Additional Tests', () => {
             logger.debug('Test debug message');
 
             expect(consoleSpy).toHaveBeenCalled();
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('Test debug message')
-            );
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Test debug message'));
 
             consoleSpy.mockRestore();
         });
@@ -145,9 +139,7 @@ describe('Config Additional Tests', () => {
             logger.info('Test info message');
 
             expect(consoleSpy).toHaveBeenCalled();
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('Test info message')
-            );
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Test info message'));
 
             consoleSpy.mockRestore();
         });
@@ -157,9 +149,7 @@ describe('Config Additional Tests', () => {
 
             logger.warn('Test warning message');
 
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('WARN')
-            );
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('WARN'));
 
             consoleSpy.mockRestore();
         });
@@ -169,9 +159,7 @@ describe('Config Additional Tests', () => {
 
             logger.error('Test error message');
 
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('ERROR')
-            );
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('ERROR'));
 
             consoleSpy.mockRestore();
         });
@@ -183,7 +171,7 @@ describe('Config Additional Tests', () => {
 
             expect(consoleSpy).toHaveBeenCalled();
             expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringMatching(/\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\]/)
+                expect.stringMatching(/\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\]/),
             );
 
             consoleSpy.mockRestore();
@@ -195,7 +183,7 @@ describe('Config Additional Tests', () => {
                 enableConsole: false,
                 enableFile: false,
                 includeTimestamp: true,
-                includeLevel: true
+                includeLevel: true,
             });
 
             const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
@@ -213,20 +201,18 @@ describe('Config Additional Tests', () => {
                 enableConsole: true,
                 enableFile: false,
                 includeTimestamp: false,
-                includeLevel: true
+                includeLevel: true,
             });
 
             const consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
             const consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation();
 
             infoLogger.debug('Debug message'); // Should not log
-            infoLogger.info('Info message');   // Should log
+            infoLogger.info('Info message'); // Should log
 
             expect(consoleDebugSpy).not.toHaveBeenCalled();
             expect(consoleInfoSpy).toHaveBeenCalledTimes(1);
-            expect(consoleInfoSpy).toHaveBeenCalledWith(
-                expect.stringContaining('Info message')
-            );
+            expect(consoleInfoSpy).toHaveBeenCalledWith(expect.stringContaining('Info message'));
 
             consoleDebugSpy.mockRestore();
             consoleInfoSpy.mockRestore();
@@ -238,9 +224,7 @@ describe('Config Additional Tests', () => {
             logger.info('Message with data', { key: 'value', number: 42 });
 
             expect(consoleSpy).toHaveBeenCalled();
-            expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('key')
-            );
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('key'));
 
             consoleSpy.mockRestore();
         });
@@ -251,7 +235,7 @@ describe('Config Additional Tests', () => {
                 enableConsole: true,
                 enableFile: false,
                 includeTimestamp: false,
-                includeLevel: true
+                includeLevel: true,
             });
 
             const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
@@ -259,8 +243,8 @@ describe('Config Additional Tests', () => {
             const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
             errorLogger.debug('Debug'); // Should not log
-            errorLogger.info('Info');   // Should not log
-            errorLogger.warn('Warn');   // Should not log
+            errorLogger.info('Info'); // Should not log
+            errorLogger.warn('Warn'); // Should not log
             errorLogger.error('Error'); // Should log
 
             expect(consoleLogSpy).not.toHaveBeenCalled();
@@ -278,7 +262,7 @@ describe('Config Additional Tests', () => {
                 enableConsole: true,
                 enableFile: false,
                 includeTimestamp: false,
-                includeLevel: true
+                includeLevel: true,
             });
 
             const consoleSpy = jest.spyOn(console, 'info').mockImplementation();
@@ -298,7 +282,7 @@ describe('Config Additional Tests', () => {
                 enableConsole: true,
                 enableFile: false,
                 includeTimestamp: false,
-                includeLevel: false
+                includeLevel: false,
             });
 
             const consoleSpy = jest.spyOn(console, 'info').mockImplementation();
