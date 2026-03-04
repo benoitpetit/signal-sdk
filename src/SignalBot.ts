@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { SignalCli } from './SignalCli';
-import { BotConfig, BotCommand, ParsedMessage, BotStats, GroupInfo } from './interfaces';
+import { BotConfig, BotCommand, ParsedMessage, BotStats } from './interfaces';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as https from 'https';
@@ -231,7 +231,7 @@ export class SignalBot extends EventEmitter {
             this.log(`ERROR: Failed to download and send image: ${error?.message}`, 'ERROR');
             // Clean up on download error
             if (tempFilePath) {
-                this.cleanupTempFile(tempFilePath);
+                await this.cleanupTempFile(tempFilePath);
             }
             // Fallback to text message with URL
             await this.sendMessage(recipient, `${message}\n\n- Image: ${imageUrl}`);
@@ -242,10 +242,10 @@ export class SignalBot extends EventEmitter {
      * Cleans up a temporary file
      * @param filePath Path to the file to delete
      */
-    private cleanupTempFile(filePath: string): void {
+    private async cleanupTempFile(filePath: string): Promise<void> {
         try {
             if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
+                await fs.promises.unlink(filePath);
                 this.log(`- Cleaned up temporary file: ${filePath}`, 'DEBUG');
             }
         } catch (error: any) {
@@ -289,7 +289,7 @@ export class SignalBot extends EventEmitter {
                 const tempFileName = `bot_avatar_${Date.now()}.jpg`;
                 const tempFilePath = path.join(process.cwd(), tempFileName);
 
-                fs.writeFileSync(tempFilePath, base64Data, 'base64');
+                await fs.promises.writeFile(tempFilePath, base64Data, 'base64');
                 this.log(`- Saved base64 avatar to: ${tempFilePath}`, 'DEBUG');
                 return tempFilePath;
             } catch (error: any) {
@@ -676,19 +676,14 @@ export class SignalBot extends EventEmitter {
         } finally {
             // Clean up temporary avatar file if it was downloaded/created
             if (avatarPath && isTemporaryAvatar) {
-                this.cleanupTempFile(avatarPath);
+                await this.cleanupTempFile(avatarPath);
             }
         }
     }
 
     private setupEventHandlers(): void {
         this.signalCli.on('message', (messageData) => {
-            if (this.isProcessingQueue) {
-                this.log('Queue is processing, buffering incoming message...', 'DEBUG');
-                this.incomingMessageBuffer.push(messageData);
-            } else {
-                this.handleMessage(messageData);
-            }
+            this.handleMessage(messageData);
         });
 
         this.signalCli.on('close', (code) => {
@@ -869,10 +864,10 @@ export class SignalBot extends EventEmitter {
                             // Wait a bit for signal-cli to finish processing the files before cleanup
                             // signal-cli responds immediately but continues processing files in background
                             if (action.cleanup && action.cleanup.length > 0) {
-                                const cleanupTimer = setTimeout(() => {
-                                    action.cleanup!.forEach((filePath) => {
-                                        this.cleanupTempFile(filePath);
-                                    });
+                                const cleanupTimer = setTimeout(async () => {
+                                    for (const filePath of action.cleanup!) {
+                                        await this.cleanupTempFile(filePath);
+                                    }
                                     // Remove timer from active list
                                     const index = this.activeTimers.indexOf(cleanupTimer);
                                     if (index > -1) this.activeTimers.splice(index, 1);
@@ -903,22 +898,15 @@ export class SignalBot extends EventEmitter {
 
                     // Clean up temporary files even on error
                     if (action.type === 'sendMessageWithAttachment' && action.cleanup && action.cleanup.length > 0) {
-                        action.cleanup.forEach((filePath) => {
-                            this.cleanupTempFile(filePath);
-                        });
+                        for (const filePath of action.cleanup) {
+                            await this.cleanupTempFile(filePath);
+                        }
                     }
                 }
             }
         } finally {
             this.isProcessingQueue = false;
             this.log('Action queue processed.', 'DEBUG');
-
-            // Process any buffered messages
-            while (this.incomingMessageBuffer.length > 0) {
-                this.log('Processing buffered message...', 'DEBUG');
-                const bufferedMessage = this.incomingMessageBuffer.shift();
-                this.handleMessage(bufferedMessage);
-            }
         }
     }
 

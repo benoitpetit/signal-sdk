@@ -11,8 +11,10 @@ import {
     GetAttachmentOptions,
     UploadProgress,
 } from '../interfaces';
+// v0.14.0 — no additional imports needed, flags are part of existing interfaces
 import { validateRecipient, validateMessage, validateTimestamp, validateGroupId } from '../validators';
 import { MessageError } from '../errors';
+import { withRetry } from '../retry';
 
 export class MessageManager extends BaseManager {
     async sendMessage(
@@ -20,96 +22,109 @@ export class MessageManager extends BaseManager {
         message: string,
         options: Omit<SendMessageOptions, 'message'> = {},
     ): Promise<SendResponse> {
-        const params: any = {
-            message,
-            account: this.account,
-        };
+        return withRetry(
+            async () => {
+                const params: any = {
+                    message,
+                    account: this.account,
+                };
 
-        if (this.isGroupId(recipient)) {
-            params.groupId = recipient;
-        } else {
-            params.recipients = [recipient];
-        }
+                if (this.isGroupId(recipient)) {
+                    params.groupId = recipient;
+                } else {
+                    params.recipients = [recipient];
+                }
 
-        if (options.attachments && options.attachments.length > 0) {
-            params.attachments = options.attachments;
-        }
-        if (options.expiresInSeconds) {
-            params.expiresInSeconds = options.expiresInSeconds;
-        }
-        if (options.isViewOnce) {
-            params.viewOnce = options.isViewOnce;
-        }
+                if (options.attachments && options.attachments.length > 0) {
+                    params.attachments = options.attachments;
+                }
+                if (options.expiresInSeconds) {
+                    params.expiresInSeconds = options.expiresInSeconds;
+                }
+                if (options.isViewOnce) {
+                    params.viewOnce = options.isViewOnce;
+                }
 
-        if (options.mentions && options.mentions.length > 0) {
-            params.mentions = options.mentions.map((m) => ({
-                start: m.start,
-                length: m.length,
-                number: m.recipient || m.number,
-            }));
-        }
+                if (options.mentions && options.mentions.length > 0) {
+                    params.mentions = options.mentions.map((m) => ({
+                        start: m.start,
+                        length: m.length,
+                        number: m.recipient || m.number,
+                    }));
+                }
 
-        if (options.textStyles && options.textStyles.length > 0) {
-            params.textStyles = options.textStyles.map((ts) => ({
-                start: ts.start,
-                length: ts.length,
-                style: ts.style,
-            }));
-        }
+                if (options.textStyles && options.textStyles.length > 0) {
+                    params.textStyles = options.textStyles.map((ts) => ({
+                        start: ts.start,
+                        length: ts.length,
+                        style: ts.style,
+                    }));
+                }
 
-        if (options.quote) {
-            params.quoteTimestamp = options.quote.timestamp;
-            params.quoteAuthor = options.quote.author;
-            if (options.quote.text) {
-                params.quoteMessage = options.quote.text;
-            }
-            if (options.quote.mentions && options.quote.mentions.length > 0) {
-                params.quoteMentions = options.quote.mentions.map((m) => ({
-                    start: m.start,
-                    length: m.length,
-                    number: m.recipient || m.number,
-                }));
-            }
-            if (options.quote.textStyles && options.quote.textStyles.length > 0) {
-                params.quoteTextStyles = options.quote.textStyles.map((ts) => ({
-                    start: ts.start,
-                    length: ts.length,
-                    style: ts.style,
-                }));
-            }
-        }
+                if (options.quote) {
+                    params.quoteTimestamp = options.quote.timestamp;
+                    params.quoteAuthor = options.quote.author;
+                    if (options.quote.text) {
+                        params.quoteMessage = options.quote.text;
+                    }
+                    if (options.quote.mentions && options.quote.mentions.length > 0) {
+                        params.quoteMentions = options.quote.mentions.map((m) => ({
+                            start: m.start,
+                            length: m.length,
+                            number: m.recipient || m.number,
+                        }));
+                    }
+                    if (options.quote.textStyles && options.quote.textStyles.length > 0) {
+                        params.quoteTextStyles = options.quote.textStyles.map((ts) => ({
+                            start: ts.start,
+                            length: ts.length,
+                            style: ts.style,
+                        }));
+                    }
+                }
 
-        if (options.previewUrl) {
-            params.previewUrl = options.previewUrl;
-        }
-        if (options.previewTitle) {
-            params.previewTitle = options.previewTitle;
-        }
-        if (options.previewDescription) {
-            params.previewDescription = options.previewDescription;
-        }
-        if (options.previewImage) {
-            params.previewImage = options.previewImage;
-        }
+                if (options.previewUrl) {
+                    params.previewUrl = options.previewUrl;
+                }
+                if (options.previewTitle) {
+                    params.previewTitle = options.previewTitle;
+                }
+                if (options.previewDescription) {
+                    params.previewDescription = options.previewDescription;
+                }
+                if (options.previewImage) {
+                    params.previewImage = options.previewImage;
+                }
 
-        if (options.editTimestamp) {
-            params.editTimestamp = options.editTimestamp;
-        }
+                if (options.editTimestamp) {
+                    params.editTimestamp = options.editTimestamp;
+                }
 
-        if (options.storyTimestamp && options.storyAuthor) {
-            params.storyTimestamp = options.storyTimestamp;
-            params.storyAuthor = options.storyAuthor;
-        }
+                if (options.storyTimestamp && options.storyAuthor) {
+                    params.storyTimestamp = options.storyTimestamp;
+                    params.storyAuthor = options.storyAuthor;
+                }
 
-        if (options.noteToSelf) {
-            params.noteToSelf = options.noteToSelf;
-        }
+                if (options.noteToSelf) {
+                    params.noteToSelf = options.noteToSelf;
+                }
 
-        if (options.endSession) {
-            params.endSession = options.endSession;
-        }
+                if (options.endSession) {
+                    params.endSession = options.endSession;
+                }
 
-        return this.sendRequest('send', params);
+                // v0.14.0 — send without urgent flag (no push notification triggered)
+                if (options.noUrgent) {
+                    params.noUrgent = true;
+                }
+
+                return this.sendRequest('send', params);
+            },
+            {
+                maxAttempts: this.config.maxRetries,
+                initialDelay: this.config.retryDelay,
+            },
+        );
     }
 
     async sendReaction(
@@ -179,6 +194,15 @@ export class MessageManager extends BaseManager {
 
         if (options.ignoreStories) {
             params.ignoreStories = true;
+        }
+
+        // v0.14.0 flags
+        if (options.ignoreAvatars) {
+            params.ignoreAvatars = true;
+        }
+
+        if (options.ignoreStickers) {
+            params.ignoreStickers = true;
         }
 
         if (options.sendReadReceipts) {

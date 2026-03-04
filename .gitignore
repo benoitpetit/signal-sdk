@@ -6,6 +6,8 @@ dist/
 build/
 out/
 /bin/
+/lib/
+/man/
 
 # Ignore TypeScript cache
 *.tsbuildinfo
@@ -32,10 +34,9 @@ coverage/
 # Ignore declaration files (if not using outDir)
 *.d.ts
 
-# ignore signal-cli binary in /bin/signal-cli
+# ignore signal-cli binaries and JVM artifacts downloaded at install time
 bin/signal-cli
-bin/bin/signal-cli
-!bin/bin/signal-cli.bat
+bin/signal-cli.bat
 
 # Allow Windows test script
 !test-windows.bat

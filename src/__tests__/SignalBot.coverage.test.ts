@@ -6,7 +6,28 @@ import * as http from 'http';
 import { EventEmitter } from 'events';
 
 jest.mock('../SignalCli');
-jest.mock('fs');
+jest.mock('fs', () => {
+    return {
+        existsSync: jest.fn().mockImplementation((path) => {
+            if (typeof path === 'string' && path.startsWith('data:image')) return false;
+            return true;
+        }),
+        writeFileSync: jest.fn(),
+        unlinkSync: jest.fn(),
+        createWriteStream: jest.fn().mockReturnValue({
+            on: jest.fn().mockImplementation(function (this: any, event, cb) {
+                if (event === 'finish') setTimeout(cb, 0);
+                return this;
+            }),
+            close: jest.fn(),
+            pipe: jest.fn().mockReturnThis(),
+        }),
+        promises: {
+            writeFile: jest.fn().mockResolvedValue(undefined),
+            unlink: jest.fn().mockResolvedValue(undefined),
+        }
+    };
+});
 jest.mock('https');
 jest.mock('http');
 
@@ -109,7 +130,8 @@ describe('SignalBot Coverage', () => {
             
             const result = await (bot as any).processGroupAvatar(base64Avatar);
             expect(result).toContain('bot_avatar_');
-            expect(fs.writeFileSync).toHaveBeenCalled();
+            expect(result).not.toContain('data:image');
+            expect(fs.promises.writeFile).toHaveBeenCalled();
         });
 
         it('should process local file avatars', async () => {
@@ -242,7 +264,7 @@ describe('SignalBot Coverage', () => {
             // Advance timers to trigger cleanup
             jest.advanceTimersByTime(2500);
             
-            expect(fs.unlinkSync).toHaveBeenCalledWith('/tmp/file');
+            expect(fs.promises.unlink).toHaveBeenCalledWith('/tmp/file');
             jest.useRealTimers();
         });
 

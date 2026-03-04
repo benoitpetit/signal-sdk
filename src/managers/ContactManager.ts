@@ -9,6 +9,7 @@ import {
 } from '../interfaces';
 import { validateRecipient } from '../validators';
 import { MessageError } from '../errors';
+import { withRetry } from '../retry';
 
 export class ContactManager extends BaseManager {
     async updateContact(number: string, name?: string, options: Omit<ContactUpdateOptions, 'name'> = {}): Promise<void> {
@@ -40,7 +41,10 @@ export class ContactManager extends BaseManager {
     }
 
     async listContacts(): Promise<Contact[]> {
-        return this.sendRequest('listContacts', { account: this.account });
+        return withRetry(
+            () => this.sendRequest('listContacts', { account: this.account }),
+            { maxAttempts: this.config.maxRetries, initialDelay: this.config.retryDelay }
+        );
     }
 
     async removeContact(number: string, options: RemoveContactOptions = {}): Promise<void> {
@@ -56,27 +60,29 @@ export class ContactManager extends BaseManager {
     }
 
     async getUserStatus(numbers: string[] = [], usernames: string[] = []): Promise<UserStatusResult[]> {
-        const params: any = { account: this.account };
+        return withRetry(async () => {
+            const params: any = { account: this.account };
 
-        if (numbers.length > 0) params.recipients = numbers;
-        if (usernames.length > 0) params.usernames = usernames;
+            if (numbers.length > 0) params.recipients = numbers;
+            if (usernames.length > 0) params.usernames = usernames;
 
-        const result = await this.sendRequest('getUserStatus', params);
+            const result = await this.sendRequest('getUserStatus', params);
 
-        const statusResults: UserStatusResult[] = [];
+            const statusResults: UserStatusResult[] = [];
 
-        if (result.recipients) {
-            result.recipients.forEach((recipient: any) => {
-                statusResults.push({
-                    number: recipient.number,
-                    isRegistered: recipient.isRegistered || false,
-                    uuid: recipient.uuid,
-                    username: recipient.username,
+            if (result.recipients) {
+                result.recipients.forEach((recipient: any) => {
+                    statusResults.push({
+                        number: recipient.number,
+                        isRegistered: recipient.isRegistered || false,
+                        uuid: recipient.uuid,
+                        username: recipient.username,
+                    });
                 });
-            });
-        }
+            }
 
-        return statusResults;
+            return statusResults;
+        }, { maxAttempts: this.config.maxRetries, initialDelay: this.config.retryDelay });
     }
 
     async listIdentities(number?: string): Promise<IdentityKey[]> {

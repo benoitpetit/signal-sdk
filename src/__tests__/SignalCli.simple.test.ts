@@ -1,5 +1,5 @@
 import { SignalCli } from '../SignalCli';
-import { SendResponse, UserStatusResult } from '../interfaces';
+import { SendResponse } from '../interfaces';
 
 // Mock dependencies
 jest.mock('child_process');
@@ -15,6 +15,14 @@ jest.mock('../config', () => ({
         logFile: undefined,
         maxConcurrentRequests: 10,
         minRequestInterval: 100,
+        maxRetries: 3,
+        retryDelay: 1000,
+        enableRetry: true,
+        requestTimeout: 60000,
+        connectionTimeout: 30000,
+        autoReconnect: true,
+        trustNewIdentities: 'on-first-use',
+        daemonMode: 'json-rpc',
     }),
 }));
 
@@ -28,22 +36,22 @@ describe('SignalCli - Simple Features', () => {
         signalCli = new SignalCli(mockAccount);
 
         // Mock the internal request method to avoid real calls
-        (signalCli as any).sendJsonRpcRequest = jest.fn();
+        jest.spyOn((signalCli as any), 'sendJsonRpcRequest').mockResolvedValue({ recipients: [] });
     });
 
     describe('isRegistered', () => {
         it('should return true when user is registered', async () => {
-            const mockResponse: UserStatusResult[] = [
-                {
-                    number: '+1987654321',
-                    isRegistered: true,
-                    uuid: 'uuid-123',
-                },
-            ];
+            const mockResponse = {
+                recipients: [
+                    {
+                        number: '+1987654321',
+                        isRegistered: true,
+                        uuid: 'uuid-123',
+                    },
+                ]
+            };
 
-            (signalCli as any).sendJsonRpcRequest.mockResolvedValue({
-                recipients: mockResponse,
-            });
+            jest.spyOn((signalCli as any), 'sendJsonRpcRequest').mockResolvedValue(mockResponse);
 
             const result = await signalCli.isRegistered('+1987654321');
             expect(result).toBe(true);
@@ -54,16 +62,16 @@ describe('SignalCli - Simple Features', () => {
         });
 
         it('should return false when user is not registered', async () => {
-            const mockResponse: UserStatusResult[] = [
-                {
-                    number: '+1987654321',
-                    isRegistered: false,
-                },
-            ];
+            const mockResponse = {
+                recipients: [
+                    {
+                        number: '+1987654321',
+                        isRegistered: false,
+                    },
+                ]
+            };
 
-            (signalCli as any).sendJsonRpcRequest.mockResolvedValue({
-                recipients: mockResponse,
-            });
+            jest.spyOn((signalCli as any), 'sendJsonRpcRequest').mockResolvedValue(mockResponse);
 
             const result = await signalCli.isRegistered('+1987654321');
             expect(result).toBe(false);

@@ -124,6 +124,11 @@ export interface JsonRpcSendParams {
     previewTitle?: string;
     previewDescription?: string;
     previewImage?: string;
+    /**
+     * v0.14.0 — Send without the urgent flag so no push notification is
+     * triggered on the recipient's device.
+     */
+    noUrgent?: boolean;
 }
 
 /**
@@ -563,6 +568,12 @@ export interface SendMessageOptions {
     storyAuthor?: string;
     noteToSelf?: boolean;
     endSession?: boolean;
+    /**
+     * v0.14.0 — When true, the message is sent without the urgent flag so it
+     * does not trigger a push notification on the recipient's device.
+     * The message will still be delivered in real-time if the app is active.
+     */
+    noUrgent?: boolean;
 }
 
 /**
@@ -672,6 +683,10 @@ export interface ReceiveOptions {
     maxMessages?: number;
     sendReadReceipts?: boolean;
     since?: number;
+    /** v0.14.0 — Skip downloading contact/profile avatars */
+    ignoreAvatars?: boolean;
+    /** v0.14.0 — Skip downloading sticker packs */
+    ignoreStickers?: boolean;
 }
 
 /**
@@ -1250,6 +1265,10 @@ export interface ReceiveOptions {
     ignoreStories?: boolean;
     /** Send read receipts automatically */
     sendReadReceipts?: boolean;
+    /** v0.14.0 — Skip downloading contact/profile avatars */
+    ignoreAvatars?: boolean;
+    /** v0.14.0 — Skip downloading sticker packs */
+    ignoreStickers?: boolean;
 }
 
 /**
@@ -1270,4 +1289,86 @@ export interface ListGroupsOptions {
     detailed?: boolean;
     /** Filter by specific group IDs */
     groupIds?: string[];
+}
+
+// ===== v0.14.0 NEW FEATURES =====
+
+/**
+ * Options for pinning a message in a conversation or group.
+ * Maps to the `sendPinMessage` signal-cli command (v0.14.0+).
+ */
+export interface PinMessageOptions {
+    /** Author of the message to pin */
+    targetAuthor: string;
+    /** Timestamp of the message to pin */
+    targetTimestamp: number;
+    /** Recipients for direct message pin */
+    recipients?: string[];
+    /** Group ID for group message pin */
+    groupId?: string;
+    /**
+     * Pin duration in seconds.
+     * Use -1 for forever (default).
+     */
+    pinDuration?: number;
+    /** Send the pin to self (note-to-self) */
+    noteToSelf?: boolean;
+    /** If self is part of recipients/groups, send a normal message instead of a sync message */
+    notifySelf?: boolean;
+}
+
+/**
+ * Options for unpinning a message in a conversation or group.
+ * Maps to the `sendUnpinMessage` signal-cli command (v0.14.0+).
+ */
+export interface UnpinMessageOptions {
+    /** Author of the message to unpin */
+    targetAuthor: string;
+    /** Timestamp of the message to unpin */
+    targetTimestamp: number;
+    /** Recipients for direct message unpin */
+    recipients?: string[];
+    /** Group ID for group message unpin */
+    groupId?: string;
+    /** Send the unpin to self (note-to-self) */
+    noteToSelf?: boolean;
+    /** If self is part of recipients/groups, send a normal message instead of a sync message */
+    notifySelf?: boolean;
+}
+
+/**
+ * Options for admin-deleting a message from all group members.
+ * Maps to the `sendAdminDelete` signal-cli command (v0.14.0+).
+ * Only group admins can use this command.
+ */
+export interface AdminDeleteOptions {
+    /** Group ID (required — admin delete only works in groups) */
+    groupId: string;
+    /** Author of the message to delete */
+    targetAuthor: string;
+    /** Timestamp of the message to delete */
+    targetTimestamp: number;
+    /** If true, admin-delete a story instead of a normal message */
+    story?: boolean;
+    /** If self is part of recipients/groups, send a normal message instead of a sync message */
+    notifySelf?: boolean;
+}
+
+/**
+ * Options passed to the `jsonRpc` / `connect` command.
+ * Exposes the new v0.14.0 flags for the jsonRpc sub-command.
+ */
+export interface JsonRpcStartOptions {
+    /** Skip downloading attachments of received messages */
+    ignoreAttachments?: boolean;
+    /** Skip receiving story messages from the server */
+    ignoreStories?: boolean;
+    /** v0.14.0 — Skip downloading avatars of received messages */
+    ignoreAvatars?: boolean;
+    /** v0.14.0 — Skip downloading sticker packs of received messages */
+    ignoreStickers?: boolean;
+    /** Send read receipts for all incoming data messages */
+    sendReadReceipts?: boolean;
+    /** When to start receiving messages: 'on-start' (default) or 'manual' */
+    receiveMode?: 'on-start' | 'manual';
 }

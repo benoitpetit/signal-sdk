@@ -38,10 +38,16 @@ import {
     AccountUpdateResult,
     SendContactsOptions,
     ListGroupsOptions,
-    UpdateDeviceOptions
+    UpdateDeviceOptions,
+    // v0.14.0
+    PinMessageOptions,
+    UnpinMessageOptions,
+    AdminDeleteOptions,
+    JsonRpcStartOptions,
 } from './interfaces';
 import { EventEmitter } from 'events';
 import * as path from 'path';
+import * as fs from 'fs';
 import { validatePhoneNumber, validateSanitizedString } from './validators';
 import { RateLimiter } from './retry';
 import { Logger, SignalCliConfig, validateConfig } from './config';
@@ -61,9 +67,11 @@ export class SignalCli extends EventEmitter {
     private config: Required<SignalCliConfig>;
     private logger: Logger;
     private rateLimiter: RateLimiter;
+    private responseBuffer = '';
     private reconnectAttempts = 0;
     private maxReconnectAttempts = 5;
     private isIntentionalShutdown = false;
+    private healthCheckTimer: NodeJS.Timeout | null = null;
 
     // Managers
     public readonly messages: MessageManager;
@@ -107,11 +115,16 @@ export class SignalCli extends EventEmitter {
 
         // Determine the correct signal-cli path based on platform
         let defaultPath;
-        if (process.platform === 'win32') {
-            defaultPath = path.join(__dirname, '..', 'bin', 'signal-cli.bat');
+        const localBinPath =
+            process.platform === 'win32'
+                ? path.join(__dirname, '..', 'bin', 'signal-cli.bat')
+                : path.join(__dirname, '..', 'bin', 'signal-cli');
+
+        // Check if signal-cli is in local bin, otherwise assume it's in system PATH
+        if (fs.existsSync(localBinPath)) {
+            defaultPath = localBinPath;
         } else {
-            // For Unix/Linux systems, use the shell script
-            defaultPath = path.join(__dirname, '..', 'bin', 'signal-cli');
+            defaultPath = process.platform === 'win32' ? 'signal-cli.bat' : 'signal-cli';
         }
 
         this.signalCliPath = signalCliPath || defaultPath;
@@ -127,9 +140,6 @@ export class SignalCli extends EventEmitter {
 
         // Initialize Managers
         const rpcCall = (method: string, params?: any) => {
-            if (params === undefined) {
-                return this.sendJsonRpcRequest(method);
-            }
             return this.sendJsonRpcRequest(method, params);
         };
         this.messages = new MessageManager(rpcCall, this.account, this.logger, this.config);
@@ -140,13 +150,13 @@ export class SignalCli extends EventEmitter {
         this.stickers = new StickerManager(rpcCall, this.account, this.logger, this.config);
     }
 
-    public async connect(): Promise<void> {
+    public async connect(options: JsonRpcStartOptions = {}): Promise<void> {
         this.isIntentionalShutdown = false;
         const daemonMode = this.config.daemonMode || 'json-rpc';
 
         switch (daemonMode) {
             case 'json-rpc':
-                await this.connectJsonRpc();
+                await this.connectJsonRpc(options);
                 break;
             case 'unix-socket':
                 await this.connectUnixSocket();
@@ -160,10 +170,26 @@ export class SignalCli extends EventEmitter {
             default:
                 throw new Error(`Invalid daemon mode: ${daemonMode}`);
         }
+
+        if (this.config.autoReconnect) {
+            this.startHealthCheck();
+        }
     }
 
-    private async connectJsonRpc(): Promise<void> {
-        const args = this.account ? ['-a', this.account, 'jsonRpc'] : ['jsonRpc'];
+    private jsonRpcStartOptions: JsonRpcStartOptions = {};
+
+    private async connectJsonRpc(options: JsonRpcStartOptions = {}): Promise<void> {
+        this.jsonRpcStartOptions = options;
+        const baseArgs = this.account ? ['-a', this.account, 'jsonRpc'] : ['jsonRpc'];
+        const args = [...baseArgs];
+
+        // v0.14.0 flags for the jsonRpc sub-command
+        if (options.ignoreAttachments) args.push('--ignore-attachments');
+        if (options.ignoreStories) args.push('--ignore-stories');
+        if (options.ignoreAvatars) args.push('--ignore-avatars');
+        if (options.ignoreStickers) args.push('--ignore-stickers');
+        if (options.sendReadReceipts) args.push('--send-read-receipts');
+        if (options.receiveMode) args.push('--receive-mode', options.receiveMode);
 
         if (process.platform === 'win32') {
             // On Windows, use cmd.exe to run the batch file with proper quoting for paths with spaces
@@ -316,7 +342,7 @@ export class SignalCli extends EventEmitter {
                         } else {
                             resolve(response.result);
                         }
-                    } catch (error) {
+                    } catch {
                         reject(new Error(`Failed to parse HTTP response: ${body}`));
                     }
                 });
@@ -335,6 +361,7 @@ export class SignalCli extends EventEmitter {
 
     public disconnect(): void {
         this.isIntentionalShutdown = true;
+        this.stopHealthCheck();
         const daemonMode = this.config.daemonMode || 'json-rpc';
 
         // Close socket connections
@@ -357,6 +384,7 @@ export class SignalCli extends EventEmitter {
 
     public async gracefulShutdown(): Promise<void> {
         this.isIntentionalShutdown = true;
+        this.stopHealthCheck();
         return new Promise((resolve) => {
             if (!this.cliProcess) {
                 resolve();
@@ -389,32 +417,61 @@ export class SignalCli extends EventEmitter {
     }
 
     private handleRpcResponse(data: string): void {
-        const lines = data.trim().split('\n');
-        for (const line of lines) {
-            if (!line) continue;
-            try {
-                const response: JsonRpcResponse | JsonRpcNotification = JSON.parse(line);
-                if ('id' in response && response.id) {
-                    const promise = this.requestPromises.get(response.id);
-                    if (promise) {
-                        if (response.error) {
-                            promise.reject(new Error(`[${response.error.code}] ${response.error.message}`));
-                        } else {
-                            promise.resolve(response.result);
-                        }
-                        this.requestPromises.delete(response.id);
-                    }
-                } else if ('method' in response) {
-                    this.emit('notification', response);
-                    if (response.method === 'receive') {
-                        this.emit('message', response.params);
-                        if (response.params && response.params.envelope) {
-                            this.emitDetailedEvents(response.params.envelope);
-                        }
-                    }
+        this.responseBuffer += data;
+
+        const lines = this.responseBuffer.split('\n');
+
+        // If there's only one "line" and it doesn't end with a newline,
+        // it might be a partial JSON OR a full JSON from a test passing a string without \n.
+        if (lines.length === 1 && !this.responseBuffer.endsWith('\n')) {
+            const trimmed = this.responseBuffer.trim();
+            if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+                try {
+                    const response = JSON.parse(trimmed);
+                    this.responseBuffer = '';
+                    this.processSingleRpcResponse(response);
+                    return;
+                } catch (e) {
+                    // Partial JSON, wait for more data
+                    return;
                 }
+            }
+            return;
+        }
+
+        // If we have multiple lines, or it ends with a newline, process all complete lines
+        this.responseBuffer = lines.pop() || '';
+
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) continue;
+            try {
+                const response: JsonRpcResponse | JsonRpcNotification = JSON.parse(trimmedLine);
+                this.processSingleRpcResponse(response);
             } catch (error) {
-                this.emit('error', new Error(`Failed to parse JSON-RPC response: ${line}`));
+                this.emit('error', new Error(`Failed to parse JSON-RPC response: ${trimmedLine}`));
+            }
+        }
+    }
+
+    private processSingleRpcResponse(response: JsonRpcResponse | JsonRpcNotification): void {
+        if ('id' in response && response.id) {
+            const promise = this.requestPromises.get(response.id);
+            if (promise) {
+                if (response.error) {
+                    promise.reject(new Error(`[${response.error.code}] ${response.error.message}`));
+                } else {
+                    promise.resolve(response.result);
+                }
+                this.requestPromises.delete(response.id);
+            }
+        } else if ('method' in response) {
+            this.emit('notification', response);
+            if (response.method === 'receive') {
+                this.emit('message', response.params);
+                if (response.params && response.params.envelope) {
+                    this.emitDetailedEvents(response.params.envelope);
+                }
             }
         }
     }
@@ -502,7 +559,7 @@ export class SignalCli extends EventEmitter {
         }
     }
 
-    private handleStderrData(data: string): void {
+    private async handleStderrData(data: string): Promise<void> {
         const message = data.trim();
         if (!message) return;
 
@@ -545,11 +602,65 @@ export class SignalCli extends EventEmitter {
         }
     }
 
-    private async sendJsonRpcRequest(method: string, params?: any): Promise<any> {
-        const daemonMode = this.config.daemonMode || 'json-rpc';
+    private startHealthCheck(): void {
+        this.stopHealthCheck();
 
-        // For HTTP mode, use HTTP requests
-        if (daemonMode === 'http') {
+        // Check health every 30 seconds by default
+        const interval = 30000;
+
+        this.healthCheckTimer = setInterval(async () => {
+            if (!this.cliProcess && this.config.daemonMode === 'json-rpc') return;
+
+            try {
+                // Send a lightweight request to check if process is responsive
+                await this.getVersion();
+                this.logger.debug('Health check passed');
+            } catch (error) {
+                this.logger.error('Health check failed:', error);
+
+                // If the process is stuck, we might need to restart it
+                if (this.config.autoReconnect && !this.isIntentionalShutdown) {
+                    this.logger.warn('Process unresponsive, attempting restart...');
+                    if (this.cliProcess) {
+                        this.cliProcess.kill('SIGKILL');
+                    } else if (this.config.daemonMode !== 'json-rpc') {
+                        // For other modes, try to reconnect
+                        this.connect().catch((err) =>
+                            this.logger.error('Failed to reconnect after health check failure', err),
+                        );
+                    }
+                }
+            }
+        }, interval);
+
+        if (this.healthCheckTimer.unref) {
+            this.healthCheckTimer.unref();
+        }
+    }
+
+    private stopHealthCheck(): void {
+        if (this.healthCheckTimer) {
+            clearInterval(this.healthCheckTimer);
+            this.healthCheckTimer = null;
+        }
+    }
+
+    private async sendJsonRpcRequest(method: string, params?: any): Promise<any> {
+        return this.rateLimiter.execute(async () => {
+            const daemonMode = this.config.daemonMode || 'json-rpc';
+
+            // For HTTP mode, use HTTP requests
+            if (daemonMode === 'http') {
+                const id = uuidv4();
+                const request: JsonRpcRequest = {
+                    jsonrpc: '2.0',
+                    method,
+                    params,
+                    id,
+                };
+                return await this.httpRequest(request);
+            }
+
             const id = uuidv4();
             const request: JsonRpcRequest = {
                 jsonrpc: '2.0',
@@ -557,22 +668,25 @@ export class SignalCli extends EventEmitter {
                 params,
                 id,
             };
-            return await this.httpRequest(request);
-        }
 
-        const id = uuidv4();
-        const request: JsonRpcRequest = {
-            jsonrpc: '2.0',
-            method,
-            params,
-            id,
-        };
+            const executeRequest = (): Promise<any> => {
+                // For socket modes (Unix socket, TCP), write to socket
+                if (daemonMode === 'unix-socket' || daemonMode === 'tcp') {
+                    const socket = (this as any).socket;
+                    if (!socket || socket.destroyed) {
+                        throw new ConnectionError('Not connected. Call connect() first.');
+                    }
 
-        const executeRequest = (): Promise<any> => {
-            // For socket modes (Unix socket, TCP), write to socket
-            if (daemonMode === 'unix-socket' || daemonMode === 'tcp') {
-                const socket = (this as any).socket;
-                if (!socket || socket.destroyed) {
+                    const promise = new Promise((resolve, reject) => {
+                        this.requestPromises.set(id, { resolve, reject });
+                    });
+
+                    socket.write(JSON.stringify(request) + '\n');
+                    return promise;
+                }
+
+                // Default JSON-RPC mode with stdin/stdout
+                if (!this.cliProcess || !this.cliProcess.stdin) {
                     throw new ConnectionError('Not connected. Call connect() first.');
                 }
 
@@ -580,32 +694,20 @@ export class SignalCli extends EventEmitter {
                     this.requestPromises.set(id, { resolve, reject });
                 });
 
-                socket.write(JSON.stringify(request) + '\n');
+                this.cliProcess.stdin.write(JSON.stringify(request) + '\n');
                 return promise;
-            }
+            };
 
-            // Default JSON-RPC mode with stdin/stdout
-            if (!this.cliProcess || !this.cliProcess.stdin) {
-                throw new ConnectionError('Not connected. Call connect() first.');
-            }
-
-            const promise = new Promise((resolve, reject) => {
-                this.requestPromises.set(id, { resolve, reject });
+            // Standardized timeout for all RPC requests
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => {
+                    this.requestPromises.delete(id);
+                    reject(new ConnectionError(`RPC request timeout: ${method} (${this.config.requestTimeout}ms)`));
+                }, this.config.requestTimeout);
             });
 
-            this.cliProcess.stdin.write(JSON.stringify(request) + '\n');
-            return promise;
-        };
-
-        // Standardized timeout for all RPC requests
-        const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => {
-                this.requestPromises.delete(id);
-                reject(new ConnectionError(`RPC request timeout: ${method} (${this.config.requestTimeout}ms)`));
-            }, this.config.requestTimeout);
+            return Promise.race([executeRequest(), timeoutPromise]);
         });
-
-        return Promise.race([executeRequest(), timeoutPromise]);
     }
 
     private isGroupId(recipient: string): boolean {
@@ -1034,5 +1136,123 @@ export class SignalCli extends EventEmitter {
             throw new Error('Account must be configured to send Note to Self');
         }
         return this.sendMessage(this.account, message, { ...options, noteToSelf: true });
+    }
+
+    // ############# v0.14.0 NEW METHODS #############
+
+    /**
+     * Pin a message in a conversation or group.
+     *
+     * Requires signal-cli v0.14.0+.
+     *
+     * @param options - Options describing the message to pin and the target recipient/group
+     *
+     * @example
+     * ```typescript
+     * await signal.sendPinMessage({
+     *   targetAuthor: '+33123456789',
+     *   targetTimestamp: 1700000000000,
+     *   groupId: 'base64groupId==',
+     *   pinDuration: -1, // forever
+     * });
+     * ```
+     */
+    async sendPinMessage(options: PinMessageOptions): Promise<void> {
+        const params: any = {
+            account: this.account,
+            targetAuthor: options.targetAuthor,
+            targetTimestamp: options.targetTimestamp,
+        };
+
+        if (options.groupId) {
+            params.groupId = options.groupId;
+        } else if (options.recipients && options.recipients.length > 0) {
+            params.recipients = options.recipients;
+        } else if (options.noteToSelf) {
+            params.noteToSelf = true;
+        }
+
+        if (options.pinDuration !== undefined) {
+            params.pinDuration = options.pinDuration;
+        }
+
+        if (options.notifySelf) {
+            params.notifySelf = true;
+        }
+
+        await this.sendJsonRpcRequest('sendPinMessage', params);
+    }
+
+    /**
+     * Unpin a previously pinned message in a conversation or group.
+     *
+     * Requires signal-cli v0.14.0+.
+     *
+     * @param options - Options describing the message to unpin and the target recipient/group
+     *
+     * @example
+     * ```typescript
+     * await signal.sendUnpinMessage({
+     *   targetAuthor: '+33123456789',
+     *   targetTimestamp: 1700000000000,
+     *   groupId: 'base64groupId==',
+     * });
+     * ```
+     */
+    async sendUnpinMessage(options: UnpinMessageOptions): Promise<void> {
+        const params: any = {
+            account: this.account,
+            targetAuthor: options.targetAuthor,
+            targetTimestamp: options.targetTimestamp,
+        };
+
+        if (options.groupId) {
+            params.groupId = options.groupId;
+        } else if (options.recipients && options.recipients.length > 0) {
+            params.recipients = options.recipients;
+        } else if (options.noteToSelf) {
+            params.noteToSelf = true;
+        }
+
+        if (options.notifySelf) {
+            params.notifySelf = true;
+        }
+
+        await this.sendJsonRpcRequest('sendUnpinMessage', params);
+    }
+
+    /**
+     * Delete a message for all group members (admin-only operation).
+     *
+     * Requires signal-cli v0.14.0+ and group admin privileges.
+     *
+     * @param options - Options describing the message to delete and the target group
+     *
+     * @example
+     * ```typescript
+     * await signal.sendAdminDelete({
+     *   groupId: 'base64groupId==',
+     *   targetAuthor: '+33123456789',
+     *   targetTimestamp: 1700000000000,
+     * });
+     * ```
+     */
+    async sendAdminDelete(options: AdminDeleteOptions): Promise<void> {
+        const params: any = {
+            account: this.account,
+            groupId: options.groupId,
+            targetAuthor: options.targetAuthor,
+            targetTimestamp: options.targetTimestamp,
+        };
+
+        if (options.story) {
+            params.story = true;
+        }
+
+        if (options.notifySelf) {
+            params.notifySelf = true;
+        }
+
+        await this.sendJsonRpcRequest('sendAdminDelete', params);
     }
 }

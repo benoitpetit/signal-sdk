@@ -150,7 +150,7 @@ describe('SignalCli Integration Tests', () => {
 
             signalCli.on('error', errorHandler);
 
-            handleRpcResponse('not valid json');
+            handleRpcResponse('not valid json\n');
 
             expect(errorHandler).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -164,12 +164,15 @@ describe('SignalCli Integration Tests', () => {
             const notificationHandler = jest.fn();
             const messageHandler = jest.fn();
 
-            signalCli.on('notification', notificationHandler);
-            signalCli.on('message', messageHandler);
+                        signalCli.on('notification', notificationHandler);
 
-            const notification = '{"jsonrpc":"2.0","method":"receive","params":{"envelope":{"dataMessage":"test"}}}';
+                        signalCli.on('message', messageHandler);
 
-            handleRpcResponse(notification);
+            
+
+                        const notification = '{"jsonrpc":"2.0","method":"receive","params":{"envelope":{"dataMessage":"test"}}}\n';
+
+                        handleRpcResponse(notification);
 
             expect(notificationHandler).toHaveBeenCalled();
             expect(messageHandler).toHaveBeenCalled();

@@ -1,32 +1,41 @@
 import { BaseManager } from './BaseManager';
-import { GroupInfo, GroupUpdateOptions, ListGroupsOptions, SendResponse } from '../interfaces';
+import { GroupInfo, GroupUpdateOptions, ListGroupsOptions } from '../interfaces';
+import { withRetry } from '../retry';
 
 export class GroupManager extends BaseManager {
     async createGroup(name: string, members: string[]): Promise<GroupInfo> {
-        return this.sendRequest('updateGroup', { account: this.account, name, members });
+        return withRetry(
+            () => this.sendRequest('updateGroup', { account: this.account, name, members }),
+            { maxAttempts: this.config.maxRetries, initialDelay: this.config.retryDelay }
+        );
     }
 
     async updateGroup(groupId: string, options: GroupUpdateOptions): Promise<void> {
-        const params: any = { groupId, account: this.account };
-        if (options.name) params.name = options.name;
-        if (options.description) params.description = options.description;
-        if (options.avatar) params.avatar = options.avatar;
-        if (options.addMembers) params.addMembers = options.addMembers;
-        if (options.removeMembers) params.removeMembers = options.removeMembers;
-        if (options.promoteAdmins) params.promoteAdmins = options.promoteAdmins;
-        if (options.demoteAdmins) params.demoteAdmins = options.demoteAdmins;
-        if (options.banMembers) params.banMembers = options.banMembers;
-        if (options.unbanMembers) params.unbanMembers = options.unbanMembers;
-        if (options.resetInviteLink) params.resetLink = true;
-        if (options.permissionAddMember) params.permissionAddMember = options.permissionAddMember;
-        if (options.permissionEditDetails) params.permissionEditDetails = options.permissionEditDetails;
-        if (options.permissionSendMessage) params.permissionSendMessage = options.permissionSendMessage;
-        if (options.expirationTimer) params.expiration = options.expirationTimer;
-        await this.sendRequest('updateGroup', params);
+        return withRetry(async () => {
+            const params: any = { groupId, account: this.account };
+            if (options.name) params.name = options.name;
+            if (options.description) params.description = options.description;
+            if (options.avatar) params.avatar = options.avatar;
+            if (options.addMembers) params.addMembers = options.addMembers;
+            if (options.removeMembers) params.removeMembers = options.removeMembers;
+            if (options.promoteAdmins) params.promoteAdmins = options.promoteAdmins;
+            if (options.demoteAdmins) params.demoteAdmins = options.demoteAdmins;
+            if (options.banMembers) params.banMembers = options.banMembers;
+            if (options.unbanMembers) params.unbanMembers = options.unbanMembers;
+            if (options.resetInviteLink) params.resetLink = true;
+            if (options.permissionAddMember) params.permissionAddMember = options.permissionAddMember;
+            if (options.permissionEditDetails) params.permissionEditDetails = options.permissionEditDetails;
+            if (options.permissionSendMessage) params.permissionSendMessage = options.permissionSendMessage;
+            if (options.expirationTimer) params.expiration = options.expirationTimer;
+            await this.sendRequest('updateGroup', params);
+        }, { maxAttempts: this.config.maxRetries, initialDelay: this.config.retryDelay });
     }
 
     async listGroups(): Promise<GroupInfo[]> {
-        return this.sendRequest('listGroups', { account: this.account });
+        return withRetry(
+            () => this.sendRequest('listGroups', { account: this.account }),
+            { maxAttempts: this.config.maxRetries, initialDelay: this.config.retryDelay }
+        );
     }
 
     async quitGroup(groupId: string): Promise<void> {

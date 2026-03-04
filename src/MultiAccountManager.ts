@@ -7,7 +7,6 @@
 
 import { SignalCli } from './SignalCli';
 import { EventEmitter } from 'events';
-import { Message } from './interfaces';
 import { Logger, SignalCliConfig } from './config';
 
 /**

@@ -527,7 +527,7 @@ describe('SignalCli', () => {
 
             const result = await signalCli.listAccountsDetailed();
 
-            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('listAccounts');
+            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('listAccounts', undefined);
             expect(result).toEqual(mockResponse.accounts);
         });
     });
