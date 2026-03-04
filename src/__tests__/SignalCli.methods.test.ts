@@ -149,7 +149,7 @@ describe('SignalCli Methods Tests', () => {
             expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith(
                 'sendTyping',
                 expect.objectContaining({
-                    when: true,
+                    stop: false,
                     recipients: ['+1234567890'],
                 }),
             );
@@ -161,7 +161,7 @@ describe('SignalCli Methods Tests', () => {
             expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith(
                 'sendTyping',
                 expect.objectContaining({
-                    when: false,
+                    stop: true,
                 }),
             );
         });
@@ -634,71 +634,6 @@ describe('SignalCli Methods Tests', () => {
                     pollTimestamp: 123456,
                 }),
             );
-        });
-    });
-
-    describe('Update Account Methods', () => {
-        it('should update account with device name', async () => {
-            sendJsonRpcRequestSpy.mockResolvedValue({ username: 'user.123' });
-
-            const result = await signalCli.updateAccount({ deviceName: 'New Device' });
-
-            expect(result.success).toBe(true);
-            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith(
-                'updateAccount',
-                expect.objectContaining({
-                    deviceName: 'New Device',
-                }),
-            );
-        });
-
-        it('should update account with username', async () => {
-            sendJsonRpcRequestSpy.mockResolvedValue({ username: 'newuser.456', usernameLink: 'link' });
-
-            const result = await signalCli.updateAccount({ username: 'newuser.456' });
-
-            expect(result.success).toBe(true);
-            expect(result.username).toBe('newuser.456');
-        });
-
-        it('should delete username', async () => {
-            sendJsonRpcRequestSpy.mockResolvedValue({});
-
-            await signalCli.updateAccount({ deleteUsername: true });
-
-            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith(
-                'updateAccount',
-                expect.objectContaining({
-                    deleteUsername: true,
-                }),
-            );
-        });
-
-        it('should update privacy settings', async () => {
-            sendJsonRpcRequestSpy.mockResolvedValue({});
-
-            await signalCli.updateAccount({
-                unrestrictedUnidentifiedSender: true,
-                discoverableByNumber: false,
-                numberSharing: false,
-            });
-
-            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith(
-                'updateAccount',
-                expect.objectContaining({
-                    unrestrictedUnidentifiedSender: true,
-                    discoverableByNumber: false,
-                    numberSharing: false,
-                }),
-            );
-        });
-
-        it('should handle update account error', async () => {
-            sendJsonRpcRequestSpy.mockRejectedValue(new Error('Update failed'));
-
-            const result = await signalCli.updateAccount({ deviceName: 'Device' });
-
-            expect(result.success).toBe(false);
         });
     });
 

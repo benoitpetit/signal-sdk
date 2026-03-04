@@ -154,7 +154,7 @@ export class MessageManager extends BaseManager {
     }
 
     async sendTyping(recipient: string, stop: boolean = false): Promise<void> {
-        const params: any = { when: !stop, account: this.account };
+        const params: any = { stop, account: this.account };
         if (this.isGroupId(recipient)) {
             params.groupId = recipient;
         } else {
