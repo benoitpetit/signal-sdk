@@ -8,6 +8,11 @@ const BASE_URL = `https://github.com/AsamK/signal-cli/releases/download/v${VERSI
 
 const platform = process.platform;
 
+// Project root = one level above this script (scripts/../)
+const projectRoot = path.join(__dirname, '..');
+const binDir = path.join(projectRoot, 'bin');
+const localExecutable = platform === 'win32' ? path.join(binDir, 'signal-cli.bat') : path.join(binDir, 'signal-cli');
+
 /**
  * Recursively search for a file by name within a directory tree.
  * Returns the full path to the first match, or null if not found.
@@ -69,6 +74,26 @@ function copyDir(srcDir, destDir) {
 
 async function install() {
     // -------------------------------------------------------------------------
+    // 0. Early-exit guards
+    // -------------------------------------------------------------------------
+
+    // Allow CI pipelines or offline environments to skip the download entirely.
+    // Set SIGNAL_CLI_SKIP_INSTALL=1 (or any non-empty truthy string) in the
+    // environment before running npm install.
+    if (process.env.SIGNAL_CLI_SKIP_INSTALL) {
+        console.log('SIGNAL_CLI_SKIP_INSTALL is set — skipping signal-cli download.');
+        return;
+    }
+
+    // Idempotence: if the binary is already present and executable, skip the
+    // download to avoid re-fetching ~92 MB on every `npm install` / `npm ci`.
+    if (fs.existsSync(localExecutable)) {
+        console.log(`signal-cli v${VERSION} is already installed at: ${localExecutable}`);
+        console.log('To force re-installation, delete the file and run npm install again.');
+        return;
+    }
+
+    // -------------------------------------------------------------------------
     // 1. Determine download URL per platform
     // -------------------------------------------------------------------------
     // Linux   → native binary tarball  (single self-contained executable)
@@ -115,10 +140,6 @@ async function install() {
         // Allow up to 5 minutes for the download on slow connections
         timeout: 300_000,
     });
-
-    // Project root = one level above this script (scripts/../)
-    const projectRoot = path.join(__dirname, '..');
-    const binDir = path.join(projectRoot, 'bin');
 
     if (!fs.existsSync(binDir)) {
         fs.mkdirSync(binDir, { recursive: true });
