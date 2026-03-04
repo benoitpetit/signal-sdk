@@ -8,11 +8,10 @@
         "signal-sdk": "scripts/cli.js"
     },
     "files": [
-        "dist/",
+        "dist/*.js",
+        "dist/*.d.ts",
+        "dist/managers/",
         "scripts/",
-        "bin/",
-        "lib/",
-        "man/",
         "README.md",
         "LICENSE"
     ],

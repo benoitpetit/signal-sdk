@@ -1,0 +1,49 @@
+# Exclude compiled test files (not useful for end users)
+dist/__tests__/
+
+# Exclude source files (only dist/ is needed)
+src/
+
+# Exclude test configuration and coverage
+coverage/
+jest.config.*
+tsconfig*.json
+*.tsbuildinfo
+
+# Exclude development/CI files
+.github/
+.vscode/
+.idea/
+.eslintrc*
+.prettierrc*
+eslint.config.*
+prettier.config.*
+
+# Exclude examples (not part of the library API)
+examples/
+
+# Exclude docs source
+docs/
+
+# Exclude signal-cli binaries downloaded at install time (never ship in package)
+bin/signal-cli
+bin/signal-cli.bat
+lib/
+man/
+
+# Exclude OS/editor artifacts
+.DS_Store
+Thumbs.db
+
+# Exclude logs and temp files
+logs/
+*.log
+*.tgz
+
+# Exclude environment files
+.env
+.env.*
+
+# Exclude todo/notes
+todo.md
+pmp_output
