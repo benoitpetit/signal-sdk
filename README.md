@@ -13,7 +13,7 @@ providing JSON-RPC communication and a powerful bot framework.
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
-[![Tests](https://img.shields.io/badge/tests-442%20passing-brightgreen.svg)](./src/__tests__)
+[![Tests](https://img.shields.io/badge/tests-468%20passing-brightgreen.svg)](./src/__tests__)
 [![Donate on Liberapay](https://img.shields.io/badge/Liberapay-Donate-yellow.svg)](https://liberapay.com/devbyben/donate)
 
 </div>

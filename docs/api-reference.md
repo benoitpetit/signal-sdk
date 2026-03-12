@@ -93,9 +93,15 @@ Gracefully closes the connection.
 
 ### Device Management
 
-#### `register(number: string, voice?: boolean, captcha?: string): Promise<void>`
+#### `register(number: string, voice?: boolean, captcha?: string, reregister?: boolean): Promise<void>`
 
 Registers a new Signal account.
+
+**Parameters:**
+- `number`: Phone number to register (E.164 format)
+- `voice`: If true, verification is done via voice call instead of SMS
+- `captcha`: Captcha token (required if registration fails with captcha required)
+- `reregister`: If true, register even if account is already registered
 
 #### `verify(number: string, token: string, pin?: string): Promise<void>`
 
@@ -356,9 +362,17 @@ Lists known identities and their trust levels.
 **Parameters:**
 - `number`: Optional phone number to filter identities
 
-#### `trustIdentity(number: string, safetyNumber: string, verified: boolean = true): Promise<void>`
+#### `trustIdentity(number: string, verifiedSafetyNumber: string): Promise<void>`
 
-Manually marks an identity as trusted or untrusted.
+Manually marks an identity as trusted by verifying its safety number.
+
+**Parameters:**
+- `number`: Phone number of the contact
+- `verifiedSafetyNumber`: The 60-digit safety number to verify
+
+#### `trustAllKnownKeys(number: string): Promise<void>`
+
+⚠️ **For testing only.** Trusts all known identity keys of a user without verification.
 
 #### `getSafetyNumber(number: string): Promise<string | null>`
 
@@ -366,7 +380,7 @@ Retrieves the 60-digit safety number for a contact.
 
 **Returns:** The safety number string or null if not found.
 
-#### `verifySafetyNumber(number: string, safetyNumber: string): Promise<boolean>`
+#### `verifySafetyNumber(number: string, verifiedSafetyNumber: string): Promise<boolean>`
 
 Verifies a safety number and marks the identity as trusted if it matches.
 
@@ -424,15 +438,28 @@ Resets the group's invite link.
 
 Joins a group via an invitation link.
 
-#### `quitGroup(groupId: string): Promise<void>`
+#### `quitGroup(groupId: string, options?: { delete?: boolean; admins?: string[] }): Promise<void>`
 
 Leaves a group.
 
+**Parameters:**
+- `groupId`: The group ID to quit
+- `options.delete`: If true, delete local group data after quitting
+- `options.admins`: Array of members to promote as admins before quitting (required if you're the only admin)
+
 ### Contact Management
 
-#### `listContacts(): Promise<Contact[]>`
+#### `listContacts(options?: ListContactsOptions): Promise<Contact[]>`
 
 Lists all contacts.
+
+**Options:**
+- `detailed`: Include more detailed information
+- `blocked`: Filter by blocked status (true/false)
+- `allRecipients`: Include all known recipients, not only contacts
+- `name`: Find contacts with the given name
+- `recipients`: Specify phone numbers to filter
+- `internal`: Include internal information
 
 #### `getContactsWithProfiles(): Promise<Contact[]>`
 
@@ -550,6 +577,96 @@ await signal.finishChangeNumber("+33612345678", "123456");
 
 // Or with PIN if registration lock is enabled
 await signal.finishChangeNumber("+33612345678", "123456", "1234");
+```
+
+### Events
+
+The `SignalCli` class extends EventEmitter and emits the following events:
+
+#### `message`
+
+Emitted when a new message is received.
+
+```typescript
+signal.on("message", (envelope) => {
+  console.log("From:", envelope.source);
+  console.log("Message:", envelope.dataMessage?.message);
+});
+```
+
+#### `reaction`
+
+Emitted when a reaction is received.
+
+```typescript
+signal.on("reaction", (reaction) => {
+  console.log("Reaction:", reaction.emoji);
+  console.log("From:", reaction.sender);
+  console.log("Target:", reaction.targetTimestamp);
+});
+```
+
+#### `receipt`
+
+Emitted when a delivery/read receipt is received.
+
+```typescript
+signal.on("receipt", (receipt) => {
+  console.log("Receipt type:", receipt.type); // 'read', 'viewed', or 'delivered'
+  console.log("From:", receipt.sender);
+});
+```
+
+#### `typing`
+
+Emitted when a typing indicator is received.
+
+```typescript
+signal.on("typing", (typing) => {
+  console.log("Typing from:", typing.sender);
+  console.log("Action:", typing.action); // 'start' or 'stop'
+});
+```
+
+#### `story`
+
+Emitted when a story is received.
+
+```typescript
+signal.on("story", (story) => {
+  console.log("Story from:", story.sender);
+});
+```
+
+#### `pin` (v0.14.0+)
+
+Emitted when a message is pinned or unpinned.
+
+```typescript
+signal.on("pin", (pinEvent) => {
+  console.log("Pin event from:", pinEvent.sender);
+  console.log("Pinned timestamps:", pinEvent.pinnedMessageTimestamps);
+});
+```
+
+#### `error`
+
+Emitted when an error occurs.
+
+```typescript
+signal.on("error", (error) => {
+  console.error("Error:", error.message);
+});
+```
+
+#### `close`
+
+Emitted when the connection is closed.
+
+```typescript
+signal.on("close", (code) => {
+  console.log("Connection closed with code:", code);
+});
 ```
 
 ---
