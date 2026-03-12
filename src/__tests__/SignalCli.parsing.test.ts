@@ -113,11 +113,11 @@ describe('SignalCli - Enhanced Parsing (Phase 5)', () => {
                 isMember: true,
                 isBlocked: false,
                 messageExpirationTime: 0,
-                members: [{ number: '+33111111111' }, { number: '+33222222222' }],
-                pendingMembers: [{ number: '+33333333333' }],
+                members: ['+33111111111', '+33222222222'],
+                pendingMembers: ['+33333333333'],
                 requestingMembers: [],
-                admins: [{ number: '+33111111111' }],
-                banned: [{ number: '+33444444444' }],
+                admins: ['+33111111111'],
+                banned: ['+33444444444'],
                 permissionAddMember: 'ONLY_ADMINS',
                 permissionEditDetails: 'ONLY_ADMINS',
                 permissionSendMessage: 'EVERY_MEMBER',
@@ -127,9 +127,9 @@ describe('SignalCli - Enhanced Parsing (Phase 5)', () => {
             const parsed = signal.parseGroupDetails(group);
 
             expect(parsed.pendingMembers).toHaveLength(1);
-            expect(parsed.pendingMembers[0].number).toBe('+33333333333');
+            expect(parsed.pendingMembers[0]).toBe('+33333333333');
             expect(parsed.banned).toHaveLength(1);
-            expect(parsed.banned[0].number).toBe('+33444444444');
+            expect(parsed.banned[0]).toBe('+33444444444');
             expect(parsed.inviteLink).toBe('https://signal.group/test');
             expect(parsed.groupInviteLink).toBe('https://signal.group/test');
         });
@@ -258,10 +258,10 @@ describe('SignalCli - Enhanced Parsing (Phase 5)', () => {
                     isMember: true,
                     isBlocked: false,
                     messageExpirationTime: 0,
-                    members: [{ number: '+33111111111' }],
-                    pendingMembers: [{ number: '+33222222222' }],
+                    members: ['+33111111111'],
+                    pendingMembers: ['+33222222222'],
                     requestingMembers: [],
-                    admins: [{ number: '+33111111111' }],
+                    admins: ['+33111111111'],
                     banned: [],
                     permissionAddMember: 'EVERY_MEMBER',
                     permissionEditDetails: 'EVERY_MEMBER',

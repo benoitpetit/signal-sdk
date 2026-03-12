@@ -123,7 +123,7 @@ npm install signal-sdk
 
 The `postinstall` script automatically downloads and installs the correct signal-cli binary for your platform into the package's `bin/` directory. No manual signal-cli installation is needed.
 
-> **macOS / Windows** — signal-cli runs on the JVM. Make sure **Java 17 or later** is installed and available in your `PATH`.
+> **macOS / Windows** — signal-cli runs on the JVM. Make sure **Java 25 or later** is installed and available in your `PATH`.
 >
 > **Linux** — The native binary is used. No JVM required.
 
@@ -132,7 +132,7 @@ The `postinstall` script automatically downloads and installs the correct signal
 ## Prerequisites
 
 - **Node.js** 18 or later
-- **Java 17+** (macOS and Windows only — required by the JVM-based signal-cli distribution)
+- **Java 25+** (macOS and Windows only — required by the JVM-based signal-cli distribution)
 - A Signal account with a registered phone number
 
 To register a phone number with signal-cli before using the SDK:
@@ -830,7 +830,7 @@ Or download manually from the [signal-cli releases page](https://github.com/Asam
 
 **Java not found (macOS / Windows)**
 
-The JVM-based signal-cli distribution requires Java 17 or later:
+The JVM-based signal-cli distribution requires Java 25 or later:
 
 ```bash
 # macOS

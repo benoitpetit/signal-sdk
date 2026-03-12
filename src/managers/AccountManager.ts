@@ -10,8 +10,10 @@ import {
 import { validatePhoneNumber, validateRecipient } from '../validators';
 
 export class AccountManager extends BaseManager {
-    async register(number: string, voice?: boolean, captcha?: string): Promise<void> {
-        await this.sendRequest('register', { account: number, voice, captcha });
+    async register(number: string, voice?: boolean, captcha?: string, reregister?: boolean): Promise<void> {
+        const params: any = { account: number, voice, captcha };
+        if (reregister) params.reregister = true;
+        await this.sendRequest('register', params);
     }
 
     async verify(number: string, token: string, pin?: string): Promise<void> {
@@ -19,13 +21,13 @@ export class AccountManager extends BaseManager {
     }
 
     async updateProfile(
-        name: string,
+        givenName: string,
         about?: string,
         aboutEmoji?: string,
         avatar?: string,
         options: { familyName?: string; mobileCoinAddress?: string; removeAvatar?: boolean } = {},
     ): Promise<void> {
-        const params: any = { account: this.account, name };
+        const params: any = { account: this.account, givenName };
         if (about) params.about = about;
         if (aboutEmoji) params.aboutEmoji = aboutEmoji;
         if (avatar) params.avatar = avatar;

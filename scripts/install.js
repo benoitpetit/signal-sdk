@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const tar = require('tar');
 
-const VERSION = '0.14.0';
+const VERSION = '0.14.1';
 const BASE_URL = `https://github.com/AsamK/signal-cli/releases/download/v${VERSION}`;
 
 const platform = process.platform;
@@ -233,7 +233,7 @@ async function install() {
             console.log('\nmacOS/Unix: signal-cli JVM launcher is ready.');
             console.log('Location  : ' + executable);
             console.log('Libs      : ' + path.join(projectRoot, 'lib'));
-            console.log('Note      : Java (JDK 17+) must be installed and available in your PATH.');
+            console.log('Note      : Java (JDK 25+) must be installed and available in your PATH.');
         } else {
             const batFile = path.join(binDir, 'signal-cli.bat');
             if (!fs.existsSync(batFile)) {

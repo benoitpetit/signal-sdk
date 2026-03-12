@@ -521,6 +521,16 @@ export class SignalCli extends EventEmitter {
                 ...envelope.storyMessage,
             });
         }
+
+        // 5. Pin/Unpin events (v0.14.0)
+        if (envelope.dataMessage?.pinnedMessageTimestamps !== undefined) {
+            this.emit('pin', {
+                sender: source,
+                timestamp: timestamp,
+                pinnedMessageTimestamps: envelope.dataMessage.pinnedMessageTimestamps,
+                ...envelope.dataMessage,
+            });
+        }
     }
 
     private async handleProcessClose(code: number | null): Promise<void> {
@@ -545,7 +555,7 @@ export class SignalCli extends EventEmitter {
 
             setTimeout(async () => {
                 try {
-                    await this.connect();
+                    await this.connect(this.jsonRpcStartOptions);
                     this.reconnectAttempts = 0; // Reset on success
                     this.logger.info('Reconnected to signal-cli successfully');
                 } catch (error) {
@@ -720,8 +730,8 @@ export class SignalCli extends EventEmitter {
 
     // ############# Refactored Methods #############
 
-    async register(number: string, voice?: boolean, captcha?: string): Promise<void> {
-        return this.accounts.register(number, voice, captcha);
+    async register(number: string, voice?: boolean, captcha?: string, reregister?: boolean): Promise<void> {
+        return this.accounts.register(number, voice, captcha, reregister);
     }
 
     async verify(number: string, token: string, pin?: string): Promise<void> {
@@ -771,8 +781,8 @@ export class SignalCli extends EventEmitter {
         return this.contacts.unblock(recipients, groupId);
     }
 
-    async quitGroup(groupId: string): Promise<void> {
-        return this.groups.quitGroup(groupId);
+    async quitGroup(groupId: string, options?: { delete?: boolean; admins?: string[] }): Promise<void> {
+        return this.groups.quitGroup(groupId, options);
     }
 
     async joinGroup(uri: string): Promise<void> {
@@ -780,13 +790,13 @@ export class SignalCli extends EventEmitter {
     }
 
     async updateProfile(
-        name: string,
+        givenName: string,
         about?: string,
         aboutEmoji?: string,
         avatar?: string,
         options: { familyName?: string; mobileCoinAddress?: string; removeAvatar?: boolean } = {},
     ): Promise<void> {
-        return this.accounts.updateProfile(name, about, aboutEmoji, avatar, options);
+        return this.accounts.updateProfile(givenName, about, aboutEmoji, avatar, options);
     }
 
     async sendReceipt(recipient: string, targetTimestamp: number, type: ReceiptType = 'read'): Promise<void> {
@@ -829,8 +839,16 @@ export class SignalCli extends EventEmitter {
         return this.contacts.listIdentities(number);
     }
 
-    async trustIdentity(number: string, safetyNumber: string, verified: boolean = true): Promise<void> {
-        return this.contacts.trustIdentity(number, safetyNumber, verified);
+    async trustIdentity(number: string, verifiedSafetyNumber: string): Promise<void> {
+        return this.contacts.trustIdentity(number, verifiedSafetyNumber);
+    }
+
+    /**
+     * Trust all known identity keys of a user.
+     * ⚠️ Only use this for testing purposes.
+     */
+    async trustAllKnownKeys(number: string): Promise<void> {
+        return this.contacts.trustAllKnownKeys(number);
     }
 
     async getSafetyNumber(number: string): Promise<string | null> {
@@ -852,7 +870,7 @@ export class SignalCli extends EventEmitter {
         const normalizedProvided = safetyNumber.replace(/\s/g, '');
 
         if (normalizedStored === normalizedProvided) {
-            await this.trustIdentity(number, safetyNumber, true);
+            await this.trustIdentity(number, safetyNumber);
             return true;
         }
 
@@ -934,8 +952,8 @@ export class SignalCli extends EventEmitter {
         await this.updateGroup(groupId, { resetInviteLink: true });
     }
 
-    async listContacts(): Promise<Contact[]> {
-        return this.contacts.listContacts();
+    async listContacts(options?: import('./interfaces').ListContactsOptions): Promise<Contact[]> {
+        return this.contacts.listContacts(options);
     }
 
     async listDevices(): Promise<Device[]> {

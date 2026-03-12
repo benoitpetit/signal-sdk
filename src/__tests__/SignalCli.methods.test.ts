@@ -264,13 +264,13 @@ describe('SignalCli Methods Tests', () => {
     });
 
     describe('Profile Methods', () => {
-        it('should update profile with name only', async () => {
+        it('should update profile with givenName only', async () => {
             await signalCli.updateProfile('John Doe');
 
             expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith(
                 'updateProfile',
                 expect.objectContaining({
-                    name: 'John Doe',
+                    givenName: 'John Doe',
                 }),
             );
         });
@@ -281,7 +281,7 @@ describe('SignalCli Methods Tests', () => {
             expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith(
                 'updateProfile',
                 expect.objectContaining({
-                    name: 'John Doe',
+                    givenName: 'John Doe',
                     about: 'Hello!',
                     aboutEmoji: '👋',
                     avatar: '/path/to/avatar.jpg',
@@ -493,26 +493,14 @@ describe('SignalCli Methods Tests', () => {
             );
         });
 
-        it('should trust identity', async () => {
+        it('should trust identity with verifiedSafetyNumber', async () => {
             await signalCli.trustIdentity('+1111111111', 'fingerprint123');
 
             expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith(
                 'trust',
                 expect.objectContaining({
                     recipient: '+1111111111',
-                    safetyNumber: 'fingerprint123',
-                    verified: true,
-                }),
-            );
-        });
-
-        it('should trust identity with verified flag', async () => {
-            await signalCli.trustIdentity('+1111111111', 'fingerprint123', false);
-
-            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith(
-                'trust',
-                expect.objectContaining({
-                    verified: false,
+                    verifiedSafetyNumber: 'fingerprint123',
                 }),
             );
         });

@@ -325,18 +325,20 @@ export interface GroupInfo {
     isMember: boolean;
     /** Whether the group is blocked */
     isBlocked: boolean;
+    /** Whether the group is archived (v0.14.1+) */
+    isArchived?: boolean;
     /** Message expiration time in seconds */
     messageExpirationTime: number;
-    /** Current group members */
-    members: Address[];
+    /** Current group members (phone numbers or UUIDs) */
+    members: string[];
     /** Members with pending invitations */
-    pendingMembers: Address[];
+    pendingMembers: string[];
     /** Members requesting to join */
-    requestingMembers: Address[];
+    requestingMembers: string[];
     /** Group administrators */
-    admins: Address[];
+    admins: string[];
     /** Banned members */
-    banned: Address[];
+    banned: string[];
     /** Permission setting for adding members */
     permissionAddMember: string;
     /** Permission setting for editing group details */
@@ -385,6 +387,8 @@ export interface Message {
     syncMessage?: any;
     receipt?: any;
     typing?: any;
+    /** Pinned message timestamps from pin/unpin events (v0.14.0+) */
+    pinnedMessageTimestamps?: number[];
 }
 
 /**
@@ -443,7 +447,9 @@ export interface Contact {
     mobileCoinAddress?: string;
     profileAvatar?: string;
     color?: string;
+    /** @deprecated Use isArchived instead */
     archived?: boolean;
+    isArchived?: boolean;
     mutedUntil?: number;
     hideStory?: boolean;
     /** Profile key for encrypted profile access */
@@ -508,6 +514,12 @@ export interface GroupUpdateOptions {
     announcementsOnly?: boolean;
     expirationTimer?: number;
     resetInviteLink?: boolean;
+    /** Set group link state: 'enabled', 'enabled-with-approval', or 'disabled' */
+    linkState?: 'enabled' | 'enabled-with-approval' | 'disabled';
+    /** Emoji for the member label */
+    memberLabelEmoji?: string;
+    /** Label for group members */
+    memberLabel?: string;
 }
 
 /**
@@ -613,16 +625,17 @@ export interface ContactUpdateOptions {
 
 /**
  * Represents account configuration.
+ * Note: Only the following fields are supported by signal-cli updateConfiguration:
+ * - readReceipts
+ * - unidentifiedDeliveryIndicators
+ * - typingIndicators
+ * - linkPreviews
  */
 export interface AccountConfiguration {
     readReceipts?: boolean;
     unidentifiedDeliveryIndicators?: boolean;
     typingIndicators?: boolean;
     linkPreviews?: boolean;
-    keepMutedChatsArchived?: boolean;
-    universalExpireTimer?: number;
-    phoneNumberSharingMode?: 'EVERYBODY' | 'CONTACTS_ONLY' | 'NOBODY';
-    phoneNumberDiscoverability?: boolean;
 }
 
 /**
@@ -677,12 +690,16 @@ export type MessageType = 'data' | 'typing' | 'receipt' | 'call' | 'sync' | 'sto
  * Options for receiving messages.
  */
 export interface ReceiveOptions {
+    /** Timeout in seconds (default: 5) */
     timeout?: number;
-    ignoreAttachments?: boolean;
-    ignoreStories?: boolean;
+    /** Maximum number of messages to receive (default: unlimited) */
     maxMessages?: number;
+    /** Skip downloading attachments */
+    ignoreAttachments?: boolean;
+    /** Skip receiving stories */
+    ignoreStories?: boolean;
+    /** Send read receipts automatically */
     sendReadReceipts?: boolean;
-    since?: number;
     /** v0.14.0 — Skip downloading contact/profile avatars */
     ignoreAvatars?: boolean;
     /** v0.14.0 — Skip downloading sticker packs */
@@ -1145,6 +1162,7 @@ export interface PollTerminateOptions {
 
 /**
  * Options for sending a story
+ * @deprecated This interface is not yet implemented. sendStory() method is not available.
  */
 export interface StoryOptions {
     /** Story content (text or attachment path) */
@@ -1252,26 +1270,6 @@ export interface UpdateDeviceOptions {
 // ===== SYNC AND CONTACTS =====
 
 /**
- * Options for receiving messages
- */
-export interface ReceiveOptions {
-    /** Timeout in seconds (default: 5) */
-    timeout?: number;
-    /** Maximum number of messages to receive (default: unlimited) */
-    maxMessages?: number;
-    /** Skip downloading attachments */
-    ignoreAttachments?: boolean;
-    /** Skip receiving stories */
-    ignoreStories?: boolean;
-    /** Send read receipts automatically */
-    sendReadReceipts?: boolean;
-    /** v0.14.0 — Skip downloading contact/profile avatars */
-    ignoreAvatars?: boolean;
-    /** v0.14.0 — Skip downloading sticker packs */
-    ignoreStickers?: boolean;
-}
-
-/**
  * Options for sending contacts sync
  */
 export interface SendContactsOptions {
@@ -1315,6 +1313,8 @@ export interface PinMessageOptions {
     noteToSelf?: boolean;
     /** If self is part of recipients/groups, send a normal message instead of a sync message */
     notifySelf?: boolean;
+    /** If true, pin a story instead of a normal message */
+    story?: boolean;
 }
 
 /**
@@ -1369,6 +1369,6 @@ export interface JsonRpcStartOptions {
     ignoreStickers?: boolean;
     /** Send read receipts for all incoming data messages */
     sendReadReceipts?: boolean;
-    /** When to start receiving messages: 'on-start' (default) or 'manual' */
-    receiveMode?: 'on-start' | 'manual';
+    /** When to start receiving messages: 'on-start' (default), 'on-connection' or 'manual' */
+    receiveMode?: 'on-start' | 'on-connection' | 'manual';
 }

@@ -233,7 +233,7 @@ export class MessageManager extends BaseManager {
 
         if (envelope.dataMessage) {
             const data = envelope.dataMessage;
-            message.text = data.message || data.body;
+            message.text = data.message || data.body || data.textAttachment?.text;
             message.groupId = data.groupInfo?.groupId;
             message.attachments = data.attachments;
             message.mentions = data.mentions;
@@ -242,6 +242,7 @@ export class MessageManager extends BaseManager {
             message.sticker = data.sticker;
             message.expiresInSeconds = data.expiresInSeconds;
             message.viewOnce = data.viewOnce;
+            message.pinnedMessageTimestamps = data.pinnedMessageTimestamps;
         }
 
         if (envelope.syncMessage) {
@@ -374,6 +375,19 @@ export class MessageManager extends BaseManager {
         return result.data || result;
     }
 
+    /**
+     * Send a message with progress callback.
+     * 
+     * **Note:** The progress callback currently provides simulated progress (0-100 in steps of 10)
+     * for attachment uploads. This is not the actual upload progress from signal-cli, as JSON-RPC
+     * does not provide real-time upload progress feedback. The simulation occurs before the actual
+     * send operation and is for UX purposes only.
+     * 
+     * @param recipient - Recipient phone number or group ID
+     * @param message - Message text
+     * @param options - Send options including onProgress callback
+     * @returns Send response
+     */
     async sendMessageWithProgress(
         recipient: string,
         message: string,
@@ -383,6 +397,7 @@ export class MessageManager extends BaseManager {
     ): Promise<SendResponse> {
         const { onProgress, ...sendOptions } = options;
 
+        // Simulate progress for UX purposes - actual JSON-RPC doesn't provide real-time progress
         if (onProgress && sendOptions.attachments && sendOptions.attachments.length > 0) {
             for (let i = 0; i <= 100; i += 10) {
                 onProgress({

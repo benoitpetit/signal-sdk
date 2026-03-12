@@ -6,6 +6,7 @@ import {
     IdentityKey,
     UserStatusResult,
     GetAvatarOptions,
+    ListContactsOptions,
 } from '../interfaces';
 import { validateRecipient } from '../validators';
 import { MessageError } from '../errors';
@@ -40,9 +41,18 @@ export class ContactManager extends BaseManager {
         await this.sendRequest('unblock', { account: this.account, recipient: recipients, groupId });
     }
 
-    async listContacts(): Promise<Contact[]> {
+    async listContacts(options: ListContactsOptions = {}): Promise<Contact[]> {
+        const params: any = { account: this.account };
+        
+        if (options.detailed) params.detailed = true;
+        if (options.blocked !== undefined) params.blocked = options.blocked;
+        if (options.allRecipients) params.allRecipients = true;
+        if (options.name) params.name = options.name;
+        if (options.recipients && options.recipients.length > 0) params.recipients = options.recipients;
+        if (options.internal) params.internal = true;
+        
         return withRetry(
-            () => this.sendRequest('listContacts', { account: this.account }),
+            () => this.sendRequest('listContacts', params),
             { maxAttempts: this.config.maxRetries, initialDelay: this.config.retryDelay }
         );
     }
@@ -89,8 +99,16 @@ export class ContactManager extends BaseManager {
         return this.sendRequest('listIdentities', { account: this.account, number });
     }
 
-    async trustIdentity(number: string, safetyNumber: string, verified: boolean = true): Promise<void> {
-        await this.sendRequest('trust', { account: this.account, recipient: number, safetyNumber, verified });
+    async trustIdentity(number: string, verifiedSafetyNumber: string): Promise<void> {
+        await this.sendRequest('trust', { account: this.account, recipient: number, verifiedSafetyNumber });
+    }
+
+    /**
+     * Trust all known identity keys of a user.
+     * ⚠️ Only use this for testing purposes.
+     */
+    async trustAllKnownKeys(number: string): Promise<void> {
+        await this.sendRequest('trust', { account: this.account, recipient: number, trustAllKnownKeys: true });
     }
 
     async getAvatar(options: GetAvatarOptions): Promise<string> {

@@ -60,8 +60,17 @@ export class DeviceManager extends BaseManager {
             let linkingComplete = false;
             let hasError = false;
 
+            // Since signal-cli v0.14.0, signal-cli displays its own QR code in the terminal.
+            // We detect this to avoid displaying a duplicate QR code.
+            let signalCliDisplayedQRCode = false;
+
             linkProcess.stdout.on('data', (data) => {
                 const output = data.toString('utf8').trim();
+
+                // Detect if signal-cli has displayed its own QR code (ASCII art pattern)
+                if (output.includes('▄▄▄▄▄') || output.includes('█████') || output.includes('▀▀▀▀▀')) {
+                    signalCliDisplayedQRCode = true;
+                }
 
                 if (output.includes('sgnl://')) {
                     const uriMatch = output.match(/sgnl:\/\/[^\s]+/);
@@ -69,11 +78,15 @@ export class DeviceManager extends BaseManager {
                         const uri = uriMatch[0];
                         qrCodeData = { uri };
 
-                        if (options.qrCodeOutput === 'console') {
+                        // Only display our QR code if signal-cli hasn't already displayed one
+                        if (options.qrCodeOutput === 'console' && !signalCliDisplayedQRCode) {
                             console.log('\n- QR CODE - SCAN WITH YOUR PHONE:');
                             console.log('===================================');
                             qrcodeTerminal.generate(uri, { small: true });
                             console.log('===================================\n');
+                        } else if (options.qrCodeOutput === 'console') {
+                            console.log('\n[signal-cli v0.14.0+ has already displayed the QR code above]');
+                            console.log(`Link URI: ${uri}\n`);
                         }
                     }
                 }

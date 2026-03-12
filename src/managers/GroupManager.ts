@@ -23,6 +23,9 @@ export class GroupManager extends BaseManager {
             if (options.banMembers) params.banMembers = options.banMembers;
             if (options.unbanMembers) params.unbanMembers = options.unbanMembers;
             if (options.resetInviteLink) params.resetLink = true;
+            if (options.linkState) params.link = options.linkState;
+            if (options.memberLabelEmoji) params.memberLabelEmoji = options.memberLabelEmoji;
+            if (options.memberLabel) params.memberLabel = options.memberLabel;
             if (options.permissionAddMember) params.permissionAddMember = options.permissionAddMember;
             if (options.permissionEditDetails) params.permissionEditDetails = options.permissionEditDetails;
             if (options.permissionSendMessage) params.permissionSendMessage = options.permissionSendMessage;
@@ -38,8 +41,11 @@ export class GroupManager extends BaseManager {
         );
     }
 
-    async quitGroup(groupId: string): Promise<void> {
-        await this.sendRequest('quitGroup', { account: this.account, groupId });
+    async quitGroup(groupId: string, options?: { delete?: boolean; admins?: string[] }): Promise<void> {
+        const params: any = { account: this.account, groupId };
+        if (options?.delete) params.delete = true;
+        if (options?.admins && options.admins.length > 0) params.admin = options.admins;
+        await this.sendRequest('quitGroup', params);
     }
 
     async joinGroup(uri: string): Promise<void> {
