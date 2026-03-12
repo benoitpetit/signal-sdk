@@ -13,7 +13,7 @@ providing JSON-RPC communication and a powerful bot framework.
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
-[![Tests](https://img.shields.io/badge/tests-468%20passing-brightgreen.svg)](./src/__tests__)
+[![Tests](https://img.shields.io/badge/tests-548%20passing-brightgreen.svg)](./src/__tests__)
 [![Donate on Liberapay](https://img.shields.io/badge/Liberapay-Donate-yellow.svg)](https://liberapay.com/devbyben/donate)
 
 </div>
@@ -764,9 +764,9 @@ npm test -- --watch
 
 | Metric | Value |
 |---|---|
-| Total tests | 442 passing |
-| Test suites | 22 |
-| Overall coverage | ~84% |
+| Total tests | 548 passing |
+| Test suites | 24 |
+| Overall coverage | ~87% |
 
 ### Coverage by module
 
@@ -777,15 +777,15 @@ npm test -- --watch
 | `config.ts` | 100% | 97% | 100% | 100% |
 | `retry.ts` | 97% | 85% | 100% | 98% |
 | `BaseManager.ts` | 100% | 100% | 100% | 100% |
-| `AccountManager.ts` | 91% | 81% | 88% | 95% |
-| `ContactManager.ts` | 82% | 66% | 100% | 98% |
-| `DeviceManager.ts` | 96% | 81% | 91% | 96% |
-| `GroupManager.ts` | 78% | 68% | 83% | 94% |
-| `MessageManager.ts` | 84% | 78% | 90% | 85% |
-| `StickerManager.ts` | 93% | 83% | 100% | 93% |
-| `SignalCli.ts` | 83% | 71% | 80% | 85% |
-| `SignalBot.ts` | 73% | 59% | 66% | 73% |
-| `MultiAccountManager.ts` | 88% | 74% | 83% | 90% |
+| `AccountManager.ts` | 98.73% | 88% | 100% | 98.46% |
+| `ContactManager.ts` | 98.88% | 91.35% | 100% | 100% |
+| `DeviceManager.ts` | 90.74% | 80.48% | 90.9% | 90.74% |
+| `GroupManager.ts` | 100% | 98.38% | 100% | 100% |
+| `MessageManager.ts` | 90.28% | 86.66% | 90% | 91.07% |
+| `StickerManager.ts` | 92.85% | 83.33% | 100% | 92.85% |
+| `SignalCli.ts` | 83.47% | 70.99% | 79.72% | 85.32% |
+| `SignalBot.ts` | 73.03% | 59.75% | 65.62% | 72.62% |
+| `MultiAccountManager.ts` | 88.49% | 74.28% | 82.6% | 90.09% |
 
 ### Test suites
 
@@ -813,6 +813,8 @@ npm test -- --watch
 | `SignalBot.test.ts` | Bot startup, commands, events |
 | `SignalBot.additional.test.ts` | Extended bot features |
 | `SignalBot.coverage.test.ts` | Bot edge cases and error handling |
+| `signal-cli-v0141-compatibility.test.ts` | signal-cli v0.14.1 compatibility tests |
+| `coverage-improvement.test.ts` | Additional coverage tests for managers |
 
 ---
 
