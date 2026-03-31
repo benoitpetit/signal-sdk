@@ -31,7 +31,7 @@ describe('SignalCli Advanced Features', () => {
                 'send',
                 expect.objectContaining({
                     message: 'Hello *bold* text',
-                    textStyles: [{ start: 6, length: 6, style: 'BOLD' }],
+                    textStyles: ['6:6:BOLD'],
                 }),
             );
         });
@@ -45,7 +45,7 @@ describe('SignalCli Advanced Features', () => {
                 'send',
                 expect.objectContaining({
                     message: 'Hello @John',
-                    mentions: [{ start: 6, length: 5, number: '+33111111111' }],
+                    mentions: ['6:5:+33111111111'],
                 }),
             );
         });
@@ -82,8 +82,8 @@ describe('SignalCli Advanced Features', () => {
                     quoteTimestamp: 123456789,
                     quoteAuthor: '+33111111111',
                     quoteMessage: 'Original message',
-                    quoteMentions: [{ start: 0, length: 5, number: '+33222222222' }],
-                    quoteTextStyles: [{ start: 0, length: 8, style: 'BOLD' }],
+                    quoteMentions: ['0:5:+33222222222'],
+                    quoteTextStyles: ['0:8:BOLD'],
                 }),
             );
         });

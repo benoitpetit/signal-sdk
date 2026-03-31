@@ -46,19 +46,11 @@ export class MessageManager extends BaseManager {
                 }
 
                 if (options.mentions && options.mentions.length > 0) {
-                    params.mentions = options.mentions.map((m) => ({
-                        start: m.start,
-                        length: m.length,
-                        number: m.recipient || m.number,
-                    }));
+                    params.mentions = options.mentions.map((m) => `${m.start}:${m.length}:${m.recipient || m.number}`);
                 }
 
                 if (options.textStyles && options.textStyles.length > 0) {
-                    params.textStyles = options.textStyles.map((ts) => ({
-                        start: ts.start,
-                        length: ts.length,
-                        style: ts.style,
-                    }));
+                    params.textStyles = options.textStyles.map((ts) => `${ts.start}:${ts.length}:${ts.style}`);
                 }
 
                 if (options.quote) {
@@ -68,18 +60,14 @@ export class MessageManager extends BaseManager {
                         params.quoteMessage = options.quote.text;
                     }
                     if (options.quote.mentions && options.quote.mentions.length > 0) {
-                        params.quoteMentions = options.quote.mentions.map((m) => ({
-                            start: m.start,
-                            length: m.length,
-                            number: m.recipient || m.number,
-                        }));
+                        params.quoteMentions = options.quote.mentions.map(
+                            (m) => `${m.start}:${m.length}:${m.recipient || m.number}`,
+                        );
                     }
                     if (options.quote.textStyles && options.quote.textStyles.length > 0) {
-                        params.quoteTextStyles = options.quote.textStyles.map((ts) => ({
-                            start: ts.start,
-                            length: ts.length,
-                            style: ts.style,
-                        }));
+                        params.quoteTextStyles = options.quote.textStyles.map(
+                            (ts) => `${ts.start}:${ts.length}:${ts.style}`,
+                        );
                     }
                 }
 
@@ -377,12 +365,12 @@ export class MessageManager extends BaseManager {
 
     /**
      * Send a message with progress callback.
-     * 
+     *
      * **Note:** The progress callback currently provides simulated progress (0-100 in steps of 10)
      * for attachment uploads. This is not the actual upload progress from signal-cli, as JSON-RPC
      * does not provide real-time upload progress feedback. The simulation occurs before the actual
      * send operation and is for UX purposes only.
-     * 
+     *
      * @param recipient - Recipient phone number or group ID
      * @param message - Message text
      * @param options - Send options including onProgress callback
