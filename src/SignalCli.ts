@@ -531,6 +531,20 @@ export class SignalCli extends EventEmitter {
                 ...envelope.dataMessage,
             });
         }
+
+        // 6. Call events (v0.14.2)
+        if (envelope.callMessage) {
+            const callData = envelope.callMessage;
+            this.emit('call', {
+                sender: source,
+                timestamp: timestamp,
+                callId: callData.callId,
+                type: callData.type || 'voice',
+                direction: callData.direction || 'incoming',
+                state: callData.state || 'ringing',
+                ...callData,
+            });
+        }
     }
 
     private async handleProcessClose(code: number | null): Promise<void> {
@@ -1272,5 +1286,127 @@ export class SignalCli extends EventEmitter {
         }
 
         await this.sendJsonRpcRequest('sendAdminDelete', params);
+    }
+
+    // ############# v0.14.2 NEW METHODS - VOICE CALLING #############
+
+    /**
+     * Start a voice or video call with a recipient.
+     *
+     * Requires signal-cli v0.14.2+.
+     *
+     * @param options - Options for the call including recipient and video flag
+     * @returns Call information including the call ID
+     *
+     * @example
+     * ```typescript
+     * // Start a voice call
+     * const call = await signal.startCall({
+     *   recipient: '+33123456789',
+     * });
+     *
+     * // Start a video call
+     * const videoCall = await signal.startCall({
+     *   recipient: '+33123456789',
+     *   video: true,
+     * });
+     * ```
+     */
+    async startCall(options: import('./interfaces').StartCallOptions): Promise<import('./interfaces').CallInfo> {
+        const params: any = {
+            account: this.account,
+            recipient: options.recipient,
+        };
+
+        if (options.video) {
+            params.video = true;
+        }
+
+        const result = await this.sendJsonRpcRequest('startCall', params);
+        return {
+            callId: result.callId,
+            recipient: options.recipient,
+            direction: 'outgoing',
+            type: options.video ? 'video' : 'voice',
+            state: result.state || 'ringing',
+            timestamp: Date.now(),
+            isActive: true,
+        };
+    }
+
+    /**
+     * Accept an incoming call.
+     *
+     * Requires signal-cli v0.14.2+.
+     *
+     * @param options - Options including the call ID to accept
+     *
+     * @example
+     * ```typescript
+     * // Listen for incoming calls and accept them
+     * signal.on('call', async (callEvent) => {
+     *   if (callEvent.call.direction === 'incoming') {
+     *     await signal.acceptCall({ callId: callEvent.call.callId });
+     *   }
+     * });
+     * ```
+     */
+    async acceptCall(options: import('./interfaces').AcceptCallOptions): Promise<void> {
+        await this.sendJsonRpcRequest('acceptCall', {
+            account: this.account,
+            callId: options.callId,
+        });
+    }
+
+    /**
+     * Hang up an active call.
+     *
+     * Requires signal-cli v0.14.2+.
+     *
+     * @param options - Options including the call ID to hang up
+     *
+     * @example
+     * ```typescript
+     * // Hang up a call
+     * await signal.hangUpCall({ callId: 'call-123-456' });
+     * ```
+     */
+    async hangUpCall(options: import('./interfaces').HangUpCallOptions): Promise<void> {
+        await this.sendJsonRpcRequest('hangUpCall', {
+            account: this.account,
+            callId: options.callId,
+        });
+    }
+
+    /**
+     * Send ICE relay candidates for establishing a call connection.
+     *
+     * Requires signal-cli v0.14.2+.
+     * This is used internally for WebRTC call establishment.
+     *
+     * @param options - Options including call ID and ICE candidates
+     *
+     * @example
+     * ```typescript
+     * await signal.sendCallRelayCandidates({
+     *   callId: 'call-123-456',
+     *   candidates: [
+     *     {
+     *       candidate: 'candidate:1 1 UDP 2130706431 192.168.1.1 5000 typ host',
+     *       sdpMLineIndex: 0,
+     *       sdpMid: 'audio',
+     *     },
+     *   ],
+     * });
+     * ```
+     */
+    async sendCallRelayCandidates(
+        options: import('./interfaces').SendCallRelayCandidatesOptions,
+    ): Promise<void> {
+        await this.sendJsonRpcRequest('sendCallRelayCandidates', {
+            account: this.account,
+            callId: options.callId,
+            candidates: options.candidates,
+        });
     }
 }

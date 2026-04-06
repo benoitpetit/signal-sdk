@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-04-06
+
+### Added - signal-cli v0.14.2 Compatibility
+
+#### FEAT-13: Poll Option Length Validation (v0.14.2)
+- Enforced poll option length validation (1-100 characters) in `sendPollCreate()`
+- Options shorter than 1 character or longer than 100 characters now throw `MessageError`
+- Aligns with signal-cli v0.14.2's server-side validation
+
+#### FEAT-14: Voice Note Support (v0.14.2)
+- Added `voiceNote?: boolean` option to `SendMessageOptions` interface
+- When enabled, attachments are marked as voice notes and displayed accordingly in Signal clients
+- Example usage: `sendMessage(recipient, '', { attachments: ['/path/audio.ogg'], voiceNote: true })`
+
+#### FEAT-15: Voice/Video Calling Support (v0.14.2)
+- **New Methods:**
+  - `startCall({ recipient, video? })` - Start an outgoing voice or video call
+  - `acceptCall({ callId })` - Accept an incoming call
+  - `hangUpCall({ callId })` - Hang up an active call
+  - `sendCallRelayCandidates({ callId, candidates })` - Send ICE candidates for WebRTC
+- **New Event:**
+  - `'call'` event emitted when receiving call messages
+- **New Interfaces:**
+  - `StartCallOptions`, `AcceptCallOptions`, `HangUpCallOptions`
+  - `SendCallRelayCandidatesOptions`, `CallRelayCandidate`, `CallInfo`, `CallEvent`
+
+### Compatibility
+- Updated for signal-cli v0.14.2 compatibility
+- 594 passing unit and integration tests (23 new tests for v0.14.2)
+
 ## [0.1.8] - 2026-03-12
 
 ### Fixed - Critical Bugs

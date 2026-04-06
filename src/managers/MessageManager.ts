@@ -106,6 +106,11 @@ export class MessageManager extends BaseManager {
                     params.noUrgent = true;
                 }
 
+                // v0.14.2 — mark attachments as voice notes
+                if (options.voiceNote) {
+                    params.voiceNote = true;
+                }
+
                 return this.sendRequest('send', params);
             },
             {
@@ -259,6 +264,17 @@ export class MessageManager extends BaseManager {
 
         if (options.options.length > 10) {
             throw new MessageError('Poll cannot have more than 10 options');
+        }
+
+        // v0.14.2 — Enforce poll option length between 1 and 100 characters
+        for (let i = 0; i < options.options.length; i++) {
+            const option = options.options[i];
+            if (option.length < 1) {
+                throw new MessageError(`Poll option ${i + 1} must be at least 1 character long`);
+            }
+            if (option.length > 100) {
+                throw new MessageError(`Poll option ${i + 1} cannot exceed 100 characters`);
+            }
         }
 
         const params: any = {

@@ -129,6 +129,10 @@ export interface JsonRpcSendParams {
      * triggered on the recipient's device.
      */
     noUrgent?: boolean;
+    /**
+     * v0.14.2 — Mark the attachment(s) as voice notes.
+     */
+    voiceNote?: boolean;
 }
 
 /**
@@ -586,6 +590,11 @@ export interface SendMessageOptions {
      * The message will still be delivered in real-time if the app is active.
      */
     noUrgent?: boolean;
+    /**
+     * v0.14.2 — Mark the attachment(s) as voice notes.
+     * When true, the attachment will be displayed and played as a voice message.
+     */
+    voiceNote?: boolean;
 }
 
 /**
@@ -1371,4 +1380,88 @@ export interface JsonRpcStartOptions {
     sendReadReceipts?: boolean;
     /** When to start receiving messages: 'on-start' (default), 'on-connection' or 'manual' */
     receiveMode?: 'on-start' | 'on-connection' | 'manual';
+}
+
+// ===== v0.14.2 NEW FEATURES =====
+
+/**
+ * Options for starting a voice call.
+ * Maps to the `startCall` signal-cli command (v0.14.2+).
+ */
+export interface StartCallOptions {
+    /** Recipient phone number to call */
+    recipient: string;
+    /** Whether to start a video call (default: false, voice only) */
+    video?: boolean;
+}
+
+/**
+ * Options for accepting an incoming voice call.
+ * Maps to the `acceptCall` signal-cli command (v0.14.2+).
+ */
+export interface AcceptCallOptions {
+    /** The call ID to accept */
+    callId: string;
+}
+
+/**
+ * Options for hanging up a call.
+ * Maps to the `hangUpCall` signal-cli command (v0.14.2+).
+ */
+export interface HangUpCallOptions {
+    /** The call ID to hang up */
+    callId: string;
+}
+
+/**
+ * Options for sending call relay candidates (ICE candidates for WebRTC).
+ * Maps to the `sendCallRelayCandidates` signal-cli command (v0.14.2+).
+ */
+export interface SendCallRelayCandidatesOptions {
+    /** The call ID */
+    callId: string;
+    /** Array of ICE candidates */
+    candidates: CallRelayCandidate[];
+}
+
+/**
+ * Represents a single ICE relay candidate for WebRTC call establishment.
+ */
+export interface CallRelayCandidate {
+    /** The ICE candidate string */
+    candidate: string;
+    /** The SDP m-line index */
+    sdpMLineIndex: number;
+    /** The SDP mid */
+    sdpMid: string;
+}
+
+/**
+ * Information about an active or incoming call.
+ */
+export interface CallInfo {
+    /** Unique call identifier */
+    callId: string;
+    /** The remote party's phone number */
+    recipient: string;
+    /** Call direction: incoming or outgoing */
+    direction: 'incoming' | 'outgoing';
+    /** Call type: voice or video */
+    type: 'voice' | 'video';
+    /** Current call state */
+    state: 'ringing' | 'connecting' | 'connected' | 'ended' | 'declined' | 'missed';
+    /** Call start timestamp */
+    timestamp: number;
+    /** Whether the call is currently active */
+    isActive: boolean;
+}
+
+/**
+ * Event emitted when a call is received or changes state.
+ */
+export interface CallEvent {
+    /** The call information */
+    call: CallInfo;
+    /** Additional event-specific data */
+    data?: any;
 }

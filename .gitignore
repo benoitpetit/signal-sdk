@@ -24,6 +24,7 @@ yarn-error.log*
 # Ignore IDE/editor folders
 .vscode/
 .idea/
+.claude/
 
 # Ignore OS files
 .DS_Store
