@@ -203,7 +203,7 @@ bot.on("groupMemberJoined", (event) => {
 
 ### Group Admin Commands
 
-You can create commands to manage the group.
+You can create commands to manage the group using the underlying SignalCli instance.
 
 ```javascript
 bot.addCommand({
@@ -215,7 +215,11 @@ bot.addCommand({
     const number = args[0];
     if (!number) return "Please provide a number to kick.";
 
-    await bot.removeGroupMember(bot.group.id, number);
+    const groupId = bot.getBotGroupId();
+    if (!groupId) return "Bot is not configured for group management.";
+
+    const signal = bot.getSignalCli();
+    await signal.updateGroup(groupId, { removeMembers: [number] });
     return `${number} has been kicked from the group.`;
   },
 });

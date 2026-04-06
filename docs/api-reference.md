@@ -5,6 +5,7 @@ Complete API documentation for the Signal SDK classes and interfaces.
 ## Table of Contents
 
 - [Class `SignalCli`](#signalcli-class)
+  - [Constructor](#constructor)
   - [Connection Management](#connection-management)
   - [Device Management](#device-management)
   - [Messaging](#messaging)
@@ -31,57 +32,73 @@ The core class for Signal messaging operations using JSON-RPC with `signal-cli`.
 ### Constructor
 
 ```typescript
-new SignalCli(account?: string, signalCliPath?: string, config?: SignalCliConfig)
+new SignalCli(accountOrPath?: string, account?: string, config?: SignalCliConfig)
 ```
 
-- **`account`** (optional): Phone number for the Signal account (e.g., `"+15551234567"`).
-- **`signalCliPath`** (optional): Path to the `signal-cli` binary. Defaults to `./bin/signal-cli`.
-- **`config`** (optional): Advanced configuration object:
-  - `retryConfig`: Retry configuration with exponential backoff
-    - `maxAttempts`: Maximum retry attempts (default: 3)
-    - `initialDelay`: Initial delay in ms (default: 1000)
-    - `maxDelay`: Maximum delay in ms (default: 30000)
-    - `backoffMultiplier`: Backoff multiplier (default: 2)
-  - `rateLimiter`: Rate limiting configuration
-    - `maxConcurrent`: Maximum concurrent requests (default: 5)
-    - `minInterval`: Minimum interval between requests in ms (default: 100)
-  - `logger`: Logger instance for structured logging
-  - `timeout`: Operation timeout in ms (default: 30000)
-  - **Daemon Mode Options:**
-    - `socketPath`: Unix socket path for daemon connection
-    - `tcpHost`: TCP host for daemon connection
-    - `tcpPort`: TCP port for daemon connection
-    - `httpHost`: HTTP host for REST API
-    - `httpPort`: HTTP port for REST API
+- **`accountOrPath`** (optional): Phone number (e.g., `"+15551234567"`) OR path to the `signal-cli` binary. The constructor uses smart detection - if it starts with `+`, it's treated as a phone number.
+- **`account`** (optional): Phone number when the first argument is a path to the binary.
+- **`config`** (optional): Advanced configuration object (see [SignalCliConfig](#signalcliconfig))
 
-#### Example with Configuration
+#### Examples
 
 ```typescript
-import { SignalCli, Logger } from "signal-sdk";
+// Simple usage with phone number
+const signal = new SignalCli("+15551234567");
 
-const config = {
-  retryConfig: {
-    maxAttempts: 5,
-    initialDelay: 1000,
-    maxDelay: 60000,
-    backoffMultiplier: 2,
-  },
-  rateLimiter: {
-    maxConcurrent: 3,
-    minInterval: 500,
-  },
-  logger: new Logger("debug"),
-  timeout: 60000,
-};
+// With custom signal-cli path
+const signal = new SignalCli("/path/to/signal-cli", "+15551234567");
 
-const signal = new SignalCli("+1234567890", undefined, config);
+// With configuration
+const signal = new SignalCli("+15551234567", undefined, {
+  maxRetries: 5,
+  retryDelay: 1000,
+  verbose: true,
+});
 ```
+
+#### SignalCliConfig
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `signalCliPath` | `string` | auto-detected | Path to signal-cli binary |
+| `maxRetries` | `number` | `3` | Number of retry attempts on failure |
+| `retryDelay` | `number` | `1000` | Initial retry delay in milliseconds |
+| `maxConcurrentRequests` | `number` | `10` | Maximum parallel JSON-RPC requests |
+| `minRequestInterval` | `number` | `100` | Minimum delay between requests in ms |
+| `requestTimeout` | `number` | `60000` | Per-request timeout in milliseconds |
+| `connectionTimeout` | `number` | `30000` | Connection attempt timeout in milliseconds |
+| `autoReconnect` | `boolean` | `true` | Automatically reconnect on disconnect |
+| `verbose` | `boolean` | `false` | Enable debug logging |
+| `logFile` | `string` | `undefined` | Write logs to a file path |
+| `daemonMode` | `'json-rpc' \| 'unix-socket' \| 'tcp' \| 'http'` | `'json-rpc'` | Connection mode |
+| `socketPath` | `string` | `'/tmp/signal-cli.sock'` | Unix socket path (unix-socket mode) |
+| `tcpHost` | `string` | `'localhost'` | TCP host (tcp mode) |
+| `tcpPort` | `number` | `7583` | TCP port (tcp mode) |
+| `httpBaseUrl` | `string` | `'http://localhost:8080'` | Base URL (http mode) |
 
 ### Connection Management
 
-#### `connect(): Promise<void>`
+#### `connect(options?: JsonRpcStartOptions): Promise<void>`
 
 Establishes the JSON-RPC connection with the `signal-cli` daemon.
+
+**Parameters:**
+- `options` (optional): Startup flags for the daemon
+  - `ignoreAttachments`: Skip downloading attachments
+  - `ignoreStories`: Ignore story messages
+  - `ignoreAvatars`: Skip downloading avatars
+  - `ignoreStickers`: Skip downloading sticker packs
+  - `sendReadReceipts`: Auto-send read receipts
+  - `receiveMode`: When to start receiving ('on-start', 'on-connection', 'manual')
+
+**Example:**
+```typescript
+await signal.connect({
+  ignoreAttachments: true,
+  ignoreStories: true,
+  sendReadReceipts: true,
+});
+```
 
 #### `disconnect(): void`
 
@@ -89,7 +106,7 @@ Immediately terminates the connection.
 
 #### `gracefulShutdown(): Promise<void>`
 
-Gracefully closes the connection.
+Gracefully closes the connection, waiting for pending operations to complete.
 
 ### Device Management
 
@@ -111,21 +128,24 @@ Verifies a new account with the code received via SMS/voice.
 
 Links a new device to an existing Signal account with QR code support.
 
+**Parameters:**
+- `options.name`: Device name
+- `options.qrCodeOutput`: 'console', 'file', or 'base64'
+- `options.qrCodePath`: Path to save QR code (when qrCodeOutput is 'file')
+
 #### `listDevices(): Promise<Device[]>`
 
 Lists all linked devices for the account.
 
 #### `updateDevice(options: UpdateDeviceOptions): Promise<void>`
 
-Updates a linked device's name. Requires signal-cli v0.13.23 or newer.
+Updates a linked device's name.
 
 **Parameters:**
-
 - `options.deviceId`: Device ID to update (number)
 - `options.deviceName`: New name for the device (string)
 
 **Example:**
-
 ```typescript
 const devices = await signal.listDevices();
 await signal.updateDevice({
@@ -144,35 +164,44 @@ Removes a linked device.
 
 Sends a message to a recipient (user or group).
 
-**Advanced Options** (SendMessageOptions):
+**SendMessageOptions:**
 
-- `attachments`: File paths to attach (string[])
-- `textStyle`: Text styling ranges for bold/italic/etc.
-- `textMode`: Text mode ('normal' | 'styled')
-- `mention`: Mentions with start/length/uuid
-- `quoteTimestamp`: Timestamp of message to quote
-- `quoteAuthor`: Author of quoted message
-- `quoteMessage`: Text of quoted message
-- `quoteMention`: Mentions in quoted message
-- `editTimestamp`: Timestamp of message to edit
-- `previewUrl`: URL for preview generation
-- `storyTimestamp`: Timestamp to reply to a story
-- `storyAuthor`: Author of story to reply to
+| Option | Type | Description |
+|--------|------|-------------|
+| `attachments` | `string[]` | File paths to attach |
+| `mentions` | `Mention[]` | Mentions in the message body |
+| `textStyles` | `TextStyle[]` | Text formatting (BOLD, ITALIC, SPOILER, STRIKETHROUGH, MONOSPACE) |
+| `quote` | `QuoteOptions` | Reply to an existing message |
+| `expiresInSeconds` | `number` | Message expiration timer |
+| `isViewOnce` | `boolean` | View-once message |
+| `editTimestamp` | `number` | Timestamp of the message to edit |
+| `previewUrl` | `string` | URL for link preview |
+| `previewTitle` | `string` | Title for link preview |
+| `previewDescription` | `string` | Description for link preview |
+| `previewImage` | `string` | Image path for link preview |
+| `storyTimestamp` | `number` | Timestamp of a story to reply to |
+| `storyAuthor` | `string` | Author of the story to reply to |
+| `noteToSelf` | `boolean` | Send to own account |
+| `endSession` | `boolean` | End the session |
+| `noUrgent` | `boolean` | Send without push notification (v0.14.0+) |
+| `voiceNote` | `boolean` | Mark attachments as voice notes (v0.14.2+) |
 
-**Example:**
+**Examples:**
 
 ```typescript
 // Send with text styling and mention
 await signal.sendMessage("+1234567890", "Hello @John", {
-  textStyle: [{ start: 6, length: 5, style: "BOLD" }],
-  mention: [{ start: 6, length: 5, uuid: "user-uuid" }],
+  textStyles: [{ start: 6, length: 5, style: "BOLD" }],
+  mentions: [{ start: 6, length: 5, number: "+1234567890" }],
 });
 
 // Reply to a message
 await signal.sendMessage("+1234567890", "Great point!", {
-  quoteTimestamp: 1705843200000,
-  quoteAuthor: "+1234567890",
-  quoteMessage: "Original message text",
+  quote: {
+    timestamp: 1705843200000,
+    author: "+1234567890",
+    text: "Original message text",
+  },
 });
 
 // Edit a previous message
@@ -183,21 +212,21 @@ await signal.sendMessage("+1234567890", "Corrected text", {
 
 #### `receive(options?: ReceiveOptions): Promise<Message[]>`
 
-Receives pending messages with advanced filtering options. Replaces the deprecated `receiveMessages()` method.
+Receives pending messages with advanced filtering options.
 
 **Parameters:**
-
 - `options`: Optional receive configuration
   - `timeout`: Maximum time to wait for messages in seconds (default: 5)
   - `maxMessages`: Maximum number of messages to retrieve
   - `ignoreAttachments`: Skip downloading attachments (boolean)
   - `ignoreStories`: Ignore story messages (boolean)
+  - `ignoreAvatars`: Skip downloading avatars (boolean, v0.14.0+)
+  - `ignoreStickers`: Skip downloading sticker packs (boolean, v0.14.0+)
   - `sendReadReceipts`: Automatically send read receipts (boolean, default: true)
 
 **Returns:** Array of received messages
 
 **Example:**
-
 ```typescript
 // Receive with timeout
 const messages = await signal.receive({ timeout: 10 });
@@ -208,14 +237,9 @@ const messages = await signal.receive({
   ignoreAttachments: true,
   ignoreStories: true,
 });
-
-// Receive without sending read receipts
-const messages = await signal.receive({
-  sendReadReceipts: false,
-});
 ```
 
-#### `sendReaction(recipient: string, targetAuthor: string, targetTimestamp: number, emoji: string, remove?: boolean): Promise<SendResponse>`
+#### `sendReaction(recipient: string, targetAuthor: string, targetTimestamp: number, emoji: string, remove?: boolean, isStory?: boolean): Promise<SendResponse>`
 
 Sends a reaction to a specific message.
 
@@ -227,28 +251,69 @@ Sends a typing indicator to a recipient.
 
 Remotely deletes a sent message.
 
-#### `sendMessageWithProgress(recipient: string, message: string, options?: SendMessageOptions & { onProgress?: (progress: UploadProgress) => void }): Promise<SendResponse>`
+#### `sendPinMessage(options: PinMessageOptions): Promise<SendResponse>` (v0.14.0+)
 
-Sends a message with progress tracking for large attachments.
+Pins a message in a conversation or group.
 
-#### `sendPollCreate(recipient: string, question: string, options: PollCreateOptions): Promise<SendResponse>`
+**PinMessageOptions:**
+- `targetAuthor`: Author of the message to pin (required)
+- `targetTimestamp`: Timestamp of the message to pin (required)
+- `groupId`: Target group (mutually exclusive with `recipients`)
+- `recipients`: Target recipients for a direct pin
+- `noteToSelf`: Pin in your own conversation
+- `pinDuration`: Duration in seconds, `-1` for forever (default)
+- `notifySelf`: Send as normal message if self is a recipient
+- `story`: Pin a story instead of a normal message
+
+#### `sendUnpinMessage(options: UnpinMessageOptions): Promise<SendResponse>` (v0.14.0+)
+
+Unpins a message.
+
+**UnpinMessageOptions:**
+- `targetAuthor`: Author of the message to unpin (required)
+- `targetTimestamp`: Timestamp of the message to unpin (required)
+- `groupId`: Target group
+- `recipients`: Target recipients
+- `noteToSelf`: Unpin in your own conversation
+- `notifySelf`: Send as normal message if self is a recipient
+
+#### `sendAdminDelete(options: AdminDeleteOptions): Promise<SendResponse>` (v0.14.0+)
+
+Deletes a message for all group members (admin only).
+
+**AdminDeleteOptions:**
+- `groupId`: Group ID (required)
+- `targetAuthor`: Author of the message to delete (required)
+- `targetTimestamp`: Timestamp of the message to delete (required)
+- `story`: Delete a story instead of a regular message
+- `notifySelf`: Send as normal message if self is a recipient
+
+#### `sendPollCreate(options: PollCreateOptions): Promise<SendResponse>`
 
 Creates a poll in a conversation.
 
-**Parameters:**
-
-- `recipient`: Phone number or group ID
-- `question`: Poll question text
-- `options`:
-  - `answers`: Array of poll answer options (string[])
-  - `multipleAnswers`: Allow multiple answers (boolean)
+**PollCreateOptions:**
+- `question`: The poll question (required)
+- `options`: Array of poll options, 2-10 items (required)
+- `multiSelect`: Allow multiple selections (default: true)
+- `recipients`: Recipients for direct message poll (either this or groupId required)
+- `groupId`: Group ID for group poll (either this or recipients required)
 
 **Example:**
-
 ```typescript
-await signal.sendPollCreate("+1234567890", "What's your favorite color?", {
-  answers: ["Red", "Blue", "Green", "Yellow"],
-  multipleAnswers: false,
+// Create a poll in a group
+await signal.sendPollCreate({
+  question: "What's your favorite color?",
+  options: ["Red", "Blue", "Green", "Yellow"],
+  multiSelect: false,
+  groupId: "groupId==",
+});
+
+// Create a poll for individual recipients
+await signal.sendPollCreate({
+  question: "Meeting time?",
+  options: ["9 AM", "12 PM", "3 PM"],
+  recipients: ["+1234567890", "+1987654321"],
 });
 ```
 
@@ -257,18 +322,16 @@ await signal.sendPollCreate("+1234567890", "What's your favorite color?", {
 Votes on an existing poll.
 
 **Parameters:**
-
 - `recipient`: Phone number or group ID where poll was sent
 - `options`:
-  - `pollAuthor`: Phone number of the poll creator
-  - `pollTimestamp`: Timestamp of the poll message
-  - `optionIndexes`: Array of answer indices to vote for (number[])
-  - `voteCount`: Optional vote count (increase for each vote)
+  - `pollAuthor`: Phone number of the poll creator (required)
+  - `pollTimestamp`: Timestamp of the poll message (required)
+  - `optionIndexes`: Array of answer indices to vote for (required)
+  - `voteCount`: Optional vote count
 
 **Example:**
-
 ```typescript
-await signal.sendPollVote("+1234567890", {
+await signal.sendPollVote("groupId==", {
   pollAuthor: "+1234567890",
   pollTimestamp: 1705843200000,
   optionIndexes: [0, 2], // Vote for first and third options
@@ -280,18 +343,34 @@ await signal.sendPollVote("+1234567890", {
 Terminates a poll, preventing further votes.
 
 **Parameters:**
-
 - `recipient`: Phone number or group ID where poll was sent
 - `options`:
-  - `pollTimestamp`: Timestamp of the poll message
+  - `pollTimestamp`: Timestamp of the poll message (required)
 
 **Example:**
-
 ```typescript
-await signal.sendPollTerminate("+1234567890", {
+await signal.sendPollTerminate("groupId==", {
   pollTimestamp: 1705843200000,
 });
 ```
+
+#### `sendPaymentNotification(recipient: string, data: PaymentNotificationData): Promise<SendResponse>`
+
+Sends a MobileCoin payment notification.
+
+**PaymentNotificationData:**
+- `receipt`: Base64 encoded receipt blob (required)
+- `note`: Optional note for the payment
+
+#### `sendNoteToSelf(message: string, options?: SendMessageOptions): Promise<SendResponse>`
+
+Sends a message to your own "Note to Self" conversation.
+
+#### `sendMessageWithProgress(recipient: string, message: string, options?: SendMessageOptions & { onProgress?: (progress: UploadProgress) => void }): Promise<SendResponse>`
+
+Sends a message with progress tracking for large attachments.
+
+**Note:** The progress callback currently provides simulated progress for UX purposes, as JSON-RPC does not provide real-time upload progress feedback.
 
 ### Group Management
 
@@ -299,24 +378,52 @@ await signal.sendPollTerminate("+1234567890", {
 
 Creates a new Signal group.
 
+**Returns:** GroupInfo with `groupId`, `name`, `members`, etc.
+
 #### `updateGroup(groupId: string, options: GroupUpdateOptions): Promise<void>`
 
 Updates a group's settings and members.
+
+**GroupUpdateOptions:**
+- `name`: New group name
+- `description`: New group description
+- `avatar`: Path to avatar image
+- `addMembers`: Array of members to add
+- `removeMembers`: Array of members to remove
+- `promoteAdmins`: Array of members to promote to admin
+- `demoteAdmins`: Array of members to demote from admin
+- `banMembers`: Array of members to ban
+- `unbanMembers`: Array of members to unban
+- `permissionAddMember`: 'EVERY_MEMBER' or 'ONLY_ADMINS'
+- `permissionEditDetails`: 'EVERY_MEMBER' or 'ONLY_ADMINS'
+- `permissionSendMessage`: 'EVERY_MEMBER' or 'ONLY_ADMINS'
+- `expirationTimer`: Message expiration timer in seconds
+- `resetInviteLink`: Reset the group invite link
+- `linkState`: 'enabled', 'enabled-with-approval', or 'disabled'
+
+**Example:**
+```typescript
+await signal.updateGroup("groupId==", {
+  name: "Updated Group Name",
+  description: "New description",
+  addMembers: ["+1234567890"],
+  promoteAdmins: ["+1234567890"],
+});
+```
 
 #### `listGroups(): Promise<GroupInfo[]>`
 
 Lists all groups.
 
-#### `listGroupsDetailed(): Promise<DetailedGroupInfo[]>`
+#### `listGroupsDetailed(options?: ListGroupsOptions): Promise<GroupInfo[]>`
 
 Lists all groups with detailed information including permissions, member roles, and invite links.
 
 **Returns:** Array of detailed group information:
-
 - `groupId`: Group identifier
 - `name`: Group name
 - `description`: Group description
-- `members`: Array of member objects with roles and permissions
+- `members`: Array of member objects
 - `pendingMembers`: Members pending approval
 - `requestingMembers`: Members requesting to join
 - `bannedMembers`: Banned member list
@@ -326,7 +433,6 @@ Lists all groups with detailed information including permissions, member roles, 
 - `isMember`: Whether current user is member
 
 **Example:**
-
 ```typescript
 const groups = await signal.listGroupsDetailed();
 groups.forEach((group) => {
@@ -335,25 +441,93 @@ groups.forEach((group) => {
 });
 ```
 
-#### `unregister(): Promise<void>`
+#### `getGroupsWithDetails(options?: ListGroupsOptions): Promise<GroupInfo[]>`
 
-Unregisters the Signal account from the server. This deletes the account on the Signal server but keeps local data.
+Lists and parses groups with enhanced details.
 
-#### `deleteLocalAccountData(): Promise<void>`
+#### `quitGroup(groupId: string, options?: { delete?: boolean; admins?: string[] }): Promise<void>`
 
-Deletes all local data associated with the account.
+Leaves a group.
 
-#### `updateAccountConfiguration(config: AccountConfiguration): Promise<void>`
+**Parameters:**
+- `groupId`: The group ID to quit
+- `options.delete`: If true, delete local group data after quitting
+- `options.admins`: Array of members to promote as admins before quitting (required if you're the only admin)
 
-Updates account-wide configuration settings.
+#### `joinGroup(uri: string): Promise<void>`
 
-#### `setPin(pin: string): Promise<void>`
+Joins a group via an invitation link.
 
-Sets a registration lock PIN for the account.
+#### `sendGroupInviteLink(groupId: string, recipient: string): Promise<SendResponse>`
 
-#### `removePin(): Promise<void>`
+Sends the group's invite link to a recipient.
 
-Removes the registration lock PIN.
+#### `resetGroupLink(groupId: string): Promise<void>`
+
+Resets the group's invite link.
+
+#### `setBannedMembers(groupId: string, members: string[]): Promise<void>`
+
+Sets the banned members list for a group.
+
+### Contact Management
+
+#### `listContacts(options?: ListContactsOptions): Promise<Contact[]>`
+
+Lists all contacts.
+
+**Options:**
+- `detailed`: Include more detailed information
+- `blocked`: Filter by blocked status (true/false)
+- `allRecipients`: Include all known recipients, not only contacts
+- `name`: Find contacts with the given name
+- `recipients`: Specify phone numbers to filter
+- `internal`: Include internal information
+
+#### `getContactsWithProfiles(): Promise<Contact[]>`
+
+Returns all contacts with enriched profile information (givenName, familyName, username, mobileCoinAddress).
+
+#### `updateContact(number: string, name?: string, options?: ContactUpdateOptions): Promise<void>`
+
+Updates a contact's information.
+
+**ContactUpdateOptions:**
+- `givenName`: First name
+- `familyName`: Last name
+- `nickGivenName`: Nickname (first name)
+- `nickFamilyName`: Nickname (last name)
+- `note`: Contact note
+- `color`: Contact color
+- `expiration`: Message expiration timer
+
+#### `removeContact(number: string, options?: RemoveContactOptions): Promise<void>`
+
+Removes a contact from the contact list.
+
+**RemoveContactOptions:**
+- `hide`: Hide the contact but keep encryption data
+- `forget`: Completely remove all contact data
+
+#### `sendContacts(options?: SendContactsOptions): Promise<void>`
+
+Exports and sends contact data to sync with linked devices.
+
+#### `block(recipients: string[], groupId?: string): Promise<void>`
+
+Blocks one or more contacts or a group.
+
+#### `unblock(recipients: string[], groupId?: string): Promise<void>`
+
+Unblocks one or more contacts or a group.
+
+#### `getUserStatus(numbers?: string[], usernames?: string[]): Promise<UserStatusResult[]>`
+
+Checks registration status on Signal.
+
+**Returns:** Array of status results with `number`, `isRegistered`, `uuid`, `username`
+
+### Identity Management
 
 #### `listIdentities(number?: string): Promise<IdentityKey[]>`
 
@@ -384,130 +558,114 @@ Retrieves the 60-digit safety number for a contact.
 
 Verifies a safety number and marks the identity as trusted if it matches.
 
+**Returns:** `true` if verification succeeded, `false` otherwise.
+
 #### `listUntrustedIdentities(): Promise<IdentityKey[]>`
 
 Lists all identities that are not currently trusted.
 
-#### `sendSyncRequest(): Promise<void>`
+### Account Management
 
-Sends a synchronization request to other linked devices.
+#### `unregister(): Promise<void>`
 
-#### `sendMessageRequestResponse(recipient: string, response: MessageRequestResponseType): Promise<void>`
+Unregisters the Signal account from the server. This deletes the account on the Signal server but keeps local data.
 
-Responds to a message request from a non-contact.
+#### `deleteLocalAccountData(): Promise<void>`
 
-#### `getVersion(): Promise<any>`
+Deletes all local data associated with the account.
 
-Retrieves the version of the underlying `signal-cli`.
+#### `updateAccountConfiguration(config: AccountConfiguration): Promise<void>`
 
-#### `isRegistered(number: string): Promise<boolean>`
+Updates account-wide configuration settings.
 
-Helper method to check if a phone number is registered on Signal.
+**AccountConfiguration:**
+- `readReceipts`: Enable read receipts
+- `unidentifiedDeliveryIndicators`: Show unidentified delivery indicators
+- `typingIndicators`: Enable typing indicators
+- `linkPreviews`: Enable link previews
 
-#### `sendNoteToSelf(message: string, options?: Omit<SendMessageOptions, 'message' | 'noteToSelf'>): Promise<SendResponse>`
+#### `setPin(pin: string): Promise<void>`
 
-Sends a message to your own "Note to Self" conversation.
+Sets a registration lock PIN for the account.
 
-### Group Management
+#### `removePin(): Promise<void>`
 
-#### `createGroup(name: string, members: string[]): Promise<GroupInfo>`
+Removes the registration lock PIN.
 
-Creates a new Signal group.
+#### `updateProfile(givenName: string, about?: string, aboutEmoji?: string, avatar?: string, options?: { familyName?: string; mobileCoinAddress?: string; removeAvatar?: boolean }): Promise<void>`
 
-#### `updateGroup(groupId: string, options: GroupUpdateOptions): Promise<void>`
-
-Updates a group's settings and members.
-
-#### `listGroups(): Promise<GroupInfo[]>`
-
-Lists all groups.
-
-#### `listGroupsDetailed(options?: ListGroupsOptions): Promise<GroupInfo[]>`
-
-Lists all groups with detailed information.
-
-#### `sendGroupInviteLink(groupId: string, recipient: string): Promise<SendResponse>`
-
-Sends the group's invite link to a recipient.
-
-#### `resetGroupLink(groupId: string): Promise<void>`
-
-Resets the group's invite link.
-
-#### `joinGroup(uri: string): Promise<void>`
-
-Joins a group via an invitation link.
-
-#### `quitGroup(groupId: string, options?: { delete?: boolean; admins?: string[] }): Promise<void>`
-
-Leaves a group.
+Updates the account profile.
 
 **Parameters:**
-- `groupId`: The group ID to quit
-- `options.delete`: If true, delete local group data after quitting
-- `options.admins`: Array of members to promote as admins before quitting (required if you're the only admin)
+- `givenName`: First name (required)
+- `about`: About/bio text
+- `aboutEmoji`: Emoji for the about text
+- `avatar`: Path to avatar image
+- `options.familyName`: Last name
+- `options.mobileCoinAddress`: MobileCoin address for payments
+- `options.removeAvatar`: Remove the current avatar
 
-### Contact Management
+**Example:**
+```typescript
+await signal.updateProfile("John", "Software developer", "💻", "./avatar.jpg", {
+  familyName: "Doe",
+});
+```
 
-#### `listContacts(options?: ListContactsOptions): Promise<Contact[]>`
+#### `updateAccount(options: UpdateAccountOptions): Promise<AccountUpdateResult>`
 
-Lists all contacts.
+Updates account settings.
 
-**Options:**
-- `detailed`: Include more detailed information
-- `blocked`: Filter by blocked status (true/false)
-- `allRecipients`: Include all known recipients, not only contacts
-- `name`: Find contacts with the given name
-- `recipients`: Specify phone numbers to filter
-- `internal`: Include internal information
+**UpdateAccountOptions:**
+- `deviceName`: New device name
+- `username`: Username to set
+- `deleteUsername`: Remove current username
+- `unrestrictedUnidentifiedSender`: Enable unrestricted unidentified sender
+- `discoverableByNumber`: Enable discoverability by phone number
+- `numberSharing`: Enable number sharing
 
-#### `getContactsWithProfiles(): Promise<Contact[]>`
+**Returns:** `AccountUpdateResult` with `success`, `username`, `usernameLink`
 
-Returns all contacts with enriched profile information.
+#### `setUsername(username: string): Promise<AccountUpdateResult>`
 
-#### `updateContact(number: string, name?: string, options?: Omit<ContactUpdateOptions, 'name'>): Promise<void>`
+Sets a Signal username.
 
-Updates a contact's information.
+#### `deleteUsername(): Promise<AccountUpdateResult>`
 
-#### `removeContact(number: string, options?: RemoveContactOptions): Promise<void>`
+Deletes the Signal username.
 
-Removes a contact from the contact list.
+#### `listAccounts(): Promise<string[]>`
 
-#### `sendContacts(options?: SendContactsOptions): Promise<void>`
+Lists all local account phone numbers.
 
-Exports and sends contact data.
+#### `listAccountsDetailed(): Promise<Array<{ number: string; name?: string; uuid?: string }>>`
 
-#### `block(recipients: string[], groupId?: string): Promise<void>`
+Lists accounts with name and UUID.
 
-Blocks one or more contacts.
+#### `startChangeNumber(newNumber: string, voice?: boolean, captcha?: string): Promise<void>`
 
-#### `unblock(recipients: string[], groupId?: string): Promise<void>`
+Starts the process of changing your account to a new phone number.
 
-Unblocks one or more contacts.
+**Parameters:**
+- `newNumber`: The new phone number in E164 format (e.g., `"+33612345678"`)
+- `voice`: Use voice verification instead of SMS (default: `false`)
+- `captcha`: Optional captcha token if required
 
-#### `getUserStatus(numbers?: string[], usernames?: string[]): Promise<UserStatusResult[]>`
+#### `finishChangeNumber(newNumber: string, verificationCode: string, pin?: string): Promise<void>`
 
-Checks registration status on Signal.
+Completes the phone number change process.
 
-#### `getAvatar(options: GetAvatarOptions): Promise<string>`
+### Payment Features
 
-Retrieves a contact's or group's avatar. Returns the path to the saved file.
+#### `sendPaymentNotification(recipient: string, data: PaymentNotificationData): Promise<SendResponse>`
 
-### Messaging
+Sends a MobileCoin payment notification.
 
-#### `sendReceipt(recipient: string, targetTimestamp: number, type?: ReceiptType): Promise<void>`
+**PaymentNotificationData:**
+- `receipt`: Base64 encoded receipt blob (required)
+- `note`: Optional note for the payment
 
-Sends a delivery or read receipt for a message.
-
-#### `receive(options?: ReceiveOptions): Promise<Message[]>`
-
-Receives pending messages.
-
-#### `getAttachment(options: GetAttachmentOptions): Promise<string>`
-
-Retrieves an attachment. Returns the path to the saved file.
-
-### Stickers
+### Custom Sticker Management
 
 #### `listStickerPacks(): Promise<StickerPack[]>`
 
@@ -521,9 +679,22 @@ Adds a sticker pack by ID and key.
 
 Uploads a custom sticker pack.
 
+**StickerPackManifest:**
+- `path`: Path to manifest.json or zip file (required)
+- `title`: Sticker pack title
+- `author`: Sticker pack author
+- `cover`: Cover sticker information
+- `stickers`: Array of sticker definitions
+
+**Returns:** `StickerPackUploadResult` with `packId`, `packKey`, `installUrl`
+
 #### `getSticker(options: GetStickerOptions): Promise<string>`
 
 Retrieves a sticker. Returns the path to the saved file.
+
+**GetStickerOptions:**
+- `packId`: Sticker pack ID (hex encoded)
+- `stickerId`: Sticker index in the pack
 
 ### Rate Limit Management
 
@@ -531,53 +702,47 @@ Retrieves a sticker. Returns the path to the saved file.
 
 Submits a rate limit challenge to lift the limitation.
 
-### Phone Number Management
+**Returns:** `RateLimitChallengeResult` with `success`, `retryAfter`, `message`
 
-#### `startChangeNumber(newNumber: string, voice?: boolean, captcha?: string): Promise<void>`
+### Attachment Management
 
-Starts the process of changing your account to a new phone number. Initiates SMS or voice verification.
+#### `getAttachment(options: GetAttachmentOptions): Promise<string>`
 
-**Parameters:**
+Retrieves an attachment by ID. Returns the path to the saved file.
 
-- `newNumber`: The new phone number in E164 format (e.g., `"+33612345678"`)
-- `voice`: Use voice verification instead of SMS (default: `false`)
-- `captcha`: Optional captcha token if required (get from https://signalcaptchas.org/registration/generate.html)
+**GetAttachmentOptions:**
+- `id`: Attachment ID (required)
+- `recipient`: Recipient who sent the attachment
+- `groupId`: Group ID where attachment was sent
 
-**Throws:** Error if not a primary device or rate limited
+#### `getAvatar(options: GetAvatarOptions): Promise<string>`
 
-**Example:**
+Retrieves a contact's or group's avatar. Returns the path to the saved file.
 
-```typescript
-// Start SMS verification
-await signal.startChangeNumber("+33612345678");
+**GetAvatarOptions:**
+- `contact`: Contact number for contact avatar
+- `profile`: Profile number for profile avatar
+- `groupId`: Group ID for group avatar
 
-// Or use voice verification
-await signal.startChangeNumber("+33612345678", true);
+### Sync
 
-// Wait for SMS/voice code, then call finishChangeNumber()
-```
+#### `sendSyncRequest(): Promise<void>`
 
-#### `finishChangeNumber(newNumber: string, verificationCode: string, pin?: string): Promise<void>`
+Sends a synchronization request to other linked devices.
 
-Completes the phone number change process. Verifies the code received via SMS or voice and changes your account to the new number.
+#### `sendMessageRequestResponse(recipient: string, response: MessageRequestResponseType): Promise<void>`
 
-**Parameters:**
+Responds to a message request from a non-contact.
 
-- `newNumber`: The new phone number (same as `startChangeNumber`)
-- `verificationCode`: The verification code received via SMS or voice
-- `pin`: Optional registration lock PIN if one was set
+**MessageRequestResponseType:** `'ACCEPT' | 'DELETE' | 'BLOCK' | 'BLOCK_AND_DELETE'`
 
-**Throws:** Error if verification fails or incorrect PIN
+#### `getVersion(): Promise<any>`
 
-**Example:**
+Retrieves the version of the underlying `signal-cli`.
 
-```typescript
-// After receiving verification code
-await signal.finishChangeNumber("+33612345678", "123456");
+#### `isRegistered(number: string): Promise<boolean>`
 
-// Or with PIN if registration lock is enabled
-await signal.finishChangeNumber("+33612345678", "123456", "1234");
-```
+Helper method to check if a phone number is registered on Signal.
 
 ### Events
 
@@ -649,6 +814,18 @@ signal.on("pin", (pinEvent) => {
 });
 ```
 
+#### `call` (v0.14.2+)
+
+Emitted when a call is received or changes state.
+
+```typescript
+signal.on("call", (callEvent) => {
+  console.log("Call from:", callEvent.sender);
+  console.log("Call ID:", callEvent.callId);
+  console.log("State:", callEvent.state);
+});
+```
+
 #### `error`
 
 Emitted when an error occurs.
@@ -684,20 +861,54 @@ new SignalBot(config: BotConfig, signalCliPath?: string)
 - **`config`**: `BotConfig` object for the bot.
 - **`signalCliPath`** (optional): Path to the `signal-cli` binary.
 
-### Configuration
+### BotConfig
 
-The bot's configuration is managed via the `BotConfig` interface, which includes:
-
-- `phoneNumber`: The bot's phone number.
-- `admins`: A list of administrator phone numbers.
-- `group`: Configuration for a bot-managed group.
-- `settings`: Bot settings like command prefix, cooldowns, etc.
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `phoneNumber` | `string` | Yes | The bot's phone number |
+| `admins` | `string[]` | Yes | List of administrator phone numbers |
+| `group` | `object` | No | Group configuration |
+| `group.name` | `string` | Yes (if group) | Group name |
+| `group.description` | `string` | No | Group description |
+| `group.createIfNotExists` | `boolean` | No | Auto-create group if it doesn't exist |
+| `group.initialMembers` | `string[]` | No | Initial group members |
+| `group.avatar` | `string` | No | Path to group avatar image |
+| `settings` | `object` | No | Bot settings |
+| `settings.commandPrefix` | `string` | No | Command prefix (default: "/") |
+| `settings.autoReact` | `boolean` | No | Auto-react to messages |
+| `settings.logMessages` | `boolean` | No | Log incoming messages |
+| `settings.welcomeNewMembers` | `boolean` | No | Welcome new group members |
+| `settings.cooldownSeconds` | `number` | No | Command cooldown per user |
+| `settings.maxMessageLength` | `number` | No | Maximum message length |
 
 ### Command Management
 
 #### `addCommand(command: BotCommand): void`
 
 Adds a custom command to the bot.
+
+**BotCommand:**
+- `name`: Command name (required)
+- `description`: Command description (required)
+- `adminOnly`: Restrict to admins only (optional)
+- `handler`: Async function to handle the command (required)
+
+**Handler signature:**
+```typescript
+handler: (message: ParsedMessage, args: string[], bot: SignalBot) => Promise<string | null | void>
+```
+
+**Example:**
+```typescript
+bot.addCommand({
+  name: "hello",
+  description: "Say hello",
+  handler: async (message, args) => {
+    const name = args.join(" ") || "World";
+    return `Hello ${name}!`;
+  },
+});
+```
 
 #### `removeCommand(name: string): boolean`
 
@@ -727,6 +938,10 @@ Gracefully shuts down the bot.
 
 Sends a text message.
 
+#### `sendReaction(recipient: string, targetAuthor: string, targetTimestamp: number, emoji: string): Promise<void>`
+
+Sends a reaction to a message.
+
 #### `sendMessageWithAttachment(recipient: string, message: string, attachments: string[], cleanup?: string[]): Promise<void>`
 
 Sends a message with attachments.
@@ -755,9 +970,12 @@ Returns the underlying `SignalCli` instance for advanced operations.
 
 Retrieves bot statistics including messages received and commands executed.
 
-#### `sendReaction(recipient: string, targetAuthor: string, targetTimestamp: number, emoji: string): Promise<void>`
-
-Sends a reaction to a message.
+**BotStats:**
+- `messagesReceived`: Number of messages received
+- `commandsExecuted`: Number of commands executed
+- `startTime`: Bot start timestamp
+- `lastActivity`: Last activity timestamp
+- `activeUsers`: Number of active users
 
 ### Events
 
@@ -768,6 +986,7 @@ The `SignalBot` class emits several events:
 - `message`: Emitted upon receiving a new message.
 - `command`: Emitted when a command is executed.
 - `error`: Emitted when an error occurs.
+- `daemon-closed`: Emitted when the Signal daemon closes.
 
 ---
 
@@ -778,10 +997,14 @@ Manages multiple Signal accounts simultaneously with automatic event routing.
 ### Constructor
 
 ```typescript
-import { MultiAccountManager } from "signal-sdk";
-
-const manager = new MultiAccountManager();
+new MultiAccountManager(options?: MultiAccountOptions)
 ```
+
+**MultiAccountOptions:**
+- `signalCliPath`: Path to signal-cli executable
+- `dataPath`: Data directory for all accounts
+- `verbose`: Enable verbose logging
+- `autoReconnect`: Auto-reconnect on failure
 
 ### Account Management
 
@@ -790,7 +1013,6 @@ const manager = new MultiAccountManager();
 Adds a Signal account to the manager.
 
 **Parameters:**
-
 - `account`: Phone number for the account
 - `config`: Optional Signal CLI configuration overrides
 
@@ -799,6 +1021,10 @@ Adds a Signal account to the manager.
 #### `removeAccount(account: string): Promise<void>`
 
 Removes an account from the manager and disconnects it.
+
+#### `getAccount(account: string): SignalCli | undefined`
+
+Gets a specific account instance.
 
 #### `getAccounts(): string[]`
 
@@ -816,6 +1042,18 @@ Connects a specific account.
 
 Disconnects a specific account.
 
+#### `connectAll(): Promise<void>`
+
+Connects all accounts simultaneously.
+
+#### `disconnectAll(): Promise<void>`
+
+Disconnects all accounts.
+
+#### `sendMessage(fromAccount: string, recipient: string, message: string, options?: any): Promise<any>`
+
+Sends a message from a specific account.
+
 #### `getStatus(account?: string): any`
 
 Retrieves status information for all accounts or a specific one.
@@ -828,65 +1066,27 @@ Gracefully shuts down the manager and all managed accounts.
 
 The `MultiAccountManager` extends EventEmitter and forwards all Signal events with account context:
 
-- `message:account`: Message received for specific account
-- `receipt:account`: Receipt received for specific account
-- `typing:account`: Typing indicator for specific account
-- `error:account`: Error occurred for specific account
-- `connected:account`: Account connected
-- `disconnected:account`: Account disconnected
+- `message`: `(account: string, envelope: any) => void`
+- `receipt`: `(account: string, receipt: any) => void`
+- `typing`: `(account: string, typing: any) => void`
+- `reaction`: `(account: string, reaction: any) => void`
+- `error`: `(account: string, error: any) => void`
+- `accountAdded`: `(account: string) => void`
+- `accountRemoved`: `(account: string) => void`
+- `accountConnected`: `(account: string) => void`
+- `accountDisconnected`: `(account: string) => void`
 
 **Example:**
-
 ```typescript
 // Listen to messages from specific account
-manager.on("message:+1234567890", (envelope) => {
-  console.log("Account 1 received:", envelope.dataMessage?.message);
-});
-
-// Listen to all messages
 manager.on("message", (account, envelope) => {
-  console.log(`${account} received: ${envelope.dataMessage?.message}`);
+  console.log(`${account} received:`, envelope.dataMessage?.message);
 });
 
-// Listen to connection events
-manager.on("connected:+1234567890", () => {
-  console.log("Account 1 connected");
+// Listen to account connection events
+manager.on("accountConnected", (account) => {
+  console.log("Account connected:", account);
 });
-```
-
-### Complete Multi-Account Example
-
-```typescript
-import { MultiAccountManager } from "signal-sdk";
-
-const manager = new MultiAccountManager();
-
-// Add accounts
-const account1 = manager.addAccount("+1234567890");
-const account2 = manager.addAccount("+1987654321");
-
-// Setup event handlers
-manager.on("message:+1234567890", (envelope) => {
-  console.log("Account 1:", envelope.dataMessage?.message);
-});
-
-manager.on("message:+1987654321", (envelope) => {
-  console.log("Account 2:", envelope.dataMessage?.message);
-});
-
-// Connect all
-await manager.connectAll();
-
-// Send from different accounts
-await manager.sendMessage("+1234567890", "+1111111111", "From account 1");
-await manager.sendMessage("+1987654321", "+1111111111", "From account 2");
-
-// Check status
-const statuses = manager.getAllStatus();
-console.log("Account statuses:", statuses);
-
-// Cleanup
-manager.disconnectAll();
 ```
 
 ---
@@ -894,3 +1094,69 @@ manager.disconnectAll();
 ## TypeScript Interfaces
 
 The SDK uses a comprehensive set of TypeScript interfaces for type safety. These are defined in `src/interfaces.ts` and include types for messages, contacts, groups, attachments, and more.
+
+### Key Interfaces
+
+#### Mention
+```typescript
+interface Mention {
+  start: number;      // Start position in message
+  length: number;     // Length of mention
+  number: string;     // Phone number of mentioned user
+}
+```
+
+#### TextStyle
+```typescript
+interface TextStyle {
+  start: number;      // Start position in message
+  length: number;     // Length of styled text
+  style: 'BOLD' | 'ITALIC' | 'STRIKETHROUGH' | 'MONOSPACE' | 'SPOILER';
+}
+```
+
+#### QuoteOptions
+```typescript
+interface QuoteOptions {
+  timestamp: number;
+  author: string;
+  text?: string;
+  attachments?: Attachment[];
+  mentions?: Mention[];
+  textStyles?: TextStyle[];
+}
+```
+
+#### Contact
+```typescript
+interface Contact {
+  number: string;
+  name: string;
+  uuid?: string;
+  blocked: boolean;
+  givenName?: string;
+  familyName?: string;
+  username?: string;
+  mobileCoinAddress?: string;
+  // ... more fields
+}
+```
+
+#### GroupInfo
+```typescript
+interface GroupInfo {
+  groupId: string;
+  name: string;
+  description?: string;
+  members: string[];
+  pendingMembers?: string[];
+  bannedMembers?: string[];
+  admins?: string[];
+  isAdmin?: boolean;
+  isMember?: boolean;
+  inviteLink?: string;
+  // ... more fields
+}
+```
+
+For complete interface definitions, see the source code in `src/interfaces.ts`.

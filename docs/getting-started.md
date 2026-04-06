@@ -102,49 +102,53 @@ await signal.sendMessage("+33000000000", "Check out this photo!", {
 ### Create and Vote on Polls
 
 ```javascript
-// Create a poll
-await signal.sendPollCreate("+33000000000", "What's for lunch?", {
-  answers: ["Pizza", "Sushi", "Burger", "Salad"],
-  multipleAnswers: false,
+// Create a poll in a group
+await signal.sendPollCreate({
+  question: "What's for lunch?",
+  options: ["Pizza", "Sushi", "Burger", "Salad"],
+  groupId: "groupId==",
+  multiSelect: false,
+});
+
+// Create a poll for individual recipients
+await signal.sendPollCreate({
+  question: "Meeting time?",
+  options: ["9 AM", "12 PM", "3 PM"],
+  recipients: ["+33000000000"],
 });
 
 // Vote on a poll (use timestamp from poll message)
-await signal.sendPollVote(
-  "+33000000000",
-  1705843200000, // Poll message timestamp
-  { votes: [0] }, // Vote for first option
-);
+await signal.sendPollVote("groupId==", {
+  pollAuthor: "+33111111111",
+  pollTimestamp: 1705843200000,
+  optionIndexes: [0], // Vote for first option
+});
 ```
 
 ### Advanced Configuration
 
 ```javascript
-const { SignalCli, Logger } = require("signal-sdk");
+const { SignalCli } = require("signal-sdk");
 
-// Configure for reliability with retry, rate limiting, and logging
+// Configure for reliability
 const signal = new SignalCli("+33111111111", undefined, {
-  retryConfig: {
-    maxAttempts: 5,
-    initialDelay: 1000,
-    backoffMultiplier: 2,
-  },
-  rateLimiter: {
-    maxConcurrent: 5,
-    minInterval: 200,
-  },
-  logger: new Logger("info"),
+  maxRetries: 5,
+  retryDelay: 1000,
+  maxConcurrentRequests: 5,
+  minRequestInterval: 200,
+  requestTimeout: 60000,
+  connectionTimeout: 30000,
+  autoReconnect: true,
+  verbose: false,
 });
 
 await signal.connect();
-
-// Operations now have automatic retry and rate limiting
-await signal.sendMessage("+33000000000", "Reliable messaging!");
 ```
 
 ### Receive Messages
 
 ```javascript
-// New receive() method with options (replaces receiveMessages())
+// Receive with options
 const messages = await signal.receive({
   timeout: 10, // Wait up to 10 seconds
   maxMessages: 50, // Maximum 50 messages
@@ -183,8 +187,10 @@ console.log(`Group created with ID: ${group.groupId}`);
 // Send a message to the new group
 await signal.sendMessage(group.groupId, "Welcome to the group!");
 
-// Add a new member
-await signal.addGroupMember(group.groupId, "+33200000000");
+// Update group - add a new member
+await signal.updateGroup(group.groupId, {
+  addMembers: ["+33200000000"],
+});
 ```
 
 ## Your First Signal Bot
@@ -275,26 +281,38 @@ bot.start();
 
 ```javascript
 const signal = new SignalCli(
-  "/path/to/signal-cli/config", // Optional: path to signal-cli config
-  "+33111111111", // Required: your Signal phone number
+  "+33111111111", // Your Signal phone number
+  undefined,      // Use default signal-cli path
+  {
+    maxRetries: 3,
+    retryDelay: 1000,
+    verbose: true,
+  }
 );
 ```
+
+The constructor supports smart parameter detection:
+- If the first argument starts with `+`, it's treated as a phone number
+- Otherwise, it's treated as a path to the signal-cli binary
 
 ### SignalBot Options
 
 ```javascript
 const bot = new SignalBot({
   phoneNumber: "+33111111111", // Required
-  admins: ["+33000000000"], // Required
+  admins: ["+33000000000"],    // Required
   group: {
     // Optional
     name: "My Bot Group",
     createIfNotExists: true,
+    avatar: "./group-avatar.jpg",
   },
   settings: {
     // Optional
     commandPrefix: "!",
-    autoReact: false,
+    logMessages: true,
+    welcomeNewMembers: true,
+    cooldownSeconds: 2,
   },
 });
 ```

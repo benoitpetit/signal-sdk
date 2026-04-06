@@ -362,10 +362,38 @@ await signal.sendAdminDelete({
 ### Create a poll
 
 ```javascript
+// Create a poll in a group
 await signal.sendPollCreate({
     question: 'Favorite language?',
     options: ['TypeScript', 'Python', 'Go'],
     groupId: 'groupId==',
+});
+
+// Create a poll for individual recipients
+await signal.sendPollCreate({
+    question: 'Favorite color?',
+    options: ['Red', 'Blue', 'Green'],
+    recipients: ['+33222222222', '+33333333333'],
+    multiSelect: false,
+});
+```
+
+### Vote on a poll
+
+```javascript
+// Vote on a poll (recipient is where the poll was sent)
+await signal.sendPollVote('groupId==', {
+    pollAuthor: '+33222222222',
+    pollTimestamp: 1705843200000,
+    optionIndexes: [0], // Vote for first option
+});
+```
+
+### Terminate a poll
+
+```javascript
+await signal.sendPollTerminate('groupId==', {
+    pollTimestamp: 1705843200000,
 });
 ```
 
@@ -475,8 +503,8 @@ await signal.removePin();
 const { MultiAccountManager } = require('signal-sdk');
 
 const manager = new MultiAccountManager();
-manager.addAccount('+33111111111');
-manager.addAccount('+33222222222');
+await manager.addAccount('+33111111111');
+await manager.addAccount('+33222222222');
 
 await manager.connectAll();
 
@@ -602,7 +630,7 @@ The bot includes built-in `/help` and `/ping` commands automatically.
 |                 | `deleteLocalAccountData()`                                   | Delete all local account data                       |
 |                 | `updateAccount(options)`                                     | Update account settings                             |
 |                 | `updateAccountConfiguration(config)`                         | Update sync configuration                           |
-|                 | `updateProfile(name, about?, emoji?, avatar?, options?)`     | Update profile                                      |
+|                 | `updateProfile(givenName, about?, aboutEmoji?, avatar?, options?)` | Update profile                              |
 |                 | `setUsername(username)`                                      | Set a Signal username                               |
 |                 | `deleteUsername()`                                           | Delete the Signal username                          |
 |                 | `setPin(pin)`                                                | Set a registration lock PIN                         |
@@ -649,6 +677,31 @@ The bot includes built-in `/help` and `/ping` commands automatically.
 | `noteToSelf`         | `boolean`      | Send to own account                                               |
 | `endSession`         | `boolean`      | End the session                                                   |
 | `noUrgent`           | `boolean`      | Send without push notification                                    |
+
+### PollCreateOptions
+
+| Option        | Type       | Description                              |
+| ------------- | ---------- | ---------------------------------------- |
+| `question`    | `string`   | The poll question (required)             |
+| `options`     | `string[]` | Array of poll options (required)         |
+| `multiSelect` | `boolean`  | Allow multiple selections (default: true)|
+| `recipients`  | `string[]` | Recipients for direct message poll       |
+| `groupId`     | `string`   | Group ID for group poll                  |
+
+### PollVoteOptions
+
+| Option          | Type       | Description                        |
+| --------------- | ---------- | ---------------------------------- |
+| `pollAuthor`    | `string`   | Author of the poll (required)      |
+| `pollTimestamp` | `number`   | Poll message timestamp (required)  |
+| `optionIndexes` | `number[]` | Array of option indices to vote for|
+| `voteCount`     | `number`   | Optional vote count                |
+
+### PollTerminateOptions
+
+| Option          | Type     | Description                       |
+| --------------- | -------- | --------------------------------- |
+| `pollTimestamp` | `number` | Timestamp of the poll to terminate|
 
 ### PinMessageOptions
 
@@ -719,6 +772,10 @@ new SignalCli(accountOrPath?, account?, config?)
 | `accountOrPath` | Phone number (`+33...`) or path to a custom signal-cli binary |
 | `account`       | Phone number when the first argument is a path                |
 | `config`        | `SignalCliConfig` object (see below)                          |
+
+The constructor uses smart parameter detection:
+- If `accountOrPath` starts with `+`, it's treated as a phone number
+- Otherwise, it's treated as a path to the signal-cli binary
 
 ### SignalCliConfig
 
