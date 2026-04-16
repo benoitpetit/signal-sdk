@@ -4,7 +4,7 @@
  */
 
 import { SignalBot } from '../SignalBot';
-import { SignalCli } from '../SignalCli';
+
 import { GroupManager } from '../managers/GroupManager';
 import { ContactManager } from '../managers/ContactManager';
 import { MessageManager } from '../managers/MessageManager';
@@ -12,7 +12,6 @@ import { AccountManager } from '../managers/AccountManager';
 import { DeviceManager } from '../managers/DeviceManager';
 import { StickerManager } from '../managers/StickerManager';
 import { 
-    BotConfig, 
     GroupInfo, 
     Contact, 
     Message,
@@ -23,12 +22,6 @@ import {
     Device,
     StickerPack,
     IdentityKey,
-    UserStatusResult,
-    RateLimitChallengeResult,
-    AccountUpdateResult,
-    PinMessageOptions,
-    UnpinMessageOptions,
-    AdminDeleteOptions,
 } from '../interfaces';
 import { Logger } from '../config';
 
@@ -303,8 +296,8 @@ describe('Coverage Improvement Tests', () => {
                 permissionAddMember: 'ONLY_ADMINS',
                 permissionEditDetails: 'ONLY_ADMINS',
                 permissionSendMessage: 'ONLY_ADMINS',
-                expiration: 3600,
-                resetLink: true,
+                expirationTimer: 3600,
+                resetInviteLink: true,
                 link: 'enabled-with-approval',
                 memberLabelEmoji: '🏆',
                 memberLabel: 'VIP Members',
@@ -599,6 +592,8 @@ describe('Coverage Improvement Tests', () => {
 
             const result = await contactManager.getUserStatus([], ['johndoe']);
 
+            expect(result).toHaveLength(1);
+            expect(result[0].username).toBe('johndoe');
             expect(mockSendRequest).toHaveBeenCalledWith('getUserStatus', {
                 account: '+1234567890',
                 usernames: ['johndoe'],

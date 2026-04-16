@@ -251,7 +251,7 @@ Sends a typing indicator to a recipient.
 
 Remotely deletes a sent message.
 
-#### `sendPinMessage(options: PinMessageOptions): Promise<SendResponse>` (v0.14.0+)
+#### `sendPinMessage(options: PinMessageOptions): Promise<void>` (v0.14.0+)
 
 Pins a message in a conversation or group.
 
@@ -265,7 +265,7 @@ Pins a message in a conversation or group.
 - `notifySelf`: Send as normal message if self is a recipient
 - `story`: Pin a story instead of a normal message
 
-#### `sendUnpinMessage(options: UnpinMessageOptions): Promise<SendResponse>` (v0.14.0+)
+#### `sendUnpinMessage(options: UnpinMessageOptions): Promise<void>` (v0.14.0+)
 
 Unpins a message.
 
@@ -277,7 +277,7 @@ Unpins a message.
 - `noteToSelf`: Unpin in your own conversation
 - `notifySelf`: Send as normal message if self is a recipient
 
-#### `sendAdminDelete(options: AdminDeleteOptions): Promise<SendResponse>` (v0.14.0+)
+#### `sendAdminDelete(options: AdminDeleteOptions): Promise<void>` (v0.14.0+)
 
 Deletes a message for all group members (admin only).
 

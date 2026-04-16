@@ -2,7 +2,7 @@
  * Tests for MultiAccountManager
  */
 
-import { MultiAccountManager } from '../MultiAccountManager';
+import { MultiAccountManager, AccountStatus } from '../MultiAccountManager';
 import { SignalCli } from '../SignalCli';
 
 // Mock SignalCli
@@ -243,7 +243,7 @@ describe('MultiAccountManager', () => {
             await manager.addAccount('+33123456789');
             await manager.addAccount('+33987654321');
 
-            const status = manager.getStatus();
+            const status = manager.getStatus() as Exclude<ReturnType<typeof manager.getStatus>, AccountStatus | null>;
 
             expect(status.totalAccounts).toBe(2);
             expect(status.connectedAccounts).toBe(0);
@@ -255,7 +255,7 @@ describe('MultiAccountManager', () => {
             jest.spyOn(instance, 'connect').mockResolvedValue();
 
             await manager.connect('+33123456789');
-            const status = manager.getStatus();
+            const status = manager.getStatus() as Exclude<ReturnType<typeof manager.getStatus>, AccountStatus | null>;
 
             expect(status.connectedAccounts).toBe(1);
         });

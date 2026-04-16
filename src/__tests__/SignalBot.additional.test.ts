@@ -29,6 +29,7 @@ describe('SignalBot Additional Tests', () => {
     });
 
     afterEach(async () => {
+        jest.useRealTimers();
         if (bot) {
             await bot.stop();
             // Remove all listeners to prevent memory leaks
@@ -159,7 +160,8 @@ describe('SignalBot Additional Tests', () => {
             // Send message (queued)
             const sendPromise = bot.sendMessage('+1111111111', 'Test message');
 
-            // Advance timers to process queue
+            // Allow queue to start processing then advance timers
+            await Promise.resolve();
             jest.advanceTimersByTime(250);
             await Promise.resolve(); // Let promises resolve
 
@@ -183,7 +185,8 @@ describe('SignalBot Additional Tests', () => {
             // Send reaction (queued)
             const sendPromise = bot.sendReaction('+1111111111', '+2222222222', 123456, '👍');
 
-            // Advance timers to process queue
+            // Allow queue to start processing then advance timers
+            await Promise.resolve();
             jest.advanceTimersByTime(250);
             await Promise.resolve();
 
@@ -210,7 +213,8 @@ describe('SignalBot Additional Tests', () => {
                 'file2.jpg',
             ]);
 
-            // Advance timers to process queue and cleanup timer
+            // Allow queue to start processing then advance timers
+            await Promise.resolve();
             jest.advanceTimersByTime(2500); // 250ms for queue + 2000ms for cleanup
             await Promise.resolve();
 

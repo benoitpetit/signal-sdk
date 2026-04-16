@@ -90,7 +90,6 @@ describe('Config Additional Tests', () => {
                 maxRetries: 10,
                 retryDelay: 2000,
                 verbose: true,
-                logFile: '/var/log/signal.log',
                 maxConcurrentRequests: 10,
                 minRequestInterval: 200,
                 autoReconnect: false,
@@ -111,7 +110,6 @@ describe('Config Additional Tests', () => {
             logger = new Logger({
                 level: 'debug',
                 enableConsole: true,
-                enableFile: false,
                 includeTimestamp: true,
                 includeLevel: true,
             });
@@ -181,7 +179,6 @@ describe('Config Additional Tests', () => {
             const consoleLogger = new Logger({
                 level: 'info',
                 enableConsole: false,
-                enableFile: false,
                 includeTimestamp: true,
                 includeLevel: true,
             });
@@ -199,7 +196,6 @@ describe('Config Additional Tests', () => {
             const infoLogger = new Logger({
                 level: 'info',
                 enableConsole: true,
-                enableFile: false,
                 includeTimestamp: false,
                 includeLevel: true,
             });
@@ -233,7 +229,6 @@ describe('Config Additional Tests', () => {
             const errorLogger = new Logger({
                 level: 'error',
                 enableConsole: true,
-                enableFile: false,
                 includeTimestamp: false,
                 includeLevel: true,
             });
@@ -260,7 +255,6 @@ describe('Config Additional Tests', () => {
             const noTimestampLogger = new Logger({
                 level: 'info',
                 enableConsole: true,
-                enableFile: false,
                 includeTimestamp: false,
                 includeLevel: true,
             });
@@ -280,7 +274,6 @@ describe('Config Additional Tests', () => {
             const noLevelLogger = new Logger({
                 level: 'info',
                 enableConsole: true,
-                enableFile: false,
                 includeTimestamp: false,
                 includeLevel: false,
             });
@@ -315,7 +308,7 @@ describe('Config Additional Tests', () => {
         test('should have empty strings for optional paths', () => {
             expect(DEFAULT_CONFIG.signalCliPath).toBe('');
             expect(DEFAULT_CONFIG.account).toBe('');
-            expect(DEFAULT_CONFIG.logFile).toBe('');
+            expect(DEFAULT_CONFIG.enableRetry).toBe(true);
         });
     });
 });

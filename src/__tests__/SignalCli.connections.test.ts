@@ -1,7 +1,7 @@
 import { SignalCli } from '../SignalCli';
 import * as net from 'net';
 import * as http from 'http';
-import * as https from 'https';
+
 import { EventEmitter } from 'events';
 
 jest.mock('net');

@@ -20,6 +20,9 @@ require('dotenv').config();
 
 const { SignalCli } = require('../../dist');
 
+// Track SDK instance for cleanup
+let signalInstance = null;
+
 async function deviceLinking() {
     console.log('Signal SDK - Device Linking');
     console.log('===========================\n');
@@ -101,9 +104,6 @@ async function deviceLinking() {
         process.exit(1);
     }
 }
-
-// Track SDK instance for cleanup
-let signalInstance = null;
 
 // Handle process termination gracefully
 process.on('SIGINT', async () => {

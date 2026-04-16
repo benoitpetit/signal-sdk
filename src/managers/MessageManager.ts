@@ -24,14 +24,16 @@ export class MessageManager extends BaseManager {
     ): Promise<SendResponse> {
         return withRetry(
             async () => {
-                const params: any = {
+                const params: Record<string, unknown> = {
                     message,
                     account: this.account,
                 };
 
                 if (this.isGroupId(recipient)) {
+                    validateGroupId(recipient);
                     params.groupId = recipient;
                 } else {
+                    validateRecipient(recipient);
                     params.recipients = [recipient];
                 }
 
@@ -71,6 +73,9 @@ export class MessageManager extends BaseManager {
                     }
                 }
 
+                if (options.linkPreview) {
+                    params.linkPreview = true;
+                }
                 if (options.previewUrl) {
                     params.previewUrl = options.previewUrl;
                 }
@@ -116,6 +121,7 @@ export class MessageManager extends BaseManager {
             {
                 maxAttempts: this.config.maxRetries,
                 initialDelay: this.config.retryDelay,
+                enabled: this.config.enableRetry,
             },
         );
     }
@@ -128,7 +134,7 @@ export class MessageManager extends BaseManager {
         remove: boolean = false,
         isStory: boolean = false,
     ): Promise<SendResponse> {
-        const params: any = {
+        const params: Record<string, unknown> = {
             emoji,
             targetAuthor,
             targetTimestamp,
@@ -147,7 +153,7 @@ export class MessageManager extends BaseManager {
     }
 
     async sendTyping(recipient: string, stop: boolean = false): Promise<void> {
-        const params: any = { stop, account: this.account };
+        const params: Record<string, unknown> = { stop, account: this.account };
         if (this.isGroupId(recipient)) {
             params.groupId = recipient;
         } else {
@@ -157,7 +163,7 @@ export class MessageManager extends BaseManager {
     }
 
     async remoteDeleteMessage(recipient: string, targetTimestamp: number): Promise<void> {
-        const params: any = { targetTimestamp, account: this.account };
+        const params: Record<string, unknown> = { targetTimestamp, account: this.account };
         if (this.isGroupId(recipient)) {
             params.groupId = recipient;
         } else {
@@ -171,7 +177,7 @@ export class MessageManager extends BaseManager {
     }
 
     async receive(options: ReceiveOptions = {}): Promise<Message[]> {
-        const params: any = { account: this.account };
+        const params: Record<string, unknown> = { account: this.account };
 
         if (options.timeout !== undefined) {
             params.timeout = options.timeout;
@@ -216,38 +222,40 @@ export class MessageManager extends BaseManager {
         }
     }
 
-    private parseEnvelope(envelope: any): Message {
+    private parseEnvelope(envelope: Record<string, unknown>): Message {
         const message: Message = {
-            timestamp: envelope.timestamp || Date.now(),
-            source: envelope.source || envelope.sourceNumber,
-            sourceUuid: envelope.sourceUuid,
-            sourceDevice: envelope.sourceDevice,
+            timestamp: (envelope.timestamp as number | undefined) || Date.now(),
+            source: (envelope.source as string | undefined) || (envelope.sourceNumber as string | undefined) || '',
+            sourceUuid: envelope.sourceUuid as string | undefined,
+            sourceDevice: envelope.sourceDevice as number | undefined,
         };
 
         if (envelope.dataMessage) {
-            const data = envelope.dataMessage;
-            message.text = data.message || data.body || data.textAttachment?.text;
-            message.groupId = data.groupInfo?.groupId;
-            message.attachments = data.attachments;
-            message.mentions = data.mentions;
-            message.quote = data.quote;
-            message.reaction = data.reaction;
-            message.sticker = data.sticker;
-            message.expiresInSeconds = data.expiresInSeconds;
-            message.viewOnce = data.viewOnce;
-            message.pinnedMessageTimestamps = data.pinnedMessageTimestamps;
+            const data = envelope.dataMessage as Record<string, unknown>;
+            const textAttachment = data.textAttachment as Record<string, unknown> | undefined;
+            const groupInfo = data.groupInfo as Record<string, unknown> | undefined;
+            message.text = (data.message as string | undefined) || (data.body as string | undefined) || (textAttachment?.text as string | undefined);
+            message.groupId = groupInfo?.groupId as string | undefined;
+            message.attachments = data.attachments as Message['attachments'];
+            message.mentions = data.mentions as Message['mentions'];
+            message.quote = data.quote as Message['quote'];
+            message.reaction = data.reaction as Message['reaction'];
+            message.sticker = data.sticker as Message['sticker'];
+            message.expiresInSeconds = data.expiresInSeconds as number | undefined;
+            message.viewOnce = data.viewOnce as boolean | undefined;
+            message.pinnedMessageTimestamps = data.pinnedMessageTimestamps as Message['pinnedMessageTimestamps'];
         }
 
         if (envelope.syncMessage) {
-            message.syncMessage = envelope.syncMessage;
+            message.syncMessage = envelope.syncMessage as unknown;
         }
 
         if (envelope.receiptMessage) {
-            message.receipt = envelope.receiptMessage;
+            message.receipt = envelope.receiptMessage as unknown;
         }
 
         if (envelope.typingMessage) {
-            message.typing = envelope.typingMessage;
+            message.typing = envelope.typingMessage as unknown;
         }
 
         return message;
@@ -277,7 +285,7 @@ export class MessageManager extends BaseManager {
             }
         }
 
-        const params: any = {
+        const params: Record<string, unknown> = {
             question: options.question,
             options: options.options,
             account: this.account,
@@ -312,7 +320,7 @@ export class MessageManager extends BaseManager {
             throw new MessageError('Must specify at least one option to vote for');
         }
 
-        const params: any = {
+        const params: Record<string, unknown> = {
             pollAuthor: options.pollAuthor,
             pollTimestamp: options.pollTimestamp,
             options: options.optionIndexes,
@@ -339,7 +347,7 @@ export class MessageManager extends BaseManager {
 
         validateTimestamp(options.pollTimestamp);
 
-        const params: any = {
+        const params: Record<string, unknown> = {
             pollTimestamp: options.pollTimestamp,
             account: this.account,
         };
@@ -362,7 +370,7 @@ export class MessageManager extends BaseManager {
             throw new MessageError('Attachment ID is required');
         }
 
-        const params: any = {
+        const params: Record<string, unknown> = {
             id: options.id,
             account: this.account,
         };
@@ -375,8 +383,8 @@ export class MessageManager extends BaseManager {
             params.recipient = options.recipient;
         }
 
-        const result = await this.sendRequest('getAttachment', params);
-        return result.data || result;
+        const result = await this.sendRequest<{ data?: string } | string>('getAttachment', params);
+        return (result as { data?: string }).data || (result as string);
     }
 
     /**

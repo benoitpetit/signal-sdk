@@ -2,7 +2,7 @@ import { SignalBot } from '../SignalBot';
 import { SignalCli } from '../SignalCli';
 import * as fs from 'fs';
 import * as https from 'https';
-import * as http from 'http';
+
 import { EventEmitter } from 'events';
 
 jest.mock('../SignalCli');
@@ -254,15 +254,19 @@ describe('SignalBot Coverage', () => {
             mockSignalCli.sendMessage.mockResolvedValue({ results: [], timestamp: Date.now() });
             (fs.existsSync as jest.Mock).mockReturnValue(true);
             
-            await bot.sendMessageWithAttachment('+user', 'msg', ['/tmp/file'], ['/tmp/file']);
+            const sendPromise = bot.sendMessageWithAttachment('+user', 'msg', ['/tmp/file'], ['/tmp/file']);
             
             // Allow queue to start processing
-            jest.advanceTimersByTime(100);
+            await Promise.resolve();
+            jest.advanceTimersByTime(250);
+            await Promise.resolve();
+            await sendPromise;
             
             expect(mockSignalCli.sendMessage).toHaveBeenCalled();
             
             // Advance timers to trigger cleanup
             jest.advanceTimersByTime(2500);
+            await Promise.resolve();
             
             expect(fs.promises.unlink).toHaveBeenCalledWith('/tmp/file');
             jest.useRealTimers();
@@ -420,6 +424,7 @@ describe('SignalBot Coverage', () => {
             
             await bot.sendMessageWithImage('+recipient', 'caption', 'https://example.com/img.png');
             
+            expect(processQueueSpy).toHaveBeenCalled();
             expect(downloadSpy).toHaveBeenCalledWith('https://example.com/img.png', 'bot_image');
             expect((bot as any).actionQueue).toContainEqual(expect.objectContaining({
                 type: 'sendMessageWithAttachment',

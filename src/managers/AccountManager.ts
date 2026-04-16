@@ -11,12 +11,14 @@ import { validatePhoneNumber, validateRecipient } from '../validators';
 
 export class AccountManager extends BaseManager {
     async register(number: string, voice?: boolean, captcha?: string, reregister?: boolean): Promise<void> {
-        const params: any = { account: number, voice, captcha };
+        validatePhoneNumber(number);
+        const params: Record<string, unknown> = { account: number, voice, captcha };
         if (reregister) params.reregister = true;
         await this.sendRequest('register', params);
     }
 
     async verify(number: string, token: string, pin?: string): Promise<void> {
+        validatePhoneNumber(number);
         await this.sendRequest('verify', { account: number, token, pin });
     }
 
@@ -27,7 +29,7 @@ export class AccountManager extends BaseManager {
         avatar?: string,
         options: { familyName?: string; mobileCoinAddress?: string; removeAvatar?: boolean } = {},
     ): Promise<void> {
-        const params: any = { account: this.account, givenName };
+        const params: Record<string, unknown> = { account: this.account, givenName };
         if (about) params.about = about;
         if (aboutEmoji) params.aboutEmoji = aboutEmoji;
         if (avatar) params.avatar = avatar;
@@ -59,20 +61,20 @@ export class AccountManager extends BaseManager {
     }
 
     async listAccounts(): Promise<string[]> {
-        const result = await this.sendRequest('listAccounts');
-        return result.accounts.map((acc: any) => acc.number);
+        const result = await this.sendRequest<{ accounts: Array<{ number: string }> }>('listAccounts');
+        return result.accounts.map((acc) => acc.number);
     }
 
     async listAccountsDetailed(): Promise<Array<{ number: string; name?: string; uuid?: string }>> {
         this.logger.debug('Listing all accounts');
-        const result = await this.sendRequest('listAccounts');
+        const result = await this.sendRequest<{ accounts: Array<{ number: string; name?: string; uuid?: string }> }>('listAccounts');
         return result.accounts || [];
     }
 
     async updateAccount(options: UpdateAccountOptions): Promise<AccountUpdateResult> {
         this.logger.debug('Updating account', options);
 
-        const params: any = { account: this.account };
+        const params: Record<string, unknown> = { account: this.account };
 
         if (options.deviceName) params.deviceName = options.deviceName;
         if (options.username) params.username = options.username;
@@ -88,7 +90,7 @@ export class AccountManager extends BaseManager {
         }
 
         try {
-            const result = await this.sendRequest('updateAccount', params);
+            const result = await this.sendRequest<{ username?: string; usernameLink?: string }>('updateAccount', params);
             return {
                 success: true,
                 username: result.username,
@@ -111,7 +113,7 @@ export class AccountManager extends BaseManager {
             throw new Error('Payment receipt is required');
         }
 
-        const params: any = {
+        const params: Record<string, unknown> = {
             receipt: paymentData.receipt,
             account: this.account,
         };
@@ -134,7 +136,7 @@ export class AccountManager extends BaseManager {
             captcha,
         };
 
-        const result = await this.sendRequest('submitRateLimitChallenge', params);
+        const result = await this.sendRequest<{ success?: boolean; retryAfter?: number; message?: string }>('submitRateLimitChallenge', params);
 
         return {
             success: result.success || false,
@@ -147,7 +149,7 @@ export class AccountManager extends BaseManager {
         this.logger.info(`Starting change number to ${newNumber} (voice: ${voice})`);
         validatePhoneNumber(newNumber);
 
-        const params: any = {
+        const params: Record<string, unknown> = {
             account: this.account,
             number: newNumber,
             voice,
@@ -165,7 +167,7 @@ export class AccountManager extends BaseManager {
             throw new Error('Verification code is required');
         }
 
-        const params: any = {
+        const params: Record<string, unknown> = {
             account: this.account,
             number: newNumber,
             verificationCode,

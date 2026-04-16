@@ -232,27 +232,7 @@ class AdvancedSignalBot extends SignalBot {
             this.log(`Message from ${message.source}: ${message.text?.substring(0, 50)}...`);
         });
 
-        // Welcome new group members with status check
-        this.on('groupMemberJoined', async (event) => {
-            try {
-                // Check if new member is on Signal
-                const userStatus = await this.signalCli.getUserStatus([event.member]);
-
-                if (userStatus[0]?.isRegistered) {
-                    await this.sendMessage(
-                        event.groupId,
-                        `Welcome ${event.member}! You're verified on Signal.`
-                    );
-                } else {
-                    await this.sendMessage(
-                        event.groupId,
-                        `Welcome ${event.member}! Please make sure you're using Signal.`
-                    );
-                }
-            } catch (error) {
-                this.log(`Failed to welcome new member: ${error.message}`, 'error');
-            }
-        });
+        // Note: SignalBot does not emit a 'groupMemberJoined' event.
     }
 
     async handleRateLimit(error) {

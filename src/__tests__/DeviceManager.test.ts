@@ -78,10 +78,8 @@ describe('DeviceManager', () => {
             mockProcess.stdout.emit('data', Buffer.from('sgnl://link-uri\n'));
             mockProcess.stdout.emit('data', Buffer.from('Device registered\n'));
             
-            // Simulate process exit
-            const closeCallback = (spawn as jest.Mock).mock.calls[0] ? (spawn as jest.Mock).mock.results[0].value.on.mock.calls.find((c: any) => c[0] === 'close')[1] : null;
-            
-            // Actually we need to capture the 'close' event handler
+            // Simulate process exit - capture the 'close' event handler
+
             const closeHandler = (mockProcess.on as jest.Mock).mock.calls.find(call => call[0] === 'close')[1];
             closeHandler(0);
 

@@ -5,7 +5,7 @@
 
 import { SignalCli } from '../SignalCli';
 import { spawn } from 'child_process';
-import { ValidationError } from '../errors';
+
 
 jest.mock('child_process');
 
@@ -202,7 +202,8 @@ describe('SignalCli Integration Tests', () => {
 
     describe('Group Detection', () => {
         it('should correctly identify group IDs', () => {
-            const isGroupId = (signalCli as any).isGroupId.bind(signalCli);
+            const { BaseManager } = require('../managers/BaseManager');
+            const isGroupId = BaseManager.prototype.isGroupId;
 
             expect(isGroupId('base64groupid==')).toBe(true);
             expect(isGroupId('group/with/slash')).toBe(true);
@@ -235,10 +236,10 @@ describe('SignalCli Integration Tests', () => {
             consoleSpy.mockRestore();
         });
 
-        it('should warn about deprecated stopDaemon', () => {
+        it('should warn about deprecated stopDaemon', async () => {
             const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
 
-            signalCli.stopDaemon();
+            await signalCli.stopDaemon();
 
             expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('deprecated'));
 
@@ -275,7 +276,7 @@ describe('SignalCli Integration Tests', () => {
         it('should reject when not connected', async () => {
             const disconnectedSignal = new SignalCli('signal-cli', '+1234567890');
 
-            await expect(disconnectedSignal.sendMessage('+0987654321', 'test')).rejects.toThrow('Not connected');
+            await expect(disconnectedSignal.sendMessage('+1234567890', 'test')).rejects.toThrow('Not connected');
         });
 
         it('should handle JSON-RPC errors correctly', () => {

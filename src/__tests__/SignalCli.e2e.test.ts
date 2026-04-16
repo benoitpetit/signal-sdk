@@ -76,7 +76,7 @@ describe('SignalCli - E2E Workflow Tests (Phase 6)', () => {
 
             await signal.updateContact('+33222222222', 'Bob Johnson');
 
-            const updated = await signal.listContacts();
+            await signal.listContacts();
             expect((signal as any).sendJsonRpcRequest).toHaveBeenCalledTimes(3);
         });
     });
@@ -244,7 +244,7 @@ describe('SignalCli - E2E Workflow Tests (Phase 6)', () => {
                 .mockResolvedValueOnce(undefined)
                 .mockResolvedValueOnce(mockSendResponse);
 
-            const createResult = await signal.updateGroup(mockGroupId, {
+            await signal.updateGroup(mockGroupId, {
                 name: 'New Team',
             });
 

@@ -6,6 +6,11 @@ import * as path from 'path';
 import * as https from 'https';
 import * as http from 'http';
 
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    return String(error);
+}
+
 type BotAction =
     | { type: 'sendMessage'; recipient: string; message: string }
     | {
@@ -45,7 +50,7 @@ export class SignalBot extends EventEmitter {
     private userCooldowns = new Map<string, number>();
     private actionQueue: BotAction[] = [];
     private isProcessingQueue = false;
-    private incomingMessageBuffer: any[] = [];
+
     private activeTimers: NodeJS.Timeout[] = [];
 
     constructor(config: BotConfig, signalCliPath?: string) {
@@ -226,9 +231,9 @@ export class SignalBot extends EventEmitter {
                 attachments: [tempFilePath],
                 cleanup: [tempFilePath], // Mark files for cleanup after sending
             });
-            this.processActionQueue();
-        } catch (error: any) {
-            this.log(`ERROR: Failed to download and send image: ${error?.message}`, 'ERROR');
+            await this.processActionQueue();
+        } catch (error: unknown) {
+            this.log(`ERROR: Failed to download and send image: ${getErrorMessage(error)}`, 'ERROR');
             // Clean up on download error
             if (tempFilePath) {
                 await this.cleanupTempFile(tempFilePath);
@@ -248,8 +253,8 @@ export class SignalBot extends EventEmitter {
                 await fs.promises.unlink(filePath);
                 this.log(`- Cleaned up temporary file: ${filePath}`, 'DEBUG');
             }
-        } catch (error: any) {
-            this.log(`WARNING: Could not cleanup temp file ${filePath}: ${error?.message}`, 'DEBUG');
+        } catch (error: unknown) {
+            this.log(`WARNING: Could not cleanup temp file ${filePath}: ${getErrorMessage(error)}`, 'DEBUG');
         }
     }
 
@@ -270,8 +275,8 @@ export class SignalBot extends EventEmitter {
                 const tempPath = await this.downloadImage(avatar);
                 this.log(`- Avatar downloaded to: ${tempPath}`, 'DEBUG');
                 return tempPath;
-            } catch (error: any) {
-                this.log(`ERROR: Failed to download avatar: ${error?.message}`, 'ERROR');
+            } catch (error: unknown) {
+                this.log(`ERROR: Failed to download avatar: ${getErrorMessage(error)}`, 'ERROR');
                 return null;
             }
         }
@@ -292,8 +297,8 @@ export class SignalBot extends EventEmitter {
                 await fs.promises.writeFile(tempFilePath, base64Data, 'base64');
                 this.log(`- Saved base64 avatar to: ${tempFilePath}`, 'DEBUG');
                 return tempFilePath;
-            } catch (error: any) {
-                this.log(`ERROR: Failed to process base64 avatar: ${error?.message}`, 'ERROR');
+            } catch (error: unknown) {
+                this.log(`ERROR: Failed to process base64 avatar: ${getErrorMessage(error)}`, 'ERROR');
                 return null;
             }
         }
@@ -354,8 +359,8 @@ export class SignalBot extends EventEmitter {
 
             // Send welcome message to admins
             await this.sendWelcomeMessage();
-        } catch (error: any) {
-            this.log(`ERROR: Error during startup: ${error?.message || error}`, 'ERROR');
+        } catch (error: unknown) {
+            this.log(`ERROR: Error during startup: ${getErrorMessage(error) || error}`, 'ERROR');
             throw error;
         }
     }
@@ -387,8 +392,8 @@ export class SignalBot extends EventEmitter {
         try {
             await this.signalCli.gracefulShutdown();
             this.log('- Signal Bot shutdown completed gracefully');
-        } catch (error: any) {
-            this.log(`ERROR: Error during graceful shutdown: ${error?.message || error}`, 'ERROR');
+        } catch (error: unknown) {
+            this.log(`ERROR: Error during graceful shutdown: ${getErrorMessage(error) || error}`, 'ERROR');
         }
 
         this.emit('stopped');
@@ -404,7 +409,7 @@ export class SignalBot extends EventEmitter {
 
         // Add to the action queue
         this.actionQueue.push({ type: 'sendMessage', recipient, message });
-        this.processActionQueue();
+        await this.processActionQueue();
     }
 
     /**
@@ -413,7 +418,7 @@ export class SignalBot extends EventEmitter {
     async sendReaction(recipient: string, targetAuthor: string, targetTimestamp: number, emoji: string): Promise<void> {
         // Add to the action queue
         this.actionQueue.push({ type: 'sendReaction', recipient, targetAuthor, targetTimestamp, emoji });
-        this.processActionQueue();
+        await this.processActionQueue();
     }
 
     /**
@@ -431,7 +436,7 @@ export class SignalBot extends EventEmitter {
 
         // Add to the action queue
         this.actionQueue.push({ type: 'sendMessageWithAttachment', recipient, message, attachments, cleanup });
-        this.processActionQueue();
+        await this.processActionQueue();
     }
 
     /**
@@ -470,7 +475,7 @@ export class SignalBot extends EventEmitter {
         this.addCommand({
             name: 'help',
             description: 'Displays available commands',
-            handler: async (message, args) => {
+            handler: async (message, _args) => {
                 const userCommands = Array.from(this.commands.values())
                     .filter((cmd) => !cmd.adminOnly || message.isFromAdmin)
                     .map((cmd) => `${this.config.settings.commandPrefix}${cmd.name} - ${cmd.description}`)
@@ -550,17 +555,21 @@ export class SignalBot extends EventEmitter {
 
             if (existingGroup) {
                 // Try different possible field names for the group ID
-                const groupData = existingGroup as any;
-                const possibleGroupId = existingGroup.groupId || groupData.id || groupData.Id;
-                this.botGroupId = possibleGroupId;
+                const groupData = existingGroup as unknown as Record<string, unknown>;
+                const possibleGroupId = existingGroup.groupId || (groupData.id as string | undefined) || (groupData.Id as string | undefined);
+                this.botGroupId = possibleGroupId || null;
                 this.log(`- Existing group found: ${this.config.group.name} (${possibleGroupId})`);
 
                 // Check if all admins are in the group and add them if not
-                const currentMembers = existingGroup.members?.map((m: any) => m.number || m) || [];
+                const currentMembers = existingGroup.members?.map((m: unknown) => {
+                    if (typeof m === 'string') return m;
+                    if (m && typeof m === 'object' && 'number' in m) return (m as { number: string }).number;
+                    return '';
+                }) || [];
                 const missingAdmins = this.config.admins.filter((admin) => !currentMembers.includes(admin));
 
                 // Prepare update options
-                const updateOptions: any = {};
+                const updateOptions: Record<string, unknown> = {};
                 if (missingAdmins.length > 0) {
                     updateOptions.addMembers = missingAdmins;
                 }
@@ -596,8 +605,8 @@ export class SignalBot extends EventEmitter {
                                     `Type ${this.config.settings.commandPrefix}help to see available commands.`,
                             );
                         }
-                    } catch (updateError: any) {
-                        this.log(`ERROR: Error updating group: ${updateError?.message || updateError}`, 'ERROR');
+                    } catch (updateError: unknown) {
+                        this.log(`ERROR: Error updating group: ${getErrorMessage(updateError)}`, 'ERROR');
                     }
                 } else {
                     this.log(`- All admins are already in the group`, 'INFO');
@@ -618,14 +627,14 @@ export class SignalBot extends EventEmitter {
 
             try {
                 const newGroup = await this.signalCli.createGroup(this.config.group.name, initialMembers);
-                const newGroupData = newGroup as any;
-                this.botGroupId = newGroup.groupId || newGroupData.id || newGroupData.Id;
+                const newGroupData = newGroup as unknown as Record<string, unknown>;
+                this.botGroupId = newGroup.groupId || (newGroupData.id as string | undefined) || (newGroupData.Id as string | undefined) || null;
 
                 if (this.botGroupId) {
                     this.log(`- Group created: ${this.config.group.name} (${this.botGroupId})`);
 
                     // Configure the group with description, permissions, and avatar
-                    const configOptions: any = {
+                    const configOptions: Record<string, unknown> = {
                         description: this.config.group.description,
                         permissionAddMember: 'ONLY_ADMINS',
                         permissionEditDetails: 'ONLY_ADMINS',
@@ -650,8 +659,8 @@ export class SignalBot extends EventEmitter {
                             `Type ${this.config.settings.commandPrefix}help to see available commands.`,
                     );
                 }
-            } catch (createError: any) {
-                if (createError.message && createError.message.includes('Method not implemented')) {
+            } catch (createError: unknown) {
+                if (getErrorMessage(createError).includes('Method not implemented')) {
                     // signal-cli doesn't support group creation via JSON-RPC
                     this.log(`ERROR: Group creation not supported by signal-cli version.`, 'ERROR');
                     this.log(`INSTRUCTIONS: To fix this issue:`, 'INFO');
@@ -667,12 +676,12 @@ export class SignalBot extends EventEmitter {
                     );
                 } else {
                     // Re-throw the original error for other types of failures
-                    this.log(`ERROR: Failed to create group: ${createError?.message || createError}`, 'ERROR');
+                    this.log(`ERROR: Failed to create group: ${getErrorMessage(createError)}`, 'ERROR');
                     throw createError;
                 }
             }
-        } catch (error: any) {
-            this.log(`ERROR: Error configuring group: ${error?.message || error}`, 'ERROR');
+        } catch (error: unknown) {
+            this.log(`ERROR: Error configuring group: ${getErrorMessage(error) || error}`, 'ERROR');
         } finally {
             // Clean up temporary avatar file if it was downloaded/created
             if (avatarPath && isTemporaryAvatar) {
@@ -696,7 +705,7 @@ export class SignalBot extends EventEmitter {
             this.emit('daemon-closed', code);
         });
 
-        this.signalCli.on('error', (error) => {
+        this.signalCli.on('error', (error: Error) => {
             this.log(`Daemon error: ${error.message}`, 'ERROR');
             this.emit('error', error);
         });
@@ -707,19 +716,21 @@ export class SignalBot extends EventEmitter {
         });
     }
 
-    private async handleMessage(messageData: any): Promise<void> {
+    private async handleMessage(messageData: Record<string, unknown>): Promise<void> {
         try {
-            if (!messageData.envelope?.dataMessage) {
+            const envelope = messageData.envelope as Record<string, unknown> | undefined;
+            const dataMessage = envelope?.dataMessage as Record<string, unknown> | undefined;
+            if (!dataMessage) {
                 return; // Ignore non-data messages (receipts, typing indicators, etc.)
             }
 
             const parsedMessage: ParsedMessage = {
-                id: messageData.envelope.timestamp.toString(),
-                source: messageData.envelope.sourceNumber || messageData.envelope.source,
-                text: messageData.envelope.dataMessage.message || '',
-                timestamp: messageData.envelope.timestamp,
-                groupInfo: messageData.envelope.dataMessage.groupInfo,
-                isFromAdmin: this.isAdmin(messageData.envelope.sourceNumber || messageData.envelope.source),
+                id: String(envelope?.timestamp || ''),
+                source: (envelope?.sourceNumber as string | undefined) || (envelope?.source as string | undefined) || '',
+                text: (dataMessage.message as string | undefined) || '',
+                timestamp: (envelope?.timestamp as number | undefined) || 0,
+                groupInfo: dataMessage.groupInfo as { id: string; name?: string; groupId?: string } | undefined,
+                isFromAdmin: this.isAdmin((envelope?.sourceNumber as string | undefined) || (envelope?.source as string | undefined) || ''),
             };
 
             // Ignore own messages
@@ -728,7 +739,7 @@ export class SignalBot extends EventEmitter {
             }
 
             // Ignore empty messages (like reactions only, media without text, etc.)
-            if (!parsedMessage.text && !messageData.envelope.dataMessage.attachments) {
+            if (!parsedMessage.text && !dataMessage.attachments) {
                 return;
             }
 
@@ -764,16 +775,16 @@ export class SignalBot extends EventEmitter {
             // Send read receipt automatically
             try {
                 await this.signalCli.sendReceipt(parsedMessage.source, parsedMessage.timestamp, 'read');
-            } catch (error: any) {
-                this.log(`ERROR: Error sending read receipt: ${error?.message || error}`, 'DEBUG');
+            } catch (error: unknown) {
+                this.log(`ERROR: Error sending read receipt: ${getErrorMessage(error) || error}`, 'DEBUG');
             }
 
             // Handle commands
             if (parsedMessage.text.startsWith(this.config.settings.commandPrefix || '/')) {
                 await this.handleCommand(parsedMessage);
             }
-        } catch (error: any) {
-            this.log(`ERROR: Error processing message: ${error?.message || error}`, 'ERROR');
+        } catch (error: unknown) {
+            this.log(`ERROR: Error processing message: ${getErrorMessage(error) || error}`, 'ERROR');
         }
     }
 
@@ -810,8 +821,8 @@ export class SignalBot extends EventEmitter {
             if (response) {
                 await this.sendCommandResponse(message, response);
             }
-        } catch (error: any) {
-            this.log(`ERROR: Error executing command "${command.name}": ${error?.message || error}`, 'ERROR');
+        } catch (error: unknown) {
+            this.log(`ERROR: Error executing command "${command.name}": ${getErrorMessage(error) || error}`, 'ERROR');
             await this.sendCommandResponse(
                 message,
                 `ERROR: An error occurred while running the command: ${command.name}`,
@@ -893,8 +904,8 @@ export class SignalBot extends EventEmitter {
                         const timer = setTimeout(resolve, 250);
                         if (timer.unref) timer.unref();
                     });
-                } catch (error: any) {
-                    this.log(`ERROR: Failed to execute action ${action.type}: ${error?.message || error}`, 'ERROR');
+                } catch (error: unknown) {
+                    this.log(`ERROR: Failed to execute action ${action.type}: ${getErrorMessage(error) || error}`, 'ERROR');
 
                     // Clean up temporary files even on error
                     if (action.type === 'sendMessageWithAttachment' && action.cleanup && action.cleanup.length > 0) {
@@ -929,8 +940,8 @@ export class SignalBot extends EventEmitter {
         for (const admin of this.config.admins) {
             try {
                 await this.sendMessage(admin, welcomeText);
-            } catch (error: any) {
-                this.log(`ERROR: Error sending welcome message to ${admin}: ${error?.message || error}`, 'ERROR');
+            } catch (error: unknown) {
+                this.log(`ERROR: Error sending welcome message to ${admin}: ${getErrorMessage(error) || error}`, 'ERROR');
             }
         }
     }

@@ -20,7 +20,7 @@ export function validatePhoneNumber(phoneNumber: string): void {
     }
 
     // E.164 format: + followed by 1-15 digits
-    const e164Regex = /^\+[1-9]\d{1,14}$/;
+    const e164Regex = /^\+[1-9]\d{0,14}$/;
     if (!e164Regex.test(phoneNumber)) {
         throw new ValidationError('Phone number must be in E.164 format (e.g., +33123456789)', 'phoneNumber');
     }
@@ -173,6 +173,27 @@ export function validateDeviceId(deviceId: number): void {
 }
 
 /**
+ * Validates a device name
+ * @param deviceName Device name to validate
+ * @throws ValidationError if invalid
+ */
+export function validateDeviceName(deviceName: string): void {
+    if (deviceName === undefined || deviceName === null) {
+        throw new ValidationError('Device name is required', 'deviceName');
+    }
+
+    if (typeof deviceName !== 'string') {
+        throw new ValidationError('Device name must be a string', 'deviceName');
+    }
+
+    if (deviceName.length === 0 || deviceName.length > 200) {
+        throw new ValidationError('Device name must be between 1 and 200 characters', 'deviceName');
+    }
+
+    validateSanitizedString(deviceName, 'deviceName');
+}
+
+/**
  * Sanitizes user input to prevent injection attacks
  * @param input Input string to sanitize
  * @returns Sanitized string
@@ -195,7 +216,9 @@ export function sanitizeInput(input: string): string {
  * @throws ValidationError if input contains unsafe characters
  */
 export function validateSanitizedString(input: string, fieldName: string = 'input'): void {
-    if (!input) return;
+    if (!input) {
+        throw new ValidationError(`${fieldName} is required`, fieldName);
+    }
 
     // Reject characters that have special meaning in shells:
     // & | ; $ > < ` \ ! " ' ( ) [ ] { }

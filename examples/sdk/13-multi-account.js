@@ -65,10 +65,10 @@ async function main() {
         console.log('✓ Styled message sent\n');
 
         // Get status of all accounts
-        const status = await manager.getAllStatus();
+        const status = manager.getStatus();
         console.log('Account statuses:');
         console.log(`- Total accounts: ${status.totalAccounts}`);
-        console.log(`- Connected: ${status.connectedCount}`);
+        console.log(`- Connected: ${status.connectedAccounts}`);
         status.accounts.forEach(acc => {
             console.log(`  • ${acc.account}: ${acc.connected ? '✓ Connected' : '✗ Disconnected'}`);
         });
@@ -83,11 +83,11 @@ async function main() {
 
         // Disconnect a specific account
         console.log('Disconnecting account 1...');
-        await manager.removeAccount('+33111111111');
+        await manager.disconnect('+33111111111');
         console.log('✓ Account 1 disconnected\n');
 
         // Final status
-        const finalStatus = await manager.getAllStatus();
+        const finalStatus = manager.getStatus();
         console.log(`Remaining accounts: ${finalStatus.totalAccounts}`);
 
     } catch (error) {

@@ -1,15 +1,15 @@
 import { BaseManager } from './BaseManager';
 import { Device, LinkingOptions, LinkingResult, QRCodeData, UpdateDeviceOptions } from '../interfaces';
-import { validateSanitizedString, validateDeviceId, validateMessage } from '../validators';
+import { validateSanitizedString, validateDeviceId, validateDeviceName } from '../validators';
 import * as qrcodeTerminal from 'qrcode-terminal';
 import { spawn } from 'child_process';
 
 export class DeviceManager extends BaseManager {
     constructor(
-        sendRequest: (method: string, params?: any) => Promise<any>,
+        sendRequest: <T = unknown>(method: string, params?: unknown) => Promise<T>,
         account: string | undefined,
-        logger: any,
-        config: any,
+        logger: import('../config').Logger,
+        config: Required<import('../config').SignalCliConfig>,
         private readonly signalCliPath: string,
     ) {
         super(sendRequest, account, logger, config);
@@ -31,7 +31,7 @@ export class DeviceManager extends BaseManager {
         this.logger.debug('Updating device', options);
 
         validateDeviceId(options.deviceId);
-        validateMessage(options.deviceName, 200);
+        validateDeviceName(options.deviceName);
 
         await this.sendRequest('updateDevice', {
             deviceId: options.deviceId,
@@ -47,7 +47,7 @@ export class DeviceManager extends BaseManager {
 
             let linkProcess;
             if (process.platform === 'win32') {
-                linkProcess = spawn('cmd.exe', ['/c', `"${this.signalCliPath}"`, 'link', '--name', deviceName], {
+                linkProcess = spawn('cmd.exe', ['/c', this.signalCliPath, 'link', '--name', deviceName], {
                     stdio: ['pipe', 'pipe', 'pipe'],
                 });
             } else {

@@ -132,7 +132,7 @@ The `postinstall` script automatically downloads and installs the correct signal
 ## Prerequisites
 
 - **Node.js** 18 or later
-- **Java 25+** (macOS and Windows only — required by the JVM-based signal-cli distribution)
+- **Java 21+** (macOS and Windows only — required by the JVM-based signal-cli distribution)
 - A Signal account with a registered phone number
 
 To register a phone number with signal-cli before using the SDK:
@@ -886,7 +886,7 @@ Or download manually from the [signal-cli releases page](https://github.com/Asam
 
 **Java not found (macOS / Windows)**
 
-The JVM-based signal-cli distribution requires Java 25 or later:
+The JVM-based signal-cli distribution requires Java 21 or later:
 
 ```bash
 # macOS

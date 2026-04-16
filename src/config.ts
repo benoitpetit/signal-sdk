@@ -20,8 +20,6 @@ export interface SignalCliConfig {
     retryDelay?: number;
     /** Enable detailed logging */
     verbose?: boolean;
-    /** Log file path */
-    logFile?: string;
     /** Rate limit: max concurrent requests */
     maxConcurrentRequests?: number;
     /** Rate limit: minimum interval between requests (ms) */
@@ -60,7 +58,6 @@ export const DEFAULT_CONFIG: Required<
     maxRetries: 3,
     retryDelay: 1000,
     verbose: false,
-    logFile: '',
     maxConcurrentRequests: 5,
     minRequestInterval: 100,
     autoReconnect: true,
@@ -115,8 +112,6 @@ export function validateConfig(userConfig: SignalCliConfig = {}): Required<Signa
 export interface LoggerConfig {
     level: 'debug' | 'info' | 'warn' | 'error';
     enableConsole: boolean;
-    enableFile: boolean;
-    filePath?: string;
     includeTimestamp: boolean;
     includeLevel: boolean;
 }
@@ -124,7 +119,6 @@ export interface LoggerConfig {
 export const DEFAULT_LOGGER_CONFIG: LoggerConfig = {
     level: 'info',
     enableConsole: true,
-    enableFile: false,
     includeTimestamp: true,
     includeLevel: true,
 };
@@ -149,7 +143,7 @@ export class Logger {
         return this.levels[level] >= this.levels[this.config.level];
     }
 
-    private format(level: string, message: string, data?: any): string {
+    private format(level: string, message: string, data?: unknown): string {
         const parts: string[] = [];
 
         if (this.config.includeTimestamp) {
@@ -169,25 +163,25 @@ export class Logger {
         return parts.join(' ');
     }
 
-    debug(message: string, data?: any): void {
+    debug(message: string, data?: unknown): void {
         if (this.shouldLog('debug') && this.config.enableConsole) {
             console.debug(this.format('debug', message, data));
         }
     }
 
-    info(message: string, data?: any): void {
+    info(message: string, data?: unknown): void {
         if (this.shouldLog('info') && this.config.enableConsole) {
             console.info(this.format('info', message, data));
         }
     }
 
-    warn(message: string, data?: any): void {
+    warn(message: string, data?: unknown): void {
         if (this.shouldLog('warn') && this.config.enableConsole) {
             console.warn(this.format('warn', message, data));
         }
     }
 
-    error(message: string, data?: any): void {
+    error(message: string, data?: unknown): void {
         if (this.shouldLog('error') && this.config.enableConsole) {
             console.error(this.format('error', message, data));
         }

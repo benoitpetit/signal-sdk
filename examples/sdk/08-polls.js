@@ -51,7 +51,7 @@ async function pollsExample() {
         // Step 2: Create a simple poll (single recipient)
         console.log('2. Creating a simple poll for direct message...');
         const poll1 = await signal.sendPollCreate({
-            recipient: recipientNumber,
+            recipients: [recipientNumber],
             question: 'What\'s your favorite programming language?',
             options: ['TypeScript', 'Python', 'Go', 'Rust', 'JavaScript']
         });
@@ -145,7 +145,7 @@ async function pollsExample() {
         // Step 10: Advanced poll example
         console.log('10. Creating an advanced poll with detailed question...');
         const advancedPoll = await signal.sendPollCreate({
-            recipient: recipientNumber,
+            recipients: [recipientNumber],
             question: 'Movie night poll: Which genre should we watch this weekend?',
             options: [
                 'Comedy',

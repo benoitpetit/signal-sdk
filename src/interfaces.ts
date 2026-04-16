@@ -42,7 +42,7 @@ export interface JsonRpcRequest {
     /** The method name to call on signal-cli */
     method: string;
     /** Parameters to pass to the method (method-specific) */
-    params?: any;
+    params?: unknown;
     /** Unique identifier for this request */
     id: string;
 }
@@ -57,7 +57,7 @@ export interface JsonRpcResponse {
     /** The same ID as the request that generated this response */
     id: string;
     /** The result data (present only on success) */
-    result?: any;
+    result?: unknown;
     /** Error information (present only on failure) */
     error?: {
         /** Error code (negative for implementation-defined errors) */
@@ -65,7 +65,7 @@ export interface JsonRpcResponse {
         /** Human-readable error message */
         message: string;
         /** Additional error data (optional) */
-        data?: any;
+        data?: unknown;
     };
 }
 
@@ -89,7 +89,7 @@ export interface JsonRpcNotification {
     /** The notification method name */
     method: string;
     /** Parameters for the notification */
-    params?: any;
+    params?: unknown;
 }
 
 // ===== JSON-RPC SPECIFIC PARAMETER INTERFACES =====
@@ -310,7 +310,7 @@ export interface SendResponse {
     /** Timestamp when the message was sent */
     timestamp: number;
     /** Array of delivery results */
-    results: any[];
+    results: unknown[];
 }
 
 /**
@@ -367,7 +367,7 @@ export interface Message {
     timestamp: number;
     attachments?: Attachment[];
     reactions?: Reaction[];
-    reaction?: any;
+    reaction?: unknown;
     groupId?: string;
     groupInfo?: {
         id: string;
@@ -388,9 +388,9 @@ export interface Message {
     viewOnce?: boolean;
     remoteDelete?: boolean;
     isExpirationUpdate?: boolean;
-    syncMessage?: any;
-    receipt?: any;
-    typing?: any;
+    syncMessage?: unknown;
+    receipt?: unknown;
+    typing?: unknown;
     /** Pinned message timestamps from pin/unpin events (v0.14.0+) */
     pinnedMessageTimestamps?: number[];
 }
@@ -914,7 +914,7 @@ export interface BotCommand {
     name: string;
     description: string;
     adminOnly?: boolean;
-    handler: (message: ParsedMessage, args: string[], bot: any) => Promise<string | null | void>;
+    handler: (message: ParsedMessage, args: string[], bot: import('./SignalBot').SignalBot) => Promise<string | null | void>;
 }
 
 /**
@@ -1463,5 +1463,5 @@ export interface CallEvent {
     /** The call information */
     call: CallInfo;
     /** Additional event-specific data */
-    data?: any;
+    data?: unknown;
 }

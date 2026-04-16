@@ -14,7 +14,7 @@ import { withRetry } from '../retry';
 
 export class ContactManager extends BaseManager {
     async updateContact(number: string, name?: string, options: Omit<ContactUpdateOptions, 'name'> = {}): Promise<void> {
-        const params: any = { account: this.account, recipient: number };
+        const params: Record<string, unknown> = { account: this.account, recipient: number };
         if (name) params.name = name;
         if (options.givenName) params.givenName = options.givenName;
         if (options.familyName) params.familyName = options.familyName;
@@ -42,7 +42,7 @@ export class ContactManager extends BaseManager {
     }
 
     async listContacts(options: ListContactsOptions = {}): Promise<Contact[]> {
-        const params: any = { account: this.account };
+        const params: Record<string, unknown> = { account: this.account };
         
         if (options.detailed) params.detailed = true;
         if (options.blocked !== undefined) params.blocked = options.blocked;
@@ -53,12 +53,12 @@ export class ContactManager extends BaseManager {
         
         return withRetry(
             () => this.sendRequest('listContacts', params),
-            { maxAttempts: this.config.maxRetries, initialDelay: this.config.retryDelay }
+            { maxAttempts: this.config.maxRetries, initialDelay: this.config.retryDelay, enabled: this.config.enableRetry }
         );
     }
 
     async removeContact(number: string, options: RemoveContactOptions = {}): Promise<void> {
-        const params: any = {
+        const params: Record<string, unknown> = {
             account: this.account,
             recipient: number,
         };
@@ -71,17 +71,17 @@ export class ContactManager extends BaseManager {
 
     async getUserStatus(numbers: string[] = [], usernames: string[] = []): Promise<UserStatusResult[]> {
         return withRetry(async () => {
-            const params: any = { account: this.account };
+            const params: Record<string, unknown> = { account: this.account };
 
             if (numbers.length > 0) params.recipients = numbers;
             if (usernames.length > 0) params.usernames = usernames;
 
-            const result = await this.sendRequest('getUserStatus', params);
+            const result = await this.sendRequest<{ recipients?: Array<{ number: string; isRegistered?: boolean; uuid?: string; username?: string }> }>('getUserStatus', params);
 
             const statusResults: UserStatusResult[] = [];
 
             if (result.recipients) {
-                result.recipients.forEach((recipient: any) => {
+                result.recipients.forEach((recipient: { number: string; isRegistered?: boolean; uuid?: string; username?: string }) => {
                     statusResults.push({
                         number: recipient.number,
                         isRegistered: recipient.isRegistered || false,
@@ -92,7 +92,7 @@ export class ContactManager extends BaseManager {
             }
 
             return statusResults;
-        }, { maxAttempts: this.config.maxRetries, initialDelay: this.config.retryDelay });
+        }, { maxAttempts: this.config.maxRetries, initialDelay: this.config.retryDelay, enabled: this.config.enableRetry });
     }
 
     async listIdentities(number?: string): Promise<IdentityKey[]> {
@@ -114,7 +114,7 @@ export class ContactManager extends BaseManager {
     async getAvatar(options: GetAvatarOptions): Promise<string> {
         this.logger.debug('Getting avatar', options);
 
-        const params: any = { account: this.account };
+        const params: Record<string, unknown> = { account: this.account };
 
         if (options.contact) {
             validateRecipient(options.contact);
@@ -128,8 +128,8 @@ export class ContactManager extends BaseManager {
             throw new MessageError('Must specify contact, profile, or groupId');
         }
 
-        const result = await this.sendRequest('getAvatar', params);
-        return result.data || result;
+        const result = await this.sendRequest<{ data?: string } | string>('getAvatar', params);
+        return (result as { data?: string }).data || (result as string);
     }
 
     parseContactProfile(contact: Contact): Contact {

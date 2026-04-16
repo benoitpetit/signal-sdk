@@ -8,6 +8,7 @@
 import { SignalCli } from './SignalCli';
 import { EventEmitter } from 'events';
 import { Logger, SignalCliConfig } from './config';
+import { SendMessageOptions, SendResponse } from './interfaces';
 
 /**
  * Configuration for a managed account
@@ -35,6 +36,13 @@ export interface MultiAccountOptions {
     verbose?: boolean;
     /** Auto-reconnect on failure */
     autoReconnect?: boolean;
+}
+
+export interface AccountStatus {
+    account: string;
+    connected: boolean;
+    lastActivity: number;
+    uptime: number;
 }
 
 /**
@@ -75,7 +83,6 @@ export class MultiAccountManager extends EventEmitter {
         this.options = options;
         this.logger = new Logger({
             level: options.verbose ? 'debug' : 'info',
-            enableFile: false,
         });
 
         this.logger.info('MultiAccountManager initialized');
@@ -281,7 +288,7 @@ export class MultiAccountManager extends EventEmitter {
      * @param message - Message text
      * @param options - Send options
      */
-    async sendMessage(fromAccount: string, recipient: string, message: string, options: any = {}): Promise<any> {
+    async sendMessage(fromAccount: string, recipient: string, message: string, options: Omit<SendMessageOptions, 'message'> = {}): Promise<SendResponse> {
         const managedAccount = this.accounts.get(fromAccount);
         if (!managedAccount) {
             throw new Error(`Account ${fromAccount} not found`);
@@ -297,42 +304,45 @@ export class MultiAccountManager extends EventEmitter {
      * @param account - Phone number of the account (optional)
      * @returns Status information for all or specific account
      */
-    getStatus(account?: string): any {
+    getStatus(account?: string): AccountStatus | { totalAccounts: number; connectedAccounts: number; accounts: AccountStatus[] } | null {
         if (account) {
-            const managedAccount = this.accounts.get(account);
-            if (!managedAccount) {
-                return null;
-            }
-
-            return {
-                account: managedAccount.account,
-                connected: managedAccount.connected,
-                lastActivity: managedAccount.lastActivity,
-                uptime: Date.now() - managedAccount.lastActivity,
-            };
+            return this.getStatusForAccount(account);
         }
 
         // Return status for all accounts
-        const status: any = {
+        const status = {
             totalAccounts: this.accounts.size,
             connectedAccounts: 0,
-            accounts: [],
+            accounts: [] as AccountStatus[],
         };
 
-        for (const [account, managed] of this.accounts) {
+        for (const [acc, managed] of this.accounts) {
             if (managed.connected) {
                 status.connectedAccounts++;
             }
 
-            status.accounts.push({
-                account,
-                connected: managed.connected,
-                lastActivity: managed.lastActivity,
-                uptime: Date.now() - managed.lastActivity,
-            });
+            status.accounts.push(this.buildStatus(acc, managed));
         }
 
         return status;
+    }
+
+    private getStatusForAccount(account: string): AccountStatus | null {
+        const managedAccount = this.accounts.get(account);
+        if (!managedAccount) {
+            return null;
+        }
+
+        return this.buildStatus(account, managedAccount);
+    }
+
+    private buildStatus(_account: string, managedAccount: ManagedAccount): AccountStatus {
+        return {
+            account: managedAccount.account,
+            connected: managedAccount.connected,
+            lastActivity: managedAccount.lastActivity,
+            uptime: Date.now() - managedAccount.lastActivity,
+        };
     }
 
     /**
@@ -345,7 +355,7 @@ export class MultiAccountManager extends EventEmitter {
         const events = ['message', 'receipt', 'typing', 'reaction', 'error', 'connected', 'disconnected'];
 
         events.forEach((event) => {
-            instance.on(event, (...args: any[]) => {
+            instance.on(event, (...args: unknown[]) => {
                 // Emit with account information
                 this.emit(event, account, ...args);
 

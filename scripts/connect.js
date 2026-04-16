@@ -16,7 +16,7 @@
  *   npx signal-sdk connect "My Custom Device"
  */
 
-const { SignalCli } = require('../dist/SignalCli');
+const { SignalCli } = require('../dist');
 
 async function connectDevice() {
     console.log('Signal SDK - Device Connection');

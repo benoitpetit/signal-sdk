@@ -424,14 +424,6 @@ async function startAdvancedBot() {
         logError(error, 'bot');
     });
 
-    bot.on('group-member-added', (data) => {
-        console.log(`- New member added: ${data.member} to ${data.group}`);
-    });
-
-    bot.on('group-member-removed', (data) => {
-        console.log(`- Member removed: ${data.member} from ${data.group}`);
-    });
-
     // Start the bot
     try {
         await bot.start();

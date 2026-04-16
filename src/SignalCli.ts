@@ -1,6 +1,8 @@
 import { spawn, ChildProcess } from 'child_process';
+import * as net from 'net';
+import * as http from 'http';
 import { v4 as uuidv4 } from 'uuid';
-import * as qrcodeTerminal from 'qrcode-terminal';
+
 import {
     Message,
     Contact,
@@ -44,6 +46,12 @@ import {
     UnpinMessageOptions,
     AdminDeleteOptions,
     JsonRpcStartOptions,
+    StartCallOptions,
+    CallInfo,
+    AcceptCallOptions,
+    HangUpCallOptions,
+    SendCallRelayCandidatesOptions,
+    ListContactsOptions,
 } from './interfaces';
 import { EventEmitter } from 'events';
 import * as path from 'path';
@@ -63,7 +71,7 @@ export class SignalCli extends EventEmitter {
     private signalCliPath: string;
     private account?: string;
     private cliProcess: ChildProcess | null = null;
-    private requestPromises = new Map<string, { resolve: (value: any) => void; reject: (reason?: any) => void }>();
+    private requestPromises = new Map<string, { resolve: (value: unknown) => void; reject: (reason?: unknown) => void }>();
     private config: Required<SignalCliConfig>;
     private logger: Logger;
     private rateLimiter: RateLimiter;
@@ -72,6 +80,7 @@ export class SignalCli extends EventEmitter {
     private maxReconnectAttempts = 5;
     private isIntentionalShutdown = false;
     private healthCheckTimer: NodeJS.Timeout | null = null;
+    private socket?: net.Socket;
 
     // Managers
     public readonly messages: MessageManager;
@@ -90,8 +99,6 @@ export class SignalCli extends EventEmitter {
         // Initialize logger
         this.logger = new Logger({
             level: this.config.verbose ? 'debug' : 'info',
-            enableFile: !!this.config.logFile,
-            filePath: this.config.logFile,
         });
 
         // Initialize rate limiter
@@ -139,8 +146,8 @@ export class SignalCli extends EventEmitter {
         validateSanitizedString(this.signalCliPath, 'signalCliPath');
 
         // Initialize Managers
-        const rpcCall = (method: string, params?: any) => {
-            return this.sendJsonRpcRequest(method, params);
+        const rpcCall = <T = unknown>(method: string, params?: unknown) => {
+            return this.sendJsonRpcRequest(method, params) as Promise<T>;
         };
         this.messages = new MessageManager(rpcCall, this.account, this.logger, this.config);
         this.groups = new GroupManager(rpcCall, this.account, this.logger, this.config);
@@ -171,6 +178,8 @@ export class SignalCli extends EventEmitter {
                 throw new Error(`Invalid daemon mode: ${daemonMode}`);
         }
 
+        this.emit('connected');
+
         if (this.config.autoReconnect) {
             this.startHealthCheck();
         }
@@ -193,7 +202,7 @@ export class SignalCli extends EventEmitter {
 
         if (process.platform === 'win32') {
             // On Windows, use cmd.exe to run the batch file with proper quoting for paths with spaces
-            this.cliProcess = spawn('cmd.exe', ['/c', `"${this.signalCliPath}"`, ...args]);
+            this.cliProcess = spawn('cmd.exe', ['/c', this.signalCliPath, ...args]);
         } else {
             this.cliProcess = spawn(this.signalCliPath, args);
         }
@@ -253,7 +262,7 @@ export class SignalCli extends EventEmitter {
                     this.emit('close', 0);
                 });
 
-                (this as any).socket = socket;
+                this.socket = socket;
                 resolve();
             });
 
@@ -285,7 +294,7 @@ export class SignalCli extends EventEmitter {
                     this.emit('close', 0);
                 });
 
-                (this as any).socket = socket;
+                this.socket = socket;
                 resolve();
             });
 
@@ -303,7 +312,7 @@ export class SignalCli extends EventEmitter {
         // For HTTP mode, we don't maintain a persistent connection
         // Instead, we'll use the httpRequest method for each operation
         this.logger.debug('HTTP mode configured:', baseUrl);
-        (this as any).httpBaseUrl = baseUrl;
+
 
         // Test connection by sending a simple request
         try {
@@ -316,7 +325,7 @@ export class SignalCli extends EventEmitter {
         }
     }
 
-    private async httpRequest(request: JsonRpcRequest): Promise<any> {
+    private async httpRequest(request: JsonRpcRequest): Promise<unknown> {
         const https = await import(this.config.httpBaseUrl?.startsWith('https:') ? 'https' : 'http');
         const baseUrl = this.config.httpBaseUrl || 'http://localhost:8080';
         const url = new URL('/api/v1/rpc', baseUrl);
@@ -331,9 +340,9 @@ export class SignalCli extends EventEmitter {
                 },
             };
 
-            const req = https.request(url, options, (res: any) => {
+            const req = https.request(url, options, (res: http.IncomingMessage) => {
                 let body = '';
-                res.on('data', (chunk: any) => (body += chunk));
+                res.on('data', (chunk: string) => (body += chunk));
                 res.on('end', () => {
                     try {
                         const response: JsonRpcResponse = JSON.parse(body);
@@ -348,7 +357,7 @@ export class SignalCli extends EventEmitter {
                 });
             });
 
-            req.on('error', (err: any) => reject(new ConnectionError(`HTTP request failed: ${err.message}`)));
+            req.on('error', (err: Error) => reject(new ConnectionError(`HTTP request failed: ${err.message}`)));
             req.setTimeout(this.config.requestTimeout, () => {
                 req.destroy();
                 reject(new ConnectionError('HTTP request timeout'));
@@ -366,10 +375,10 @@ export class SignalCli extends EventEmitter {
 
         // Close socket connections
         if (daemonMode === 'unix-socket' || daemonMode === 'tcp') {
-            const socket = (this as any).socket;
+            const socket = this.socket;
             if (socket && !socket.destroyed) {
                 socket.destroy();
-                (this as any).socket = null;
+                this.socket = undefined;
             }
         }
 
@@ -379,6 +388,8 @@ export class SignalCli extends EventEmitter {
             this.cliProcess = null;
         }
 
+        this.emit('disconnected');
+
         // For HTTP mode, nothing to disconnect (stateless)
     }
 
@@ -387,6 +398,7 @@ export class SignalCli extends EventEmitter {
         this.stopHealthCheck();
         return new Promise((resolve) => {
             if (!this.cliProcess) {
+                this.emit('disconnected');
                 resolve();
                 return;
             }
@@ -394,6 +406,7 @@ export class SignalCli extends EventEmitter {
             // Listen for the process to close
             this.cliProcess.once('close', () => {
                 this.cliProcess = null;
+                this.emit('disconnected');
                 resolve();
             });
 
@@ -405,6 +418,7 @@ export class SignalCli extends EventEmitter {
                 if (this.cliProcess) {
                     this.cliProcess.kill('SIGKILL');
                     this.cliProcess = null;
+                    this.emit('disconnected');
                     resolve();
                 }
             }, 5000);
@@ -431,7 +445,7 @@ export class SignalCli extends EventEmitter {
                     this.responseBuffer = '';
                     this.processSingleRpcResponse(response);
                     return;
-                } catch (e) {
+                } catch {
                     // Partial JSON, wait for more data
                     return;
                 }
@@ -448,7 +462,7 @@ export class SignalCli extends EventEmitter {
             try {
                 const response: JsonRpcResponse | JsonRpcNotification = JSON.parse(trimmedLine);
                 this.processSingleRpcResponse(response);
-            } catch (error) {
+            } catch {
                 this.emit('error', new Error(`Failed to parse JSON-RPC response: ${trimmedLine}`));
             }
         }
@@ -469,72 +483,79 @@ export class SignalCli extends EventEmitter {
             this.emit('notification', response);
             if (response.method === 'receive') {
                 this.emit('message', response.params);
-                if (response.params && response.params.envelope) {
-                    this.emitDetailedEvents(response.params.envelope);
+                const params = response.params as Record<string, unknown> | undefined;
+                if (params && params.envelope) {
+                    this.emitDetailedEvents(params.envelope as Record<string, unknown>);
                 }
             }
         }
     }
 
-    private emitDetailedEvents(envelope: any): void {
-        const source = envelope.source || envelope.sourceNumber;
-        const timestamp = envelope.timestamp;
+    private emitDetailedEvents(envelope: Record<string, unknown>): void {
+        const source = (envelope.source as string | undefined) || (envelope.sourceNumber as string | undefined);
+        const timestamp = envelope.timestamp as number | undefined;
+        const dataMessage = envelope.dataMessage as Record<string, unknown> | undefined;
 
         // 1. Reaction
-        if (envelope.dataMessage?.reaction) {
+        const reaction = dataMessage?.reaction as Record<string, unknown> | undefined;
+        if (reaction) {
             this.emit('reaction', {
-                emoji: envelope.dataMessage.reaction.emoji,
+                emoji: reaction.emoji,
                 sender: source,
                 timestamp: timestamp,
-                targetAuthor: envelope.dataMessage.reaction.targetAuthor,
-                targetTimestamp: envelope.dataMessage.reaction.targetSentTimestamp,
-                isRemove: envelope.dataMessage.reaction.isRemove,
+                targetAuthor: reaction.targetAuthor,
+                targetTimestamp: reaction.targetSentTimestamp,
+                isRemove: reaction.isRemove,
             });
         }
 
         // 2. Receipt
-        if (envelope.receiptMessage) {
+        const receiptMessage = envelope.receiptMessage as Record<string, unknown> | undefined;
+        if (receiptMessage) {
             this.emit('receipt', {
                 sender: source,
                 timestamp: timestamp,
-                type: envelope.receiptMessage.type,
-                timestamps: envelope.receiptMessage.timestamps,
-                when: envelope.receiptMessage.when,
+                type: receiptMessage.type,
+                timestamps: receiptMessage.timestamps,
+                when: receiptMessage.when,
             });
         }
 
         // 3. Typing
-        if (envelope.typingMessage) {
+        const typingMessage = envelope.typingMessage as Record<string, unknown> | undefined;
+        if (typingMessage) {
             this.emit('typing', {
                 sender: source,
                 timestamp: timestamp,
-                action: envelope.typingMessage.action,
-                groupId: envelope.typingMessage.groupId,
+                action: typingMessage.action,
+                groupId: typingMessage.groupId,
             });
         }
 
         // 4. Story (if supported in future or present)
-        if (envelope.storyMessage) {
+        const storyMessage = envelope.storyMessage as Record<string, unknown> | undefined;
+        if (storyMessage) {
             this.emit('story', {
                 sender: source,
                 timestamp: timestamp,
-                ...envelope.storyMessage,
+                ...storyMessage,
             });
         }
 
         // 5. Pin/Unpin events (v0.14.0)
-        if (envelope.dataMessage?.pinnedMessageTimestamps !== undefined) {
+        if (dataMessage && dataMessage.pinnedMessageTimestamps !== undefined) {
             this.emit('pin', {
                 sender: source,
                 timestamp: timestamp,
-                pinnedMessageTimestamps: envelope.dataMessage.pinnedMessageTimestamps,
-                ...envelope.dataMessage,
+                pinnedMessageTimestamps: dataMessage.pinnedMessageTimestamps,
+                ...dataMessage,
             });
         }
 
         // 6. Call events (v0.14.2)
-        if (envelope.callMessage) {
-            const callData = envelope.callMessage;
+        const callMessage = envelope.callMessage as Record<string, unknown> | undefined;
+        if (callMessage) {
+            const callData = callMessage;
             this.emit('call', {
                 sender: source,
                 timestamp: timestamp,
@@ -669,7 +690,7 @@ export class SignalCli extends EventEmitter {
         }
     }
 
-    private async sendJsonRpcRequest(method: string, params?: any): Promise<any> {
+    private async sendJsonRpcRequest(method: string, params?: unknown): Promise<unknown> {
         return this.rateLimiter.execute(async () => {
             const daemonMode = this.config.daemonMode || 'json-rpc';
 
@@ -693,10 +714,10 @@ export class SignalCli extends EventEmitter {
                 id,
             };
 
-            const executeRequest = (): Promise<any> => {
+            const executeRequest = (): Promise<unknown> => {
                 // For socket modes (Unix socket, TCP), write to socket
                 if (daemonMode === 'unix-socket' || daemonMode === 'tcp') {
-                    const socket = (this as any).socket;
+                    const socket = this.socket;
                     if (!socket || socket.destroyed) {
                         throw new ConnectionError('Not connected. Call connect() first.');
                     }
@@ -723,23 +744,22 @@ export class SignalCli extends EventEmitter {
             };
 
             // Standardized timeout for all RPC requests
+            let timeoutHandle: NodeJS.Timeout | null = null;
             const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => {
+                timeoutHandle = setTimeout(() => {
                     this.requestPromises.delete(id);
                     reject(new ConnectionError(`RPC request timeout: ${method} (${this.config.requestTimeout}ms)`));
                 }, this.config.requestTimeout);
             });
 
-            return Promise.race([executeRequest(), timeoutPromise]);
+            try {
+                return await Promise.race([executeRequest(), timeoutPromise]);
+            } finally {
+                if (timeoutHandle) {
+                    clearTimeout(timeoutHandle);
+                }
+            }
         });
-    }
-
-    private isGroupId(recipient: string): boolean {
-        return (
-            recipient.includes('=') ||
-            recipient.includes('/') ||
-            (recipient.includes('+') && !recipient.startsWith('+'))
-        );
     }
 
     // ############# Refactored Methods #############
@@ -902,16 +922,12 @@ export class SignalCli extends EventEmitter {
     }
 
     async link(deviceName?: string): Promise<string> {
-        const result = await this.sendJsonRpcRequest('link', { deviceName });
+        const result = (await this.sendJsonRpcRequest('link', { deviceName })) as { uri: string };
         return result.uri;
     }
 
     async deviceLink(options: LinkingOptions = {}): Promise<LinkingResult> {
         return this.devices.deviceLink(options);
-    }
-
-    private displayQRCode(uri: string): void {
-        qrcodeTerminal.generate(uri, { small: true });
     }
 
     async addDevice(uri: string, deviceName?: string): Promise<void> {
@@ -930,7 +946,7 @@ export class SignalCli extends EventEmitter {
         });
     }
 
-    async getVersion(): Promise<any> {
+    async getVersion(): Promise<unknown> {
         return this.sendJsonRpcRequest('version');
     }
 
@@ -966,7 +982,7 @@ export class SignalCli extends EventEmitter {
         await this.updateGroup(groupId, { resetInviteLink: true });
     }
 
-    async listContacts(options?: import('./interfaces').ListContactsOptions): Promise<Contact[]> {
+    async listContacts(options?: ListContactsOptions): Promise<Contact[]> {
         return this.contacts.listContacts(options);
     }
 
@@ -1005,18 +1021,18 @@ export class SignalCli extends EventEmitter {
      * @deprecated Use `connect` instead.
      * This method now calls connect() for backward compatibility.
      */
-    startDaemon(): void {
+    async startDaemon(): Promise<void> {
         console.warn('startDaemon is deprecated. Use connect() instead.');
-        this.connect();
+        await this.connect();
     }
 
     /**
      * @deprecated Use `gracefulShutdown` or `disconnect` instead.
      * This method now calls gracefulShutdown() for backward compatibility.
      */
-    stopDaemon(): void {
+    async stopDaemon(): Promise<void> {
         console.warn('stopDaemon is deprecated. Use gracefulShutdown() or disconnect() instead.');
-        this.gracefulShutdown();
+        await this.gracefulShutdown();
     }
 
     // ############# MESSAGE RECEIVING #############
@@ -1044,11 +1060,6 @@ export class SignalCli extends EventEmitter {
      */
     async receive(options: ReceiveOptions = {}): Promise<Message[]> {
         return this.messages.receive(options);
-    }
-
-    private parseEnvelope(envelope: any): Message {
-        // Kept for backward compatibility if needed internally, but should use MessageManager.parseEnvelope
-        return (this.messages as any).parseEnvelope(envelope);
     }
 
     async removeContact(number: string, options: RemoveContactOptions = {}): Promise<void> {
@@ -1126,7 +1137,7 @@ export class SignalCli extends EventEmitter {
     }
 
     async sendContacts(options: SendContactsOptions = {}): Promise<void> {
-        const params: any = { account: this.account };
+        const params: Record<string, unknown> = { account: this.account };
         if (options.includeAllRecipients) params.allRecipients = true;
         await this.sendJsonRpcRequest('sendContacts', params);
     }
@@ -1190,7 +1201,7 @@ export class SignalCli extends EventEmitter {
      * ```
      */
     async sendPinMessage(options: PinMessageOptions): Promise<void> {
-        const params: any = {
+        const params: Record<string, unknown> = {
             account: this.account,
             targetAuthor: options.targetAuthor,
             targetTimestamp: options.targetTimestamp,
@@ -1232,7 +1243,7 @@ export class SignalCli extends EventEmitter {
      * ```
      */
     async sendUnpinMessage(options: UnpinMessageOptions): Promise<void> {
-        const params: any = {
+        const params: Record<string, unknown> = {
             account: this.account,
             targetAuthor: options.targetAuthor,
             targetTimestamp: options.targetTimestamp,
@@ -1270,7 +1281,7 @@ export class SignalCli extends EventEmitter {
      * ```
      */
     async sendAdminDelete(options: AdminDeleteOptions): Promise<void> {
-        const params: any = {
+        const params: Record<string, unknown> = {
             account: this.account,
             groupId: options.groupId,
             targetAuthor: options.targetAuthor,
@@ -1312,8 +1323,8 @@ export class SignalCli extends EventEmitter {
      * });
      * ```
      */
-    async startCall(options: import('./interfaces').StartCallOptions): Promise<import('./interfaces').CallInfo> {
-        const params: any = {
+    async startCall(options: StartCallOptions): Promise<CallInfo> {
+        const params: Record<string, unknown> = {
             account: this.account,
             recipient: options.recipient,
         };
@@ -1322,7 +1333,7 @@ export class SignalCli extends EventEmitter {
             params.video = true;
         }
 
-        const result = await this.sendJsonRpcRequest('startCall', params);
+        const result = (await this.sendJsonRpcRequest('startCall', params)) as { callId: string; state?: 'ringing' | 'connecting' | 'connected' | 'ended' | 'declined' | 'missed' };
         return {
             callId: result.callId,
             recipient: options.recipient,
@@ -1351,7 +1362,7 @@ export class SignalCli extends EventEmitter {
      * });
      * ```
      */
-    async acceptCall(options: import('./interfaces').AcceptCallOptions): Promise<void> {
+    async acceptCall(options: AcceptCallOptions): Promise<void> {
         await this.sendJsonRpcRequest('acceptCall', {
             account: this.account,
             callId: options.callId,
@@ -1371,7 +1382,7 @@ export class SignalCli extends EventEmitter {
      * await signal.hangUpCall({ callId: 'call-123-456' });
      * ```
      */
-    async hangUpCall(options: import('./interfaces').HangUpCallOptions): Promise<void> {
+    async hangUpCall(options: HangUpCallOptions): Promise<void> {
         await this.sendJsonRpcRequest('hangUpCall', {
             account: this.account,
             callId: options.callId,
@@ -1400,9 +1411,7 @@ export class SignalCli extends EventEmitter {
      * });
      * ```
      */
-    async sendCallRelayCandidates(
-        options: import('./interfaces').SendCallRelayCandidatesOptions,
-    ): Promise<void> {
+    async sendCallRelayCandidates(options: SendCallRelayCandidatesOptions): Promise<void> {
         await this.sendJsonRpcRequest('sendCallRelayCandidates', {
             account: this.account,
             callId: options.callId,

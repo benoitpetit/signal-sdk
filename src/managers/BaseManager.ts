@@ -2,7 +2,7 @@ import { SignalCliConfig, Logger } from '../config';
 
 export abstract class BaseManager {
     constructor(
-        protected readonly sendRequest: (method: string, params?: any) => Promise<any>,
+        protected readonly sendRequest: <T = unknown>(method: string, params?: unknown) => Promise<T>,
         protected readonly account: string | undefined,
         protected readonly logger: Logger,
         protected readonly config: Required<SignalCliConfig>,

@@ -90,7 +90,7 @@ describe('SignalBot', () => {
         jest.spyOn(mockSignalCli, 'listDevices').mockResolvedValue([
             { id: 1, name: 'Test Device', created: Date.now(), lastSeen: Date.now() },
         ]);
-        jest.spyOn(mockSignalCli, 'startDaemon').mockImplementation(() => {});
+        jest.spyOn(mockSignalCli, 'startDaemon').mockResolvedValue(undefined);
         jest.spyOn(mockSignalCli, 'connect').mockResolvedValue(undefined);
         jest.spyOn(mockSignalCli, 'on').mockReturnValue(mockSignalCli);
 

@@ -17,7 +17,7 @@ export class StickerManager extends BaseManager {
             path: manifest.path,
         };
 
-        const result = await this.sendRequest('uploadStickerPack', params);
+        const result = await this.sendRequest<{ packId: string; packKey: string; installUrl: string }>('uploadStickerPack', params);
 
         return {
             packId: result.packId,
@@ -39,7 +39,7 @@ export class StickerManager extends BaseManager {
             account: this.account,
         };
 
-        const result = await this.sendRequest('getSticker', params);
-        return result.data || result;
+        const result = await this.sendRequest<{ data?: string } | string>('getSticker', params);
+        return (result as { data?: string }).data || (result as string);
     }
 }

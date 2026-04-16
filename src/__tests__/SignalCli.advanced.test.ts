@@ -4,7 +4,7 @@
  */
 
 import { SignalCli } from '../SignalCli';
-import { ReceiveOptions, SendMessageOptions } from '../interfaces';
+
 
 describe('SignalCli Advanced Features', () => {
     let signalCli: SignalCli;
@@ -408,7 +408,7 @@ describe('SignalCli Advanced Features', () => {
                 'updateGroup',
                 expect.objectContaining({
                     groupId: 'group123==',
-                    resetLink: true,
+                    resetInviteLink: true,
                 }),
             );
         });

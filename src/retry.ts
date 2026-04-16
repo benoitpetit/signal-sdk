@@ -5,6 +5,8 @@
 
 import { TimeoutError } from './errors';
 
+export type RetryableError = Error & { code?: number };
+
 export interface RetryOptions {
     /** Maximum number of retry attempts */
     maxAttempts?: number;
@@ -17,18 +19,20 @@ export interface RetryOptions {
     /** Timeout for each attempt in milliseconds */
     timeout?: number;
     /** Function to determine if error is retryable */
-    isRetryable?: (error: any) => boolean;
+    isRetryable?: (error: RetryableError) => boolean;
     /** Callback for each retry attempt */
-    onRetry?: (attempt: number, error: any) => void;
+    onRetry?: (attempt: number, error: RetryableError) => void;
+    /** Whether retry is enabled (defaults to true) */
+    enabled?: boolean;
 }
 
-const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
+const DEFAULT_RETRY_OPTIONS: Required<Omit<RetryOptions, 'enabled'>> & { enabled: boolean } = {
     maxAttempts: 3,
     initialDelay: 1000,
     maxDelay: 30000,
     backoffMultiplier: 2,
     timeout: 60000,
-    isRetryable: (error: any) => {
+    isRetryable: (error: RetryableError) => {
         // Retry on connection errors, timeouts, and certain server errors
         if (!error) return false;
 
@@ -47,6 +51,7 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
         return (isConnectionError || isServerError) && !isClientError;
     },
     onRetry: () => {},
+    enabled: true,
 };
 
 /**
@@ -57,7 +62,12 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
  */
 export async function withRetry<T>(operation: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
     const config = { ...DEFAULT_RETRY_OPTIONS, ...options };
-    let lastError: any;
+
+    if (!config.enabled) {
+        return operation();
+    }
+
+    let lastError: RetryableError | undefined;
 
     for (let attempt = 1; attempt <= config.maxAttempts; attempt++) {
         try {
@@ -65,13 +75,14 @@ export async function withRetry<T>(operation: () => Promise<T>, options: RetryOp
             const result = await withTimeout(operation(), config.timeout);
             return result;
         } catch (error) {
-            lastError = error;
+            const retryableError = error as RetryableError;
+            lastError = retryableError;
 
             // Check if we should retry
-            const shouldRetry = attempt < config.maxAttempts && config.isRetryable(error);
+            const shouldRetry = attempt < config.maxAttempts && config.isRetryable(retryableError);
 
             if (!shouldRetry) {
-                throw error;
+                throw retryableError;
             }
 
             // Calculate delay with exponential backoff
@@ -81,7 +92,7 @@ export async function withRetry<T>(operation: () => Promise<T>, options: RetryOp
             );
 
             // Notify about retry
-            config.onRetry(attempt, error);
+            config.onRetry(attempt, retryableError);
 
             // Wait before retrying
             await sleep(delay);
