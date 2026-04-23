@@ -21,7 +21,7 @@ export interface RetryOptions {
     /** Function to determine if error is retryable */
     isRetryable?: (error: RetryableError) => boolean;
     /** Callback for each retry attempt */
-    onRetry?: (attempt: number, error: RetryableError) => void;
+    onRetry?: (attempt: number, error: RetryableError, retryAfterMs?: number) => void;
     /** Whether retry is enabled (defaults to true) */
     enabled?: boolean;
 }
@@ -43,12 +43,14 @@ const DEFAULT_RETRY_OPTIONS: Required<Omit<RetryOptions, 'enabled'>> & { enabled
             errorMessage.includes('econnrefused') ||
             errorMessage.includes('econnreset');
 
+        // signal-cli exit codes: 1=user error, 2=unexpected, 3=server/io, 4=untrusted key, 5=rate limit, 6=captcha rejected
         const isServerError = error.code === 500 || error.code === 502 || error.code === 503;
+        const isRateLimitError = error.code === 5 || errorMessage.includes('rate limit');
 
-        // Don't retry on authentication or validation errors
-        const isClientError = error.code === 401 || error.code === 403 || error.code === 400;
+        // Don't retry on authentication, validation, captcha errors
+        const isClientError = error.code === 401 || error.code === 403 || error.code === 400 || error.code === 6;
 
-        return (isConnectionError || isServerError) && !isClientError;
+        return (isConnectionError || isServerError || isRateLimitError) && !isClientError;
     },
     onRetry: () => {},
     enabled: true,
@@ -86,13 +88,18 @@ export async function withRetry<T>(operation: () => Promise<T>, options: RetryOp
             }
 
             // Calculate delay with exponential backoff
-            const delay = Math.min(
+            let delay = Math.min(
                 config.initialDelay * Math.pow(config.backoffMultiplier, attempt - 1),
                 config.maxDelay,
             );
 
+            const retryAfterMs = (lastError as RetryableError & { retryAfter?: number })?.retryAfter;
+            if (retryAfterMs && retryAfterMs > 0) {
+                delay = Math.min(retryAfterMs, config.maxDelay);
+            }
+
             // Notify about retry
-            config.onRetry(attempt, retryableError);
+            config.onRetry(attempt, lastError, retryAfterMs);
 
             // Wait before retrying
             await sleep(delay);

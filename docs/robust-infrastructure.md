@@ -25,11 +25,12 @@ import {
   SignalError, // Base error class
   ConnectionError, // Network/connection issues
   AuthenticationError, // Authentication failures
-  RateLimitError, // Rate limiting errors
+  RateLimitError, // Rate limiting errors (exit code 5)
   ValidationError, // Input validation failures
   TimeoutError, // Operation timeouts
   GroupError, // Group operation errors
   MessageError, // Message sending errors
+  CaptchaRejectedError, // CAPTCHA verification rejected (exit code 6)
 } from "signal-sdk";
 ```
 
@@ -97,12 +98,14 @@ The SDK automatically retries on:
 - Connection errors
 - Timeout errors
 - Server errors (5xx)
+- Rate limit errors (exit code 5) — respects `Retry-After` header
 
 Does NOT retry on:
 
 - Validation errors (client-side)
 - Authentication errors
-- Rate limit errors (uses rate limiter instead)
+- CAPTCHA rejection (exit code 6) — requires manual captcha solving
+- Untrusted identity errors (exit code 4)
 
 ### Custom Retry Logic
 
@@ -117,8 +120,11 @@ const result = await withRetry(
   {
     maxAttempts: 3,
     initialDelay: 500,
-    onRetry: (attempt, error) => {
+    onRetry: (attempt, error, retryAfterMs) => {
       console.log(`Retry attempt ${attempt}: ${error.message}`);
+      if (retryAfterMs) {
+        console.log(`Server requested retry after ${retryAfterMs}ms`);
+      }
     },
   },
 );

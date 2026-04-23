@@ -473,7 +473,13 @@ export class SignalCli extends EventEmitter {
             const promise = this.requestPromises.get(response.id);
             if (promise) {
                 if (response.error) {
-                    promise.reject(new Error(`[${response.error.code}] ${response.error.message}`));
+                    // signal-cli exit codes: 1=user error, 2=unexpected, 3=server/io, 4=untrusted key, 5=rate limit, 6=captcha rejected
+                    if (response.error.code === 6) {
+                        const { CaptchaRejectedError } = require('./errors');
+                        promise.reject(new CaptchaRejectedError(response.error.message));
+                    } else {
+                        promise.reject(new Error(`[${response.error.code}] ${response.error.message}`));
+                    }
                 } else {
                     promise.resolve(response.result);
                 }
@@ -556,15 +562,37 @@ export class SignalCli extends EventEmitter {
         const callMessage = envelope.callMessage as Record<string, unknown> | undefined;
         if (callMessage) {
             const callData = callMessage;
+            const callState = callData.state as string || 'ringing';
+            const callType = callData.type as string || (callData.video as boolean ? 'video' : 'voice');
+            const callDirection = callData.direction as string || 'incoming';
+
             this.emit('call', {
                 sender: source,
                 timestamp: timestamp,
                 callId: callData.callId,
-                type: callData.type || 'voice',
-                direction: callData.direction || 'incoming',
-                state: callData.state || 'ringing',
+                type: callType,
+                direction: callDirection,
+                state: callState,
+                isActive: !['ended', 'declined', 'missed'].includes(callState),
                 ...callData,
             });
+
+            if (callState === 'ended' || callState === 'declined' || callState === 'missed') {
+                this.emit('callEnded', {
+                    callId: callData.callId,
+                    sender: source,
+                    timestamp: timestamp,
+                    type: callType,
+                    direction: callDirection,
+                    state: callState,
+                });
+            } else if (callState === 'connected') {
+                this.emit('callConnected', {
+                    callId: callData.callId,
+                    sender: source,
+                    timestamp: timestamp,
+                });
+            }
         }
     }
 

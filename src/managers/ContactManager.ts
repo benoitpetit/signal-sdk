@@ -104,6 +104,21 @@ export class ContactManager extends BaseManager {
     }
 
     /**
+     * Trust identity with verified safety number (fingerprint verification).
+     * Use this when you have verified the safety number through external channels.
+     *
+     * @param number - Recipient phone number
+     * @param verifiedSafetyNumber - The verified safety number (from QR code or comparison)
+     */
+    async trustIdentityWithVerification(number: string, verifiedSafetyNumber: string): Promise<void> {
+        await this.sendRequest('trust', {
+            account: this.account,
+            recipient: number,
+            verifiedSafetyNumber,
+        });
+    }
+
+    /**
      * Trust all known identity keys of a user.
      * ⚠️ Only use this for testing purposes.
      */

@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] - 2026-04-23
+
+### Added - signal-cli v0.14.3 Compatibility
+
+#### FEAT-16: CAPTCHA Rejection Error Handling
+- Added `CaptchaRejectedError` class for distinct handling of exit code 6
+- Error is thrown when signal-cli returns CAPTCHA rejection without retrying
+- Added `CaptchaRejectedError` to exports in `index.ts`
+
+#### FEAT-17: Retry-After Header Support
+- Updated `withRetry()` to respect server `Retry-After` header for rate limit errors
+- Added optional `retryAfterMs` parameter to `onRetry` callback
+- Updated retry logic to use server-specified delay when available
+- Rate limit errors (exit code 5) are now retried with proper backoff
+
+#### FEAT-18: Username Validation
+- Added `validateUsername()` function for proper `u:username.format` validation
+- Updated `validateRecipient()` to use the new username validator
+- Supports Signal usernames with format `u:username.000`
+
+#### FEAT-19: Trust Identity with Verification
+- Added `trustIdentityWithVerification()` method in `ContactManager`
+- Provides explicit method for trusting identity with verified safety number
+
+#### FEAT-20: Enhanced Call Event Handling
+- Improved `emitDetailedEvents()` for better call state detection
+- Added `callEnded` event for ended/declined/missed calls
+- Added `callConnected` event for connected calls
+- Better type inference for call direction and state
+
+### Changed
+
+#### Documentation Updates
+- Updated test count badge: 548 → 571 passing tests
+- Test suites: 24 → 25
+- Added Error Codes section in troubleshooting guide
+- Updated robust-infrastructure.md with new error types and retry behavior
+
+### Compatibility
+- Updated for signal-cli v0.14.3 compatibility
+- 571 passing unit and integration tests
+- No breaking changes
+
 ## [0.2.2] - 2026-04-06
 
 ### Added - signal-cli v0.14.2 Compatibility

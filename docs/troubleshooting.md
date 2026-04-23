@@ -418,6 +418,51 @@ You can inspect this directory for:
 
 ---
 
+## Error Codes
+
+The SDK maps signal-cli exit codes to specific error types:
+
+| Exit Code | Error Type | Description | Retry? |
+|-----------|------------|-------------|--------|
+| 1 | `SignalError` | User error (invalid input) | No |
+| 2 | `SignalError` | Unexpected error | No |
+| 3 | `SignalError` | Server/IO error | Yes |
+| 4 | `SignalError` | Untrusted identity key | No |
+| 5 | `RateLimitError` | Rate limit exceeded | Yes (with backoff) |
+| 6 | `CaptchaRejectedError` | CAPTCHA rejected | No |
+
+### Handling RateLimitError
+
+```typescript
+import { RateLimitError } from "signal-sdk";
+
+try {
+  await signal.sendMessage(recipient, text);
+} catch (error) {
+  if (error instanceof RateLimitError) {
+    console.log(`Rate limited. Retry after: ${error.retryAfter}s`);
+    // The SDK automatically retries rate-limited requests
+  }
+}
+```
+
+### Handling CaptchaRejectedError
+
+```typescript
+import { CaptchaRejectedError } from "signal-sdk";
+
+try {
+  await signal.register(number);
+} catch (error) {
+  if (error instanceof CaptchaRejectedError) {
+    console.error("CAPTCHA was rejected. Please solve a new captcha.");
+    // You need to obtain a new captcha token and retry
+  }
+}
+```
+
+---
+
 ## Still Stuck?
 
 If you've tried everything above, please [open an issue on GitHub](https://github.com/signal-sdk/signal-sdk/issues).

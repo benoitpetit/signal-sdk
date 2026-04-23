@@ -57,9 +57,7 @@ export function validateRecipient(recipient: string): void {
 
     // Check if it's a username (starts with u:)
     if (recipient.startsWith('u:')) {
-        if (recipient.length < 3) {
-            throw new ValidationError('Username is too short', 'recipient');
-        }
+        validateUsername(recipient);
         return;
     }
 
@@ -71,6 +69,27 @@ export function validateRecipient(recipient: string): void {
 
     // Otherwise, validate as phone number
     validatePhoneNumber(recipient);
+}
+
+/**
+ * Validates a Signal username (u:username.format)
+ * @param username Username to validate
+ * @throws ValidationError if invalid
+ */
+export function validateUsername(username: string): void {
+    if (!username) {
+        throw new ValidationError('Username is required', 'username');
+    }
+
+    if (typeof username !== 'string') {
+        throw new ValidationError('Username must be a string', 'username');
+    }
+
+    // Username format: u:username.000 or u:username.discriminator
+    const usernameRegex = /^u:[a-zA-Z0-9._-]{3,50}$/;
+    if (!usernameRegex.test(username)) {
+        throw new ValidationError('Username must be in format u:username.000', 'username');
+    }
 }
 
 /**

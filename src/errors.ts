@@ -76,3 +76,11 @@ export class MessageError extends SignalError {
         Object.setPrototypeOf(this, MessageError.prototype);
     }
 }
+
+export class CaptchaRejectedError extends SignalError {
+    constructor(message: string = 'CAPTCHA verification was rejected') {
+        super(message, 'CAPTCHA_REJECTED');
+        this.name = 'CaptchaRejectedError';
+        Object.setPrototypeOf(this, CaptchaRejectedError.prototype);
+    }
+}

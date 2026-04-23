@@ -77,7 +77,7 @@ describe('Retry utilities', () => {
             });
 
             expect(onRetry).toHaveBeenCalledTimes(1);
-            expect(onRetry).toHaveBeenCalledWith(1, expect.any(Error));
+            expect(onRetry).toHaveBeenCalledWith(1, expect.any(Error), undefined);
         });
     });
 
