@@ -48,6 +48,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 571 passing unit and integration tests
 - No breaking changes
 
+### Documentation Fixes
+
+- Fixed Java version requirement (21, not 25)
+- Fixed maxConcurrentRequests default value (5, not 10)
+- Added trustNewIdentities to config documentation
+- Removed logFile (not implemented)
+- Added missing Voice Calling methods to API reference
+- Fixed trustIdentity signature
+- Added isStory parameter to sendReaction
+- Added trustAllKnownKeys to API reference
+- Added 'on-connection' to receiveMode options
+- Updated test statistics (571 tests, 25 suites)
+
 ## [0.2.2] - 2026-04-06
 
 ### Added - signal-cli v0.14.2 Compatibility

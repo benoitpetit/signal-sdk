@@ -123,7 +123,7 @@ npm install signal-sdk
 
 The `postinstall` script automatically downloads and installs the correct signal-cli binary for your platform into the package's `bin/` directory. No manual signal-cli installation is needed.
 
-> **macOS / Windows** — signal-cli runs on the JVM. Make sure **Java 25 or later** is installed and available in your `PATH`.
+> **macOS / Windows** — signal-cli runs on the JVM. Make sure **Java 21 or later** is installed and available in your `PATH`.
 >
 > **Linux** — The native binary is used. No JVM required.
 
@@ -132,7 +132,7 @@ The `postinstall` script automatically downloads and installs the correct signal
 ## Prerequisites
 
 - **Node.js** 18 or later
-- **Java 21+** (macOS and Windows only — required by the JVM-based signal-cli distribution)
+- **Java 21** (macOS and Windows only — required by the JVM-based signal-cli distribution)
 - A Signal account with a registered phone number
 
 To register a phone number with signal-cli before using the SDK:
@@ -587,7 +587,7 @@ The bot includes built-in `/help` and `/ping` commands automatically.
 |                 | `disconnect()`                                               | Close the connection immediately                    |
 |                 | `gracefulShutdown()`                                         | Wait for process to exit cleanly                    |
 | **Messaging**   | `sendMessage(recipient, text, options?)`                     | Send a message to a number or group                 |
-|                 | `sendReaction(recipient, author, timestamp, emoji, remove?)` | React to a message                                  |
+|                 | `sendReaction(recipient, author, timestamp, emoji, remove?, isStory?)` | React to a message (or story)                       |
 |                 | `sendTyping(recipient, stop?)`                               | Send a typing indicator                             |
 |                 | `sendReceipt(recipient, timestamp, type?)`                   | Send a read or viewed receipt                       |
 |                 | `remoteDeleteMessage(recipient, timestamp)`                  | Delete a sent message                               |
@@ -620,10 +620,11 @@ The bot includes built-in `/help` and `/ping` commands automatically.
 |                 | `getUserStatus(numbers?, usernames?)`                        | Check Signal registration status                    |
 |                 | `sendContacts(options?)`                                     | Sync contacts to linked devices                     |
 | **Identity**    | `listIdentities(number?)`                                    | List identity keys                                  |
-|                 | `trustIdentity(number, safetyNumber, verified?)`             | Trust an identity key                               |
+|                 | `trustIdentity(number, verifiedSafetyNumber)`                  | Trust an identity key                              |
 |                 | `getSafetyNumber(number)`                                    | Get the safety number for a contact                 |
 |                 | `verifySafetyNumber(number, safetyNumber)`                   | Verify and auto-trust a safety number               |
 |                 | `listUntrustedIdentities()`                                  | List all untrusted identities                       |
+|                 | `trustAllKnownKeys(number)`                                    | Trust all keys (testing only)                       |
 | **Account**     | `register(number, voice?, captcha?)`                         | Register a phone number                             |
 |                 | `verify(number, code, pin?)`                                 | Complete registration verification                  |
 |                 | `unregister()`                                               | Deactivate the account                              |
@@ -647,6 +648,10 @@ The bot includes built-in `/help` and `/ping` commands automatically.
 |                 | `updateDevice(options)`                                      | Rename a linked device                              |
 |                 | `addDevice(uri, name?)`                                      | Link a new device by URI                            |
 |                 | `deviceLink(options?)`                                       | Start device linking and show QR code               |
+| **Voice Calling** | `startCall(options)`                                        | Start a voice or video call (v0.14.2)              |
+|                 | `acceptCall(options)`                                       | Accept an incoming call (v0.14.2)                   |
+|                 | `hangUpCall(options)`                                        | Hang up a call (v0.14.2)                           |
+|                 | `sendCallRelayCandidates(options)`                           | Send ICE relay candidates (v0.14.2)               |
 | **Stickers**    | `listStickerPacks()`                                         | List installed sticker packs                        |
 |                 | `addStickerPack(packId, packKey)`                            | Install a sticker pack                              |
 |                 | `uploadStickerPack(manifest)`                                | Upload a custom sticker pack                        |
@@ -746,7 +751,7 @@ The bot includes built-in `/help` and `/ping` commands automatically.
 | `ignoreAvatars`     | `boolean`                | Skip downloading avatars for the entire session        |
 | `ignoreStickers`    | `boolean`                | Skip downloading sticker packs for the entire session  |
 | `sendReadReceipts`  | `boolean`                | Auto-send read receipts for the entire session         |
-| `receiveMode`       | `'on-start' \| 'manual'` | When to start receiving messages                       |
+| `receiveMode`       | `'on-start' \| 'on-connection' \| 'manual'` | When to start receiving messages              |
 
 ---
 
@@ -783,13 +788,13 @@ The constructor uses smart parameter detection:
 | ----------------------- | ------------------------- | --------------------------------------------------------- |
 | `maxRetries`            | `3`                       | Number of retry attempts on failure                       |
 | `retryDelay`            | `1000`                    | Initial retry delay in milliseconds                       |
-| `maxConcurrentRequests` | `10`                      | Maximum parallel JSON-RPC requests                        |
+| `maxConcurrentRequests` | `5`                       | Maximum parallel JSON-RPC requests                        |
 | `minRequestInterval`    | `100`                     | Minimum delay between requests in milliseconds            |
 | `requestTimeout`        | `60000`                   | Per-request timeout in milliseconds                       |
 | `connectionTimeout`     | `30000`                   | Connection attempt timeout in milliseconds                |
 | `autoReconnect`         | `true`                    | Automatically reconnect on unexpected disconnect          |
 | `verbose`               | `false`                   | Enable debug logging                                      |
-| `logFile`               | `undefined`               | Write logs to a file path                                 |
+| `trustNewIdentities`    | `'on-first-use'`          | Trust new identities: `on-first-use`, `always`, `never`   |
 | `daemonMode`            | `'json-rpc'`              | Connection mode: `json-rpc`, `unix-socket`, `tcp`, `http` |
 | `socketPath`            | `undefined`               | Path to Unix socket (unix-socket mode)                    |
 | `tcpHost`               | `'localhost'`             | TCP host (tcp mode)                                       |
