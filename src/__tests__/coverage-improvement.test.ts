@@ -11,9 +11,9 @@ import { MessageManager } from '../managers/MessageManager';
 import { AccountManager } from '../managers/AccountManager';
 import { DeviceManager } from '../managers/DeviceManager';
 import { StickerManager } from '../managers/StickerManager';
-import { 
-    GroupInfo, 
-    Contact, 
+import {
+    GroupInfo,
+    Contact,
     Message,
     ListContactsOptions,
     GroupUpdateOptions,
@@ -74,13 +74,13 @@ describe('Coverage Improvement Tests', () => {
                 timestamp: Date.now(),
                 text: undefined,
             };
-            
+
             // Should not throw
             await (bot as any).handleMessage(mockMessage);
         });
 
         it('should handle message with groupInfo', async () => {
-            bot = new SignalBot({ 
+            bot = new SignalBot({
                 phoneNumber: '+1234567890',
                 group: { name: 'Test Group' }
             });
@@ -90,51 +90,51 @@ describe('Coverage Improvement Tests', () => {
                 text: 'Hello group',
                 groupInfo: { id: 'group123', name: 'Test Group' },
             };
-            
+
             await (bot as any).handleMessage(mockMessage);
         });
 
         it('should handle bot command without prefix', async () => {
-            bot = new SignalBot({ 
+            bot = new SignalBot({
                 phoneNumber: '+1234567890',
                 settings: { commandPrefix: '!' }
             });
-            
+
             const mockMessage: Message = {
                 source: '+0987654321',
                 timestamp: Date.now(),
                 text: 'help', // No prefix
             };
-            
+
             // Should not process as command
             await (bot as any).handleMessage(mockMessage);
         });
 
         it('should handle empty command', async () => {
-            bot = new SignalBot({ 
+            bot = new SignalBot({
                 phoneNumber: '+1234567890',
                 settings: { commandPrefix: '/' }
             });
-            
+
             const mockMessage: Message = {
                 source: '+0987654321',
                 timestamp: Date.now(),
                 text: '/', // Empty command
             };
-            
+
             await (bot as any).handleMessage(mockMessage);
         });
 
         it('should handle command with arguments', async () => {
             bot = new SignalBot({ phoneNumber: '+1234567890' });
-            
+
             const commandHandler = jest.fn().mockResolvedValue('Result');
             bot.addCommand({
                 name: 'echo',
                 description: 'Echo command',
                 handler: commandHandler,
             });
-            
+
             // Test that the command was added
             const commands = bot.getCommands();
             expect(commands.length).toBeGreaterThanOrEqual(1);
@@ -142,11 +142,11 @@ describe('Coverage Improvement Tests', () => {
         });
 
         it('should handle admin-only command from non-admin', async () => {
-            bot = new SignalBot({ 
+            bot = new SignalBot({
                 phoneNumber: '+1234567890',
                 admins: ['+1111111111']
             });
-            
+
             const commandHandler = jest.fn();
             (bot as any).addCommand({
                 name: 'admin',
@@ -154,25 +154,25 @@ describe('Coverage Improvement Tests', () => {
                 adminOnly: true,
                 handler: commandHandler,
             });
-            
+
             const mockMessage: Message = {
                 source: '+0987654321', // Not admin
                 timestamp: Date.now(),
                 text: '/admin',
             };
-            
+
             await (bot as any).handleMessage(mockMessage);
-            
+
             // Handler should not be called for non-admin
             expect(commandHandler).not.toHaveBeenCalled();
         });
 
         it('should have cooldown setting in config', () => {
-            bot = new SignalBot({ 
+            bot = new SignalBot({
                 phoneNumber: '+1234567890',
                 settings: { cooldownSeconds: 5 }
             });
-            
+
             // Verify the bot was created with cooldown setting
             expect(bot).toBeDefined();
         });
@@ -180,7 +180,7 @@ describe('Coverage Improvement Tests', () => {
         it('should get bot stats', () => {
             bot = new SignalBot({ phoneNumber: '+1234567890' });
             const stats = bot.getStats();
-            
+
             expect(stats).toHaveProperty('messagesReceived');
             expect(stats).toHaveProperty('commandsExecuted');
             expect(stats).toHaveProperty('startTime');
@@ -189,18 +189,18 @@ describe('Coverage Improvement Tests', () => {
         });
 
         it('should check if message is from admin', () => {
-            bot = new SignalBot({ 
+            bot = new SignalBot({
                 phoneNumber: '+1234567890',
                 admins: ['+1111111111']
             });
-            
+
             expect(bot.isAdmin('+1111111111')).toBe(true);
             expect(bot.isAdmin('+2222222222')).toBe(false);
         });
 
         it('should handle image download failure', async () => {
             bot = new SignalBot({ phoneNumber: '+1234567890' });
-            
+
             // Mock failed download - use a URL that will definitely fail
             jest.spyOn(bot as any, 'downloadImageFromUrl').mockResolvedValue(null);
             const result = await bot.downloadImageFromUrl('https://invalid.invalid/image.jpg');
@@ -209,10 +209,10 @@ describe('Coverage Improvement Tests', () => {
 
         it('should handle sendMessageWithAttachment cleanup', async () => {
             bot = new SignalBot({ phoneNumber: '+1234567890' });
-            
+
             // Mock the signalCli.sendMessage
             (bot as any).signalCli.sendMessage = jest.fn().mockResolvedValue({ timestamp: Date.now() });
-            
+
             await bot.sendMessageWithAttachment('+1234567890', 'Test', ['/path/to/file.jpg']);
         });
     });
@@ -246,7 +246,7 @@ describe('Coverage Improvement Tests', () => {
             mockSendRequest.mockResolvedValue(mockGroup);
 
             const result = await groupManager.createGroup('Test Group', ['+1111111111']);
-            
+
             expect(result).toEqual(mockGroup);
             expect(mockSendRequest).toHaveBeenCalledWith('updateGroup', {
                 account: '+1234567890',
@@ -972,7 +972,7 @@ describe('Coverage Improvement Tests', () => {
                 account: '+1234567890',
                 question: 'Favorite color?',
                 options: ['Red', 'Green', 'Blue'],
-                multiSelect: false,
+                'no-multi': true,
                 recipients: ['+1111111111'],
             }));
         });
