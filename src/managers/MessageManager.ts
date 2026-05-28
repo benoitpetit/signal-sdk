@@ -292,7 +292,7 @@ export class MessageManager extends BaseManager {
         };
 
         if (options.multiSelect !== undefined) {
-            params.multiSelect = options.multiSelect;
+            params['no-multi'] = !options.multiSelect
         }
 
         if (options.groupId) {

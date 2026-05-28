@@ -573,7 +573,7 @@ describe('SignalCli Methods Tests', () => {
             expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith(
                 'sendPollCreate',
                 expect.objectContaining({
-                    multiSelect: true,
+                    'no-multi': false,
                 }),
             );
         });
