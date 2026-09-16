@@ -658,7 +658,7 @@ describe('SignalCli', () => {
             expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('listGroups', {
                 account: '+1234567890',
                 detailed: true,
-                groupId: ['group-1'],
+                groupIds: ['group-1'],
             });
             expect(result).toEqual(mockGroups);
         });

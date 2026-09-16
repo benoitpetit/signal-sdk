@@ -50,9 +50,9 @@ Dive deeper into the SDK capabilities:
 - **[Advanced Features](./advanced-features.md)** - Polls, attachments, account management
 - **[Robust Infrastructure](./robust-infrastructure.md)** - Enterprise-grade reliability
 
-### New Features ✨
+### Current Features
 
-**Phases 1-7 Complete** (571 tests passing, ~87% coverage)
+The current release is aligned with signal-cli v0.14.8. Run `npm test` for the current test-suite result rather than relying on a documentation snapshot.
 
 #### Advanced Messaging
 
@@ -158,30 +158,30 @@ The Signal SDK provides two main classes:
 ### SignalCli - Core Messaging
 
 ```javascript
-const { SignalCli } = require("signal-sdk");
-const signal = new SignalCli("+33111111111");
+const { SignalCli } = require('signal-sdk');
+const signal = new SignalCli('+33111111111');
 
 await signal.connect();
-await signal.sendMessage("+33000000000", "Hello from Signal SDK!");
+await signal.sendMessage('+33000000000', 'Hello from Signal SDK!');
 await signal.gracefulShutdown();
 ```
 
 ### SignalBot - Interactive Bots
 
 ```javascript
-const { SignalBot } = require("signal-sdk");
+const { SignalBot } = require('signal-sdk');
 const bot = new SignalBot({
-  phoneNumber: "+33111111111",
-  admins: ["+33000000000"],
-  group: {
-    name: "My Bot Group",
-    createIfNotExists: true,
-  },
+    phoneNumber: '+33111111111',
+    admins: ['+33000000000'],
+    group: {
+        name: 'My Bot Group',
+        createIfNotExists: true,
+    },
 });
 
 bot.addCommand({
-  name: "hello",
-  handler: () => "Hello World!",
+    name: 'hello',
+    handler: () => 'Hello World!',
 });
 
 await bot.start();
@@ -194,20 +194,20 @@ await bot.start();
 The documentation is organized into the following sections:
 
 - **`docs/`**: Contains all documentation files.
-  - **`installation.md`**: Step-by-step installation guide.
-  - **`device-linking.md`**: QR code linking process.
-  - **`getting-started.md`**: Quick start and basic usage.
-  - **`api-reference.md`**: Complete API for all classes and methods.
-  - **`examples-guide.md`**: Detailed walkthrough of all examples.
-  - **`signalbot-framework.md`**: In-depth guide to the bot framework.
-  - **`advanced-features.md`**: Advanced topics and techniques.
-  - **`troubleshooting.md`**: Solutions to common problems.
-  - **`faq.md`**: Frequently asked questions.
-  - **`README.md`**: This file, the main entry point.
+    - **`installation.md`**: Step-by-step installation guide.
+    - **`device-linking.md`**: QR code linking process.
+    - **`getting-started.md`**: Quick start and basic usage.
+    - **`api-reference.md`**: Complete API for all classes and methods.
+    - **`examples-guide.md`**: Detailed walkthrough of all examples.
+    - **`signalbot-framework.md`**: In-depth guide to the bot framework.
+    - **`advanced-features.md`**: Advanced topics and techniques.
+    - **`troubleshooting.md`**: Solutions to common problems.
+    - **`faq.md`**: Frequently asked questions.
+    - **`README.md`**: This file, the main entry point.
 
 - **`examples/`**: Contains ready-to-run examples.
-  - **`sdk/`**: Core SDK examples.
-  - **`bot/`**: SignalBot framework examples.
+    - **`sdk/`**: Core SDK examples.
+    - **`bot/`**: SignalBot framework examples.
 
 ---
 
@@ -218,25 +218,21 @@ The documentation is organized into the following sections:
 | **JSON-RPC**            |    Yes    |    Yes    | Native, high-performance communication         |
 | **Device Linking**      |    Yes    |    Yes    | QR code device linking                         |
 | **Messaging**           |    Yes    |    Yes    | Send/receive messages, reactions, typing       |
-| **Advanced Messaging**  |    Yes    |    Yes    | Text styling, mentions, quotes, edits ✨       |
-| **Identity Security**   |    Yes    |    Yes    | Safety numbers, verification ✨                |
-| **Username Management** |    Yes    |    Yes    | Set/delete username, links ✨                  |
-| **Multi-Account**       |    Yes    |    No     | Manage multiple accounts simultaneously ✨     |
-| **Enhanced Parsing**    |    Yes    |    Yes    | Detailed profiles & groups ✨                  |
+| **Advanced Messaging**  |    Yes    |    Yes    | Text styling, mentions, quotes, edits          |
+| **Identity Security**   |    Yes    |    Yes    | Safety numbers, verification                   |
+| **Username Management** |    Yes    |    Yes    | Set/delete username, links                     |
+| **Multi-Account**       |    Yes    |    No     | Manage multiple accounts simultaneously        |
+| **Enhanced Parsing**    |    Yes    |    Yes    | Detailed profiles & groups                     |
 | **Group Management**    |    Yes    |    Yes    | Create, update, manage groups                  |
-| **Advanced Groups**     |    Yes    |    Yes    | Invite links, banned members ✨                |
+| **Advanced Groups**     |    Yes    |    Yes    | Invite links, banned members                   |
 | **Contact Management**  |    Yes    |    Yes    | List, update, block/unblock contacts           |
 | **File Attachments**    |    Yes    |    Yes    | Send files, images, and other media            |
 | **Polls**               |    Yes    |    Yes    | Create, vote, terminate polls                  |
-| **Daemon Modes**        |    Yes    |    Yes    | Unix socket, TCP, HTTP ✨                      |
+| **Daemon Modes**        |    Yes    |    Yes    | Unix socket, TCP, HTTP                         |
 | **Command System**      |    No     |    Yes    | Built-in command handling with prefixes        |
 | **Admin Permissions**   |    No     |    Yes    | Role-based access control                      |
 | **Auto Group Creation** |    No     |    Yes    | Automatically create and configure a bot group |
 | **Anti-Spam**           |    No     |    Yes    | Rate limiting and spam protection              |
-
-✨ = New in Phases 1-6
-
----
 
 ## How to Contribute
 

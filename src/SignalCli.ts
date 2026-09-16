@@ -33,6 +33,7 @@ import {
     PollCreateOptions,
     PollVoteOptions,
     PollTerminateOptions,
+    StoryOptions,
     GetAttachmentOptions,
     GetAvatarOptions,
     GetStickerOptions,
@@ -57,7 +58,7 @@ import { EventEmitter } from 'events';
 import * as path from 'path';
 import * as fs from 'fs';
 import { validatePhoneNumber, validateSanitizedString } from './validators';
-import { RateLimiter } from './retry';
+import { CircuitBreaker, RateLimiter } from './retry';
 import { Logger, SignalCliConfig, validateConfig } from './config';
 import { ConnectionError } from './errors';
 import { MessageManager } from './managers/MessageManager';
@@ -80,7 +81,17 @@ export class SignalCli extends EventEmitter {
     private maxReconnectAttempts = 5;
     private isIntentionalShutdown = false;
     private healthCheckTimer: NodeJS.Timeout | null = null;
+    private reconnectTimer: NodeJS.Timeout | null = null;
     private socket?: net.Socket;
+    private circuitBreaker: CircuitBreaker | null = null;
+    private metrics = {
+        requestsSent: 0,
+        requestsSucceeded: 0,
+        requestsFailed: 0,
+        requestTimeouts: 0,
+        reconnects: 0,
+        totalLatencyMs: 0,
+    };
 
     // Managers
     public readonly messages: MessageManager;
@@ -103,6 +114,18 @@ export class SignalCli extends EventEmitter {
 
         // Initialize rate limiter
         this.rateLimiter = new RateLimiter(this.config.maxConcurrentRequests, this.config.minRequestInterval);
+
+        // Initialize circuit breaker (opt-in, fail-fast on repeated downstream failures)
+        if (this.config.circuitBreakerEnabled) {
+            this.circuitBreaker = new CircuitBreaker({
+                failureThreshold: this.config.circuitBreakerFailureThreshold,
+                resetTimeoutMs: this.config.circuitBreakerResetTimeout,
+                onStateChange: (state, previous) => {
+                    this.logger.warn(`Circuit breaker state changed: ${previous} -> ${state}`);
+                    this.emit('circuitBreakerStateChange', { state, previous });
+                },
+            });
+        }
 
         let signalCliPath: string | undefined;
         let phoneNumber: string | undefined;
@@ -238,8 +261,9 @@ export class SignalCli extends EventEmitter {
             // If the process exits immediately, that's an error
             this.cliProcess?.once('close', (code) => {
                 clearTimeout(connectTimeout);
-                if (code !== 0 && !this.cliProcess) {
-                    // Only reject if not trying to reconnect or already null
+                if (code !== 0) {
+                    // Rejecting an already-settled promise is a no-op, so this only
+                    // matters when the process dies before the connection is established.
                     reject(new Error(`signal-cli exited with code ${code}`));
                 }
             });
@@ -253,7 +277,15 @@ export class SignalCli extends EventEmitter {
         return new Promise((resolve, reject) => {
             const socket = net.createConnection(socketPath);
 
+            const connectTimeout = setTimeout(() => {
+                reject(new ConnectionError('Unix socket connection timeout'));
+            }, this.config.connectionTimeout);
+            if (connectTimeout.unref) {
+                connectTimeout.unref();
+            }
+
             socket.on('connect', () => {
+                clearTimeout(connectTimeout);
                 this.logger.debug('Connected to Unix socket:', socketPath);
 
                 socket.on('data', (data) => this.handleRpcResponse(data.toString('utf8')));
@@ -267,13 +299,9 @@ export class SignalCli extends EventEmitter {
             });
 
             socket.on('error', (err) => {
+                clearTimeout(connectTimeout);
                 reject(new ConnectionError(`Failed to connect to Unix socket: ${err.message}`));
             });
-
-            setTimeout(
-                () => reject(new ConnectionError('Unix socket connection timeout')),
-                this.config.connectionTimeout,
-            );
         });
     }
 
@@ -285,7 +313,15 @@ export class SignalCli extends EventEmitter {
         return new Promise((resolve, reject) => {
             const socket = net.createConnection(port, host);
 
+            const connectTimeout = setTimeout(() => {
+                reject(new ConnectionError('TCP connection timeout'));
+            }, this.config.connectionTimeout);
+            if (connectTimeout.unref) {
+                connectTimeout.unref();
+            }
+
             socket.on('connect', () => {
+                clearTimeout(connectTimeout);
                 this.logger.debug(`Connected to TCP: ${host}:${port}`);
 
                 socket.on('data', (data) => this.handleRpcResponse(data.toString('utf8')));
@@ -299,10 +335,9 @@ export class SignalCli extends EventEmitter {
             });
 
             socket.on('error', (err) => {
+                clearTimeout(connectTimeout);
                 reject(new ConnectionError(`Failed to connect to TCP: ${err.message}`));
             });
-
-            setTimeout(() => reject(new ConnectionError('TCP connection timeout')), this.config.connectionTimeout);
         });
     }
 
@@ -371,6 +406,7 @@ export class SignalCli extends EventEmitter {
     public disconnect(): void {
         this.isIntentionalShutdown = true;
         this.stopHealthCheck();
+        this.clearReconnectTimer();
         const daemonMode = this.config.daemonMode || 'json-rpc';
 
         // Close socket connections
@@ -390,12 +426,17 @@ export class SignalCli extends EventEmitter {
 
         this.emit('disconnected');
 
+        // Reject any in-flight requests so callers do not hang forever
+        this.rejectPendingRequests('Disconnected from signal-cli');
+
         // For HTTP mode, nothing to disconnect (stateless)
     }
 
     public async gracefulShutdown(): Promise<void> {
         this.isIntentionalShutdown = true;
         this.stopHealthCheck();
+        this.clearReconnectTimer();
+        this.rejectPendingRequests('Shutting down signal-cli connection');
         return new Promise((resolve) => {
             if (!this.cliProcess) {
                 this.emit('disconnected');
@@ -469,8 +510,8 @@ export class SignalCli extends EventEmitter {
     }
 
     private processSingleRpcResponse(response: JsonRpcResponse | JsonRpcNotification): void {
-        if ('id' in response && response.id) {
-            const promise = this.requestPromises.get(response.id);
+        if ('id' in response && response.id !== undefined && response.id !== null) {
+            const promise = this.requestPromises.get(String(response.id));
             if (promise) {
                 if (response.error) {
                     // signal-cli exit codes: 1=user error, 2=unexpected, 3=server/io, 4=untrusted key, 5=rate limit, 6=captcha rejected
@@ -483,7 +524,7 @@ export class SignalCli extends EventEmitter {
                 } else {
                     promise.resolve(response.result);
                 }
-                this.requestPromises.delete(response.id);
+                this.requestPromises.delete(String(response.id));
             }
         } else if ('method' in response) {
             this.emit('notification', response);
@@ -607,6 +648,11 @@ export class SignalCli extends EventEmitter {
         }
 
         // Auto-reconnect logic if not explicitly disconnected
+        if (this.reconnectTimer) {
+            this.logger.debug('Reconnection already scheduled, skipping duplicate.');
+            return;
+        }
+
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++;
 
@@ -616,15 +662,23 @@ export class SignalCli extends EventEmitter {
                 `signal-cli process closed (code ${code}). Reconnecting in ${delay}ms... (Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
             );
 
-            setTimeout(async () => {
-                try {
-                    await this.connect(this.jsonRpcStartOptions);
-                    this.reconnectAttempts = 0; // Reset on success
-                    this.logger.info('Reconnected to signal-cli successfully');
-                } catch (error) {
-                    this.logger.error('Reconnection attempt failed:', error);
-                }
+            this.reconnectTimer = setTimeout(() => {
+                this.reconnectTimer = null;
+                void (async () => {
+                    try {
+                        await this.connect(this.jsonRpcStartOptions);
+                        this.reconnectAttempts = 0; // Reset on success
+                        this.metrics.reconnects++;
+                        this.logger.info('Reconnected to signal-cli successfully');
+                    } catch (error) {
+                        this.logger.error('Reconnection attempt failed:', error);
+                    }
+                })();
             }, delay);
+
+            if (this.reconnectTimer.unref) {
+                this.reconnectTimer.unref();
+            }
         } else {
             this.logger.error(
                 `Max reconnection attempts reached (${this.maxReconnectAttempts}). Manual intervention required.`,
@@ -718,22 +772,90 @@ export class SignalCli extends EventEmitter {
         }
     }
 
+    private clearReconnectTimer(): void {
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = null;
+        }
+    }
+
+    /**
+     * Reject all pending JSON-RPC requests.
+     * Prevents callers from hanging when the connection goes away.
+     */
+    private rejectPendingRequests(reason: string): void {
+        if (this.requestPromises.size === 0) {
+            return;
+        }
+        const error = new ConnectionError(reason);
+        for (const { reject } of this.requestPromises.values()) {
+            reject(error);
+        }
+        this.requestPromises.clear();
+    }
+
+    /**
+     * Returns runtime metrics for monitoring and calibration.
+     */
+    public getMetrics(): {
+        requestsSent: number;
+        requestsSucceeded: number;
+        requestsFailed: number;
+        requestTimeouts: number;
+        reconnects: number;
+        averageLatencyMs: number;
+        queueDepth: number;
+        activeRequests: number;
+        circuitBreakerState: string | null;
+    } {
+        const completed = this.metrics.requestsSucceeded + this.metrics.requestsFailed;
+        return {
+            ...this.metrics,
+            averageLatencyMs: completed > 0 ? this.metrics.totalLatencyMs / completed : 0,
+            queueDepth: this.rateLimiter.getQueueDepth(),
+            activeRequests: this.rateLimiter.getActiveRequests(),
+            circuitBreakerState: this.circuitBreaker ? this.circuitBreaker.getState() : null,
+        };
+    }
+
+    /**
+     * Reset runtime metrics counters.
+     */
+    public resetMetrics(): void {
+        this.metrics = {
+            requestsSent: 0,
+            requestsSucceeded: 0,
+            requestsFailed: 0,
+            requestTimeouts: 0,
+            reconnects: 0,
+            totalLatencyMs: 0,
+        };
+    }
+
     private async sendJsonRpcRequest(method: string, params?: unknown): Promise<unknown> {
         return this.rateLimiter.execute(async () => {
-            const daemonMode = this.config.daemonMode || 'json-rpc';
+            const startedAt = Date.now();
+            this.metrics.requestsSent++;
 
-            // For HTTP mode, use HTTP requests
-            if (daemonMode === 'http') {
-                const id = uuidv4();
-                const request: JsonRpcRequest = {
-                    jsonrpc: '2.0',
-                    method,
-                    params,
-                    id,
-                };
-                return await this.httpRequest(request);
+            try {
+                const execute = () => this.executeJsonRpcRequest(method, params);
+                const result = this.circuitBreaker ? await this.circuitBreaker.execute(execute) : await execute();
+                this.metrics.requestsSucceeded++;
+                return result;
+            } catch (error) {
+                this.metrics.requestsFailed++;
+                throw error;
+            } finally {
+                this.metrics.totalLatencyMs += Date.now() - startedAt;
             }
+        });
+    }
 
+    private async executeJsonRpcRequest(method: string, params?: unknown): Promise<unknown> {
+        const daemonMode = this.config.daemonMode || 'json-rpc';
+
+        // For HTTP mode, use HTTP requests
+        if (daemonMode === 'http') {
             const id = uuidv4();
             const request: JsonRpcRequest = {
                 jsonrpc: '2.0',
@@ -741,25 +863,22 @@ export class SignalCli extends EventEmitter {
                 params,
                 id,
             };
+            return await this.httpRequest(request);
+        }
 
-            const executeRequest = (): Promise<unknown> => {
-                // For socket modes (Unix socket, TCP), write to socket
-                if (daemonMode === 'unix-socket' || daemonMode === 'tcp') {
-                    const socket = this.socket;
-                    if (!socket || socket.destroyed) {
-                        throw new ConnectionError('Not connected. Call connect() first.');
-                    }
+        const id = uuidv4();
+        const request: JsonRpcRequest = {
+            jsonrpc: '2.0',
+            method,
+            params,
+            id,
+        };
 
-                    const promise = new Promise((resolve, reject) => {
-                        this.requestPromises.set(id, { resolve, reject });
-                    });
-
-                    socket.write(JSON.stringify(request) + '\n');
-                    return promise;
-                }
-
-                // Default JSON-RPC mode with stdin/stdout
-                if (!this.cliProcess || !this.cliProcess.stdin) {
+        const executeRequest = (): Promise<unknown> => {
+            // For socket modes (Unix socket, TCP), write to socket
+            if (daemonMode === 'unix-socket' || daemonMode === 'tcp') {
+                const socket = this.socket;
+                if (!socket || socket.destroyed) {
                     throw new ConnectionError('Not connected. Call connect() first.');
                 }
 
@@ -767,27 +886,40 @@ export class SignalCli extends EventEmitter {
                     this.requestPromises.set(id, { resolve, reject });
                 });
 
-                this.cliProcess.stdin.write(JSON.stringify(request) + '\n');
+                socket.write(JSON.stringify(request) + '\n');
                 return promise;
-            };
+            }
 
-            // Standardized timeout for all RPC requests
-            let timeoutHandle: NodeJS.Timeout | null = null;
-            const timeoutPromise = new Promise((_, reject) => {
-                timeoutHandle = setTimeout(() => {
-                    this.requestPromises.delete(id);
-                    reject(new ConnectionError(`RPC request timeout: ${method} (${this.config.requestTimeout}ms)`));
-                }, this.config.requestTimeout);
+            // Default JSON-RPC mode with stdin/stdout
+            if (!this.cliProcess || !this.cliProcess.stdin) {
+                throw new ConnectionError('Not connected. Call connect() first.');
+            }
+
+            const promise = new Promise((resolve, reject) => {
+                this.requestPromises.set(id, { resolve, reject });
             });
 
-            try {
-                return await Promise.race([executeRequest(), timeoutPromise]);
-            } finally {
-                if (timeoutHandle) {
-                    clearTimeout(timeoutHandle);
-                }
-            }
+            this.cliProcess.stdin.write(JSON.stringify(request) + '\n');
+            return promise;
+        };
+
+        // Standardized timeout for all RPC requests
+        let timeoutHandle: NodeJS.Timeout | null = null;
+        const timeoutPromise = new Promise((_, reject) => {
+            timeoutHandle = setTimeout(() => {
+                this.requestPromises.delete(id);
+                this.metrics.requestTimeouts++;
+                reject(new ConnectionError(`RPC request timeout: ${method} (${this.config.requestTimeout}ms)`));
+            }, this.config.requestTimeout);
         });
+
+        try {
+            return await Promise.race([executeRequest(), timeoutPromise]);
+        } finally {
+            if (timeoutHandle) {
+                clearTimeout(timeoutHandle);
+            }
+        }
     }
 
     // ############# Refactored Methods #############
@@ -988,6 +1120,16 @@ export class SignalCli extends EventEmitter {
 
     async listGroups(): Promise<GroupInfo[]> {
         return this.groups.listGroups();
+    }
+
+    /** Post an image or video attachment to My Story or to a group (signal-cli v0.14.6+). */
+    async sendStory(options: StoryOptions): Promise<SendResponse> {
+        return this.messages.sendStory(options);
+    }
+
+    /** Permanently terminate a Signal group (signal-cli v0.14.8+, admin only). */
+    async terminateGroup(groupId: string): Promise<void> {
+        return this.groups.terminateGroup(groupId);
     }
 
     async sendGroupInviteLink(groupId: string, recipient: string): Promise<SendResponse> {

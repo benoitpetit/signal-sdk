@@ -22,41 +22,41 @@ The SDK provides a comprehensive error hierarchy for precise error handling and 
 
 ```typescript
 import {
-  SignalError, // Base error class
-  ConnectionError, // Network/connection issues
-  AuthenticationError, // Authentication failures
-  RateLimitError, // Rate limiting errors (exit code 5)
-  ValidationError, // Input validation failures
-  TimeoutError, // Operation timeouts
-  GroupError, // Group operation errors
-  MessageError, // Message sending errors
-  CaptchaRejectedError, // CAPTCHA verification rejected (exit code 6)
-} from "signal-sdk";
+    SignalError, // Base error class
+    ConnectionError, // Network/connection issues
+    AuthenticationError, // Authentication failures
+    RateLimitError, // Rate limiting errors (exit code 5)
+    ValidationError, // Input validation failures
+    TimeoutError, // Operation timeouts
+    GroupError, // Group operation errors
+    MessageError, // Message sending errors
+    CaptchaRejectedError, // CAPTCHA verification rejected (exit code 6)
+} from 'signal-sdk';
 ```
 
 ### Error Handling Patterns
 
 ```typescript
-import { SignalCli, ConnectionError, ValidationError } from "signal-sdk";
+import { SignalCli, ConnectionError, ValidationError } from 'signal-sdk';
 
-const signal = new SignalCli("+1234567890");
+const signal = new SignalCli('+1234567890');
 
 try {
-  await signal.sendMessage(recipient, message);
+    await signal.sendMessage(recipient, message);
 } catch (error) {
-  if (error instanceof ConnectionError) {
-    console.error("Connection failed:", error.message);
-    // Implement reconnection logic
-  } else if (error instanceof ValidationError) {
-    console.error("Invalid input:", error.message);
-    // Handle validation error
-  } else if (error instanceof RateLimitError) {
-    console.error("Rate limited:", error.message);
-    console.log("Retry after:", error.retryAfter);
-    // Wait and retry
-  } else {
-    console.error("Unknown error:", error);
-  }
+    if (error instanceof ConnectionError) {
+        console.error('Connection failed:', error.message);
+        // Implement reconnection logic
+    } else if (error instanceof ValidationError) {
+        console.error('Invalid input:', error.message);
+        // Handle validation error
+    } else if (error instanceof RateLimitError) {
+        console.error('Rate limited:', error.message);
+        console.log('Retry after:', error.retryAfter);
+        // Wait and retry
+    } else {
+        console.error('Unknown error:', error);
+    }
 }
 ```
 
@@ -78,16 +78,16 @@ Automatic retry with exponential backoff for transient failures.
 ### Configuration
 
 ```typescript
-import { SignalCli } from "signal-sdk";
+import { SignalCli } from 'signal-sdk';
 
-const signal = new SignalCli("+1234567890", undefined, {
-  retryConfig: {
-    maxAttempts: 5, // Maximum retry attempts
-    initialDelay: 1000, // Initial delay in ms
-    maxDelay: 60000, // Maximum delay in ms
-    backoffMultiplier: 2, // Exponential backoff multiplier
-    timeout: 30000, // Operation timeout in ms
-  },
+const signal = new SignalCli('+1234567890', undefined, {
+    retryConfig: {
+        maxAttempts: 5, // Maximum retry attempts
+        initialDelay: 1000, // Initial delay in ms
+        maxDelay: 60000, // Maximum delay in ms
+        backoffMultiplier: 2, // Exponential backoff multiplier
+        timeout: 30000, // Operation timeout in ms
+    },
 });
 ```
 
@@ -110,40 +110,40 @@ Does NOT retry on:
 ### Custom Retry Logic
 
 ```typescript
-import { withRetry } from "signal-sdk";
+import { withRetry } from 'signal-sdk';
 
 // Custom operation with retry
 const result = await withRetry(
-  async () => {
-    return await someOperation();
-  },
-  {
-    maxAttempts: 3,
-    initialDelay: 500,
-    onRetry: (attempt, error, retryAfterMs) => {
-      console.log(`Retry attempt ${attempt}: ${error.message}`);
-      if (retryAfterMs) {
-        console.log(`Server requested retry after ${retryAfterMs}ms`);
-      }
+    async () => {
+        return await someOperation();
     },
-  },
+    {
+        maxAttempts: 3,
+        initialDelay: 500,
+        onRetry: (attempt, error, retryAfterMs) => {
+            console.log(`Retry attempt ${attempt}: ${error.message}`);
+            if (retryAfterMs) {
+                console.log(`Server requested retry after ${retryAfterMs}ms`);
+            }
+        },
+    },
 );
 ```
 
 ### Timeout Handling
 
 ```typescript
-import { withTimeout, TimeoutError } from "signal-sdk";
+import { withTimeout, TimeoutError } from 'signal-sdk';
 
 try {
-  const result = await withTimeout(
-    signal.sendMessage(recipient, message),
-    10000, // 10 second timeout
-  );
+    const result = await withTimeout(
+        signal.sendMessage(recipient, message),
+        10000, // 10 second timeout
+    );
 } catch (error) {
-  if (error instanceof TimeoutError) {
-    console.error("Operation timed out");
-  }
+    if (error instanceof TimeoutError) {
+        console.error('Operation timed out');
+    }
 }
 ```
 
@@ -156,31 +156,31 @@ Client-side rate limiting prevents hitting Signal API limits.
 ### Configuration
 
 ```typescript
-import { SignalCli } from "signal-sdk";
+import { SignalCli } from 'signal-sdk';
 
-const signal = new SignalCli("+1234567890", undefined, {
-  rateLimiter: {
-    maxConcurrent: 5, // Maximum concurrent operations
-    minInterval: 200, // Minimum interval between requests (ms)
-  },
+const signal = new SignalCli('+1234567890', undefined, {
+    rateLimiter: {
+        maxConcurrent: 5, // Maximum concurrent operations
+        minInterval: 200, // Minimum interval between requests (ms)
+    },
 });
 ```
 
 ### Rate Limiter Usage
 
 ```typescript
-import { RateLimiter } from "signal-sdk";
+import { RateLimiter } from 'signal-sdk';
 
 // Create custom rate limiter
 const limiter = new RateLimiter(3, 500); // 3 concurrent, 500ms interval
 
 // Execute operations with rate limiting
 const results = await Promise.all([
-  limiter.execute(() => signal.sendMessage(user1, "Hello")),
-  limiter.execute(() => signal.sendMessage(user2, "Hello")),
-  limiter.execute(() => signal.sendMessage(user3, "Hello")),
-  limiter.execute(() => signal.sendMessage(user4, "Hello")),
-  limiter.execute(() => signal.sendMessage(user5, "Hello")),
+    limiter.execute(() => signal.sendMessage(user1, 'Hello')),
+    limiter.execute(() => signal.sendMessage(user2, 'Hello')),
+    limiter.execute(() => signal.sendMessage(user3, 'Hello')),
+    limiter.execute(() => signal.sendMessage(user4, 'Hello')),
+    limiter.execute(() => signal.sendMessage(user5, 'Hello')),
 ]);
 
 // Only 3 will execute concurrently, with 500ms between batches
@@ -189,12 +189,12 @@ const results = await Promise.all([
 ### Bulk Operations
 
 ```typescript
-const recipients = ["+1111111111", "+2222222222", "+3333333333" /* ... */];
+const recipients = ['+1111111111', '+2222222222', '+3333333333' /* ... */];
 
 // Rate limiter automatically handles batching
 for (const recipient of recipients) {
-  await signal.sendMessage(recipient, "Bulk message");
-  // Automatically rate-limited
+    await signal.sendMessage(recipient, 'Bulk message');
+    // Automatically rate-limited
 }
 ```
 
@@ -208,35 +208,35 @@ Comprehensive input validation prevents errors before API calls.
 
 ```typescript
 import {
-  validatePhoneNumber,
-  validateGroupId,
-  validateRecipient,
-  validateMessage,
-  validateTimestamp,
-  validateEmoji,
-  sanitizeInput,
-} from "signal-sdk";
+    validatePhoneNumber,
+    validateGroupId,
+    validateRecipient,
+    validateMessage,
+    validateTimestamp,
+    validateEmoji,
+    sanitizeInput,
+} from 'signal-sdk';
 
 // Validate phone number (E.164 format)
 try {
-  validatePhoneNumber("+1234567890");
+    validatePhoneNumber('+1234567890');
 } catch (error) {
-  console.error("Invalid phone number:", error.message);
+    console.error('Invalid phone number:', error.message);
 }
 
 // Validate recipient (phone, UUID, or username)
-validateRecipient("+1234567890");
-validateRecipient("john.doe");
-validateRecipient("uuid:abc-123-def");
+validateRecipient('+1234567890');
+validateRecipient('john.doe');
+validateRecipient('uuid:abc-123-def');
 
 // Validate and sanitize message
 const message = "  Hello <script>alert('xss')</script>  ";
 const safe = sanitizeInput(message);
 validateMessage(safe);
 
-// Validate emoji for reactions
-validateEmoji("👍"); // Valid
-validateEmoji("test"); // Throws ValidationError
+// Validate a reaction supplied by the application
+validateEmoji(reactionEmoji); // Valid
+validateEmoji('test'); // Throws ValidationError
 ```
 
 ### Automatic Validation
@@ -245,9 +245,9 @@ All SDK methods automatically validate inputs:
 
 ```typescript
 // These throw ValidationError if inputs are invalid
-await signal.sendMessage("invalid", "message"); // Throws
-await signal.sendReaction(recipient, author, -1, "invalid"); // Throws
-await signal.createGroup("", []); // Throws (empty name)
+await signal.sendMessage('invalid', 'message'); // Throws
+await signal.sendReaction(recipient, author, -1, 'invalid'); // Throws
+await signal.createGroup('', []); // Throws (empty name)
 ```
 
 ---
@@ -259,26 +259,26 @@ Professional structured logging for debugging and monitoring.
 ### Logger Configuration
 
 ```typescript
-import { Logger, SignalCli } from "signal-sdk";
+import { Logger, SignalCli } from 'signal-sdk';
 
 // Create logger with level
-const logger = new Logger("debug"); // Levels: debug, info, warn, error
+const logger = new Logger('debug'); // Levels: debug, info, warn, error
 
 // Use with SignalCli
-const signal = new SignalCli("+1234567890", undefined, {
-  logger: logger,
+const signal = new SignalCli('+1234567890', undefined, {
+    logger: logger,
 });
 ```
 
 ### Log Levels
 
 ```typescript
-const logger = new Logger("info");
+const logger = new Logger('info');
 
-logger.debug("Detailed debug information"); // Not shown (below 'info')
-logger.info("Informational message"); // Shown
-logger.warn("Warning message"); // Shown
-logger.error("Error occurred", { error: err }); // Shown
+logger.debug('Detailed debug information'); // Not shown (below 'info')
+logger.info('Informational message'); // Shown
+logger.warn('Warning message'); // Shown
+logger.error('Error occurred', { error: err }); // Shown
 ```
 
 ### Custom Logging
@@ -286,19 +286,19 @@ logger.error("Error occurred", { error: err }); // Shown
 ```typescript
 // Implement custom logger
 class CustomLogger extends Logger {
-  log(level: string, message: string, meta?: any): void {
-    // Send to external logging service
-    externalService.log({
-      timestamp: new Date(),
-      level,
-      message,
-      meta,
-    });
-  }
+    log(level: string, message: string, meta?: any): void {
+        // Send to external logging service
+        externalService.log({
+            timestamp: new Date(),
+            level,
+            message,
+            meta,
+        });
+    }
 }
 
-const signal = new SignalCli("+1234567890", undefined, {
-  logger: new CustomLogger("info"),
+const signal = new SignalCli('+1234567890', undefined, {
+    logger: new CustomLogger('info'),
 });
 ```
 
@@ -321,51 +321,51 @@ Centralized configuration for all SDK settings.
 ### Complete Configuration
 
 ```typescript
-import { SignalCli, Logger, validateConfig } from "signal-sdk";
+import { SignalCli, Logger, validateConfig } from 'signal-sdk';
 
 const config = {
-  // Retry configuration
-  retryConfig: {
-    maxAttempts: 5,
-    initialDelay: 1000,
-    maxDelay: 60000,
-    backoffMultiplier: 2,
+    // Retry configuration
+    retryConfig: {
+        maxAttempts: 5,
+        initialDelay: 1000,
+        maxDelay: 60000,
+        backoffMultiplier: 2,
+        timeout: 30000,
+    },
+
+    // Rate limiting
+    rateLimiter: {
+        maxConcurrent: 5,
+        minInterval: 200,
+    },
+
+    // Logging
+    logger: new Logger('info'),
+
+    // Global timeout
     timeout: 30000,
-  },
-
-  // Rate limiting
-  rateLimiter: {
-    maxConcurrent: 5,
-    minInterval: 200,
-  },
-
-  // Logging
-  logger: new Logger("info"),
-
-  // Global timeout
-  timeout: 30000,
 };
 
 // Validate configuration
 validateConfig(config);
 
 // Use configuration
-const signal = new SignalCli("+1234567890", undefined, config);
+const signal = new SignalCli('+1234567890', undefined, config);
 ```
 
 ### Environment-Based Configuration
 
 ```typescript
 const config = {
-  retryConfig: {
-    maxAttempts: process.env.NODE_ENV === "production" ? 5 : 2,
-    initialDelay: 1000,
-    maxDelay: process.env.NODE_ENV === "production" ? 60000 : 10000,
-  },
-  rateLimiter: {
-    maxConcurrent: process.env.NODE_ENV === "production" ? 10 : 3,
-  },
-  logger: new Logger(process.env.LOG_LEVEL || "info"),
+    retryConfig: {
+        maxAttempts: process.env.NODE_ENV === 'production' ? 5 : 2,
+        initialDelay: 1000,
+        maxDelay: process.env.NODE_ENV === 'production' ? 60000 : 10000,
+    },
+    rateLimiter: {
+        maxConcurrent: process.env.NODE_ENV === 'production' ? 10 : 3,
+    },
+    logger: new Logger(process.env.LOG_LEVEL || 'info'),
 };
 ```
 
@@ -377,13 +377,13 @@ const config = {
 
 ```typescript
 // Don't: Use defaults in production
-const signal = new SignalCli("+1234567890");
+const signal = new SignalCli('+1234567890');
 
 // Do: Configure for production
-const signal = new SignalCli("+1234567890", undefined, {
-  retryConfig: { maxAttempts: 5 },
-  rateLimiter: { maxConcurrent: 10 },
-  logger: new Logger("info"),
+const signal = new SignalCli('+1234567890', undefined, {
+    retryConfig: { maxAttempts: 5 },
+    rateLimiter: { maxConcurrent: 10 },
+    logger: new Logger('info'),
 });
 ```
 
@@ -395,15 +395,15 @@ await signal.sendMessage(recipient, message).catch(() => {});
 
 // Do: Handle specific errors
 try {
-  await signal.sendMessage(recipient, message);
-} catch (error) {
-  if (error instanceof RateLimitError) {
-    await sleep(error.retryAfter);
     await signal.sendMessage(recipient, message);
-  } else {
-    logger.error("Failed to send message", { error });
-    throw error;
-  }
+} catch (error) {
+    if (error instanceof RateLimitError) {
+        await sleep(error.retryAfter);
+        await signal.sendMessage(recipient, message);
+    } else {
+        logger.error('Failed to send message', { error });
+        throw error;
+    }
 }
 ```
 
@@ -415,14 +415,14 @@ await signal.sendMessage(userInput, message);
 
 // Do: Validate first
 try {
-  validatePhoneNumber(userInput);
-  const sanitized = sanitizeInput(message);
-  await signal.sendMessage(userInput, sanitized);
+    validatePhoneNumber(userInput);
+    const sanitized = sanitizeInput(message);
+    await signal.sendMessage(userInput, sanitized);
 } catch (error) {
-  if (error instanceof ValidationError) {
-    return "Invalid input, please check your data";
-  }
-  throw error;
+    if (error instanceof ValidationError) {
+        return 'Invalid input, please check your data';
+    }
+    throw error;
 }
 ```
 
@@ -430,13 +430,13 @@ try {
 
 ```typescript
 // Don't: Use console.log
-console.log("Sending message to", recipient);
+console.log('Sending message to', recipient);
 
 // Do: Use logger with context
-logger.info("Sending message", {
-  recipient: recipient,
-  messageLength: message.length,
-  hasAttachments: options.attachments?.length > 0,
+logger.info('Sending message', {
+    recipient: recipient,
+    messageLength: message.length,
+    hasAttachments: options.attachments?.length > 0,
 });
 ```
 
@@ -450,11 +450,11 @@ let requestCount = 0;
 const originalExecute = limiter.execute.bind(limiter);
 
 limiter.execute = async (operation) => {
-  requestCount++;
-  if (requestCount % 100 === 0) {
-    logger.info("Rate limiter stats", { requestCount });
-  }
-  return originalExecute(operation);
+    requestCount++;
+    if (requestCount % 100 === 0) {
+        logger.info('Rate limiter stats', { requestCount });
+    }
+    return originalExecute(operation);
 };
 ```
 
@@ -462,24 +462,24 @@ limiter.execute = async (operation) => {
 
 ```typescript
 async function healthCheck(signal: SignalCli): Promise<boolean> {
-  try {
-    // Test connection
-    await withTimeout(signal.listAccounts(), 5000);
-    return true;
-  } catch (error) {
-    logger.error("Health check failed", { error });
-    return false;
-  }
+    try {
+        // Test connection
+        await withTimeout(signal.listAccounts(), 5000);
+        return true;
+    } catch (error) {
+        logger.error('Health check failed', { error });
+        return false;
+    }
 }
 
 // Periodic health checks
 setInterval(async () => {
-  const healthy = await healthCheck(signal);
-  if (!healthy) {
-    // Reconnect or alert
-    await signal.disconnect();
-    await signal.connect();
-  }
+    const healthy = await healthCheck(signal);
+    if (!healthy) {
+        // Reconnect or alert
+        await signal.disconnect();
+        await signal.connect();
+    }
 }, 60000); // Every minute
 ```
 
@@ -487,16 +487,16 @@ setInterval(async () => {
 
 ```typescript
 // Handle shutdown signals
-process.on("SIGTERM", async () => {
-  logger.info("Received SIGTERM, shutting down gracefully");
-  await signal.gracefulShutdown();
-  process.exit(0);
+process.on('SIGTERM', async () => {
+    logger.info('Received SIGTERM, shutting down gracefully');
+    await signal.gracefulShutdown();
+    process.exit(0);
 });
 
-process.on("SIGINT", async () => {
-  logger.info("Received SIGINT, shutting down gracefully");
-  await signal.gracefulShutdown();
-  process.exit(0);
+process.on('SIGINT', async () => {
+    logger.info('Received SIGINT, shutting down gracefully');
+    await signal.gracefulShutdown();
+    process.exit(0);
 });
 ```
 

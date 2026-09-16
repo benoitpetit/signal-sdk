@@ -123,7 +123,7 @@ npm install signal-sdk
 
 The `postinstall` script automatically downloads and installs the correct signal-cli binary for your platform into the package's `bin/` directory. No manual signal-cli installation is needed.
 
-> **macOS / Windows** — signal-cli runs on the JVM. Make sure **Java 21 or later** is installed and available in your `PATH`.
+> **macOS / Windows** — signal-cli runs on the JVM. Make sure **Java 25 or later** is installed and available in your `PATH`.
 >
 > **Linux** — The native binary is used. No JVM required.
 
@@ -132,7 +132,7 @@ The `postinstall` script automatically downloads and installs the correct signal
 ## Prerequisites
 
 - **Node.js** 18 or later
-- **Java 21** (macOS and Windows only — required by the JVM-based signal-cli distribution)
+- **Java 25** (macOS and Windows only — required by the JVM-based signal-cli distribution)
 - A Signal account with a registered phone number
 
 To register a phone number with signal-cli before using the SDK:
@@ -316,10 +316,10 @@ await signal.sendMessage('+33222222222', 'Photos from today:', {
 ### React to a message
 
 ```javascript
-await signal.sendReaction('+33222222222', '+33222222222', 1700000000000, '👍');
+await signal.sendReaction('+33222222222', '+33222222222', 1700000000000, reactionEmoji);
 
 // Remove a reaction
-await signal.sendReaction('+33222222222', '+33222222222', 1700000000000, '👍', true);
+await signal.sendReaction('+33222222222', '+33222222222', 1700000000000, reactionEmoji, true);
 ```
 
 ### Remote delete a message
@@ -581,86 +581,88 @@ The bot includes built-in `/help` and `/ping` commands automatically.
 
 ### SignalCli methods
 
-| Category        | Method                                                       | Description                                         |
-| --------------- | ------------------------------------------------------------ | --------------------------------------------------- |
-| **Connection**  | `connect(options?)`                                          | Start JSON-RPC daemon with optional startup flags   |
-|                 | `disconnect()`                                               | Close the connection immediately                    |
-|                 | `gracefulShutdown()`                                         | Wait for process to exit cleanly                    |
-| **Messaging**   | `sendMessage(recipient, text, options?)`                     | Send a message to a number or group                 |
-|                 | `sendReaction(recipient, author, timestamp, emoji, remove?, isStory?)` | React to a message (or story)                       |
-|                 | `sendTyping(recipient, stop?)`                               | Send a typing indicator                             |
-|                 | `sendReceipt(recipient, timestamp, type?)`                   | Send a read or viewed receipt                       |
-|                 | `remoteDeleteMessage(recipient, timestamp)`                  | Delete a sent message                               |
-|                 | `sendPinMessage(options)`                                    | Pin a message in a conversation or group            |
-|                 | `sendUnpinMessage(options)`                                  | Unpin a message                                     |
-|                 | `sendAdminDelete(options)`                                   | Delete a message for all group members (admin only) |
-|                 | `sendPollCreate(options)`                                    | Create a poll                                       |
-|                 | `sendPollVote(recipient, options)`                           | Vote on a poll                                      |
-|                 | `sendPollTerminate(recipient, options)`                      | Close a poll                                        |
-|                 | `sendPaymentNotification(recipient, data)`                   | Send a MobileCoin payment notification              |
-|                 | `sendNoteToSelf(message, options?)`                          | Send a message to your own account                  |
-|                 | `sendMessageWithProgress(recipient, text, options?)`         | Send with upload progress callback                  |
-|                 | `receive(options?)`                                          | Manually fetch pending messages                     |
-| **Groups**      | `createGroup(name, members)`                                 | Create a new group                                  |
-|                 | `updateGroup(groupId, options)`                              | Update group settings and members                   |
-|                 | `listGroups()`                                               | List all groups                                     |
-|                 | `listGroupsDetailed(options?)`                               | List groups with members and invite links           |
-|                 | `getGroupsWithDetails(options?)`                             | List and parse groups                               |
-|                 | `quitGroup(groupId)`                                         | Leave a group                                       |
-|                 | `joinGroup(uri)`                                             | Join via invite link                                |
-|                 | `sendGroupInviteLink(groupId, recipient)`                    | Send invite link to a contact                       |
-|                 | `resetGroupLink(groupId)`                                    | Reset the invite link                               |
-|                 | `setBannedMembers(groupId, members)`                         | Ban members from a group                            |
-| **Contacts**    | `listContacts()`                                             | List all contacts                                   |
-|                 | `getContactsWithProfiles()`                                  | List contacts with parsed profile data              |
-|                 | `updateContact(number, name?, options?)`                     | Update a contact                                    |
-|                 | `removeContact(number, options?)`                            | Remove a contact                                    |
-|                 | `block(recipients, groupId?)`                                | Block contacts or a group                           |
-|                 | `unblock(recipients, groupId?)`                              | Unblock contacts or a group                         |
-|                 | `getUserStatus(numbers?, usernames?)`                        | Check Signal registration status                    |
-|                 | `sendContacts(options?)`                                     | Sync contacts to linked devices                     |
-| **Identity**    | `listIdentities(number?)`                                    | List identity keys                                  |
-|                 | `trustIdentity(number, verifiedSafetyNumber)`                  | Trust an identity key                              |
-|                 | `getSafetyNumber(number)`                                    | Get the safety number for a contact                 |
-|                 | `verifySafetyNumber(number, safetyNumber)`                   | Verify and auto-trust a safety number               |
-|                 | `listUntrustedIdentities()`                                  | List all untrusted identities                       |
-|                 | `trustAllKnownKeys(number)`                                    | Trust all keys (testing only)                       |
-| **Account**     | `register(number, voice?, captcha?)`                         | Register a phone number                             |
-|                 | `verify(number, code, pin?)`                                 | Complete registration verification                  |
-|                 | `unregister()`                                               | Deactivate the account                              |
-|                 | `deleteLocalAccountData()`                                   | Delete all local account data                       |
-|                 | `updateAccount(options)`                                     | Update account settings                             |
-|                 | `updateAccountConfiguration(config)`                         | Update sync configuration                           |
-|                 | `updateProfile(givenName, about?, aboutEmoji?, avatar?, options?)` | Update profile                              |
-|                 | `setUsername(username)`                                      | Set a Signal username                               |
-|                 | `deleteUsername()`                                           | Delete the Signal username                          |
-|                 | `setPin(pin)`                                                | Set a registration lock PIN                         |
-|                 | `removePin()`                                                | Remove the registration lock PIN                    |
-|                 | `startChangeNumber(number, voice?, captcha?)`                | Start a phone number change                         |
-|                 | `finishChangeNumber(number, code, pin?)`                     | Complete a phone number change                      |
-|                 | `listAccounts()`                                             | List all local accounts                             |
-|                 | `listAccountsDetailed()`                                     | List accounts with name and UUID                    |
-|                 | `sendPaymentNotification(recipient, data)`                   | Send a payment notification                         |
-|                 | `submitRateLimitChallenge(challenge, captcha)`               | Resolve a rate limit captcha                        |
-|                 | `isRegistered(number)`                                       | Check if a number is registered on Signal           |
-| **Devices**     | `listDevices()`                                              | List linked devices                                 |
-|                 | `removeDevice(deviceId)`                                     | Remove a linked device                              |
-|                 | `updateDevice(options)`                                      | Rename a linked device                              |
-|                 | `addDevice(uri, name?)`                                      | Link a new device by URI                            |
-|                 | `deviceLink(options?)`                                       | Start device linking and show QR code               |
-| **Voice Calling** | `startCall(options)`                                        | Start a voice or video call (v0.14.2)              |
-|                 | `acceptCall(options)`                                       | Accept an incoming call (v0.14.2)                   |
-|                 | `hangUpCall(options)`                                        | Hang up a call (v0.14.2)                           |
-|                 | `sendCallRelayCandidates(options)`                           | Send ICE relay candidates (v0.14.2)               |
-| **Stickers**    | `listStickerPacks()`                                         | List installed sticker packs                        |
-|                 | `addStickerPack(packId, packKey)`                            | Install a sticker pack                              |
-|                 | `uploadStickerPack(manifest)`                                | Upload a custom sticker pack                        |
-|                 | `getSticker(options)`                                        | Retrieve sticker data                               |
-| **Attachments** | `getAttachment(options)`                                     | Retrieve an attachment by ID                        |
-|                 | `getAvatar(options)`                                         | Retrieve a contact or group avatar                  |
-| **Sync**        | `sendSyncRequest()`                                          | Request sync from primary device                    |
-|                 | `sendMessageRequestResponse(recipient, response)`            | Respond to a message request                        |
-|                 | `getVersion()`                                               | Get signal-cli version info                         |
+| Category          | Method                                                                 | Description                                         |
+| ----------------- | ---------------------------------------------------------------------- | --------------------------------------------------- |
+| **Connection**    | `connect(options?)`                                                    | Start JSON-RPC daemon with optional startup flags   |
+|                   | `disconnect()`                                                         | Close the connection immediately                    |
+|                   | `gracefulShutdown()`                                                   | Wait for process to exit cleanly                    |
+| **Messaging**     | `sendMessage(recipient, text, options?)`                               | Send a message to a number or group                 |
+|                   | `sendReaction(recipient, author, timestamp, emoji, remove?, isStory?)` | React to a message (or story)                       |
+|                   | `sendTyping(recipient, stop?)`                                         | Send a typing indicator                             |
+|                   | `sendReceipt(recipient, timestamp, type?)`                             | Send a read or viewed receipt                       |
+|                   | `remoteDeleteMessage(recipient, timestamp)`                            | Delete a sent message                               |
+|                   | `sendPinMessage(options)`                                              | Pin a message in a conversation or group            |
+|                   | `sendUnpinMessage(options)`                                            | Unpin a message                                     |
+|                   | `sendAdminDelete(options)`                                             | Delete a message for all group members (admin only) |
+|                   | `sendPollCreate(options)`                                              | Create a poll                                       |
+|                   | `sendPollVote(recipient, options)`                                     | Vote on a poll                                      |
+|                   | `sendPollTerminate(recipient, options)`                                | Close a poll                                        |
+| **Stories**       | `sendStory(options)`                                                   | Post an image or video to My Story or a group       |
+|                   | `sendPaymentNotification(recipient, data)`                             | Send a MobileCoin payment notification              |
+|                   | `sendNoteToSelf(message, options?)`                                    | Send a message to your own account                  |
+|                   | `sendMessageWithProgress(recipient, text, options?)`                   | Send with upload progress callback                  |
+|                   | `receive(options?)`                                                    | Manually fetch pending messages                     |
+| **Groups**        | `createGroup(name, members)`                                           | Create a new group                                  |
+|                   | `updateGroup(groupId, options)`                                        | Update group settings and members                   |
+|                   | `listGroups()`                                                         | List all groups                                     |
+|                   | `listGroupsDetailed(options?)`                                         | List groups with members and invite links           |
+|                   | `getGroupsWithDetails(options?)`                                       | List and parse groups                               |
+|                   | `quitGroup(groupId)`                                                   | Leave a group                                       |
+|                   | `terminateGroup(groupId)`                                              | Permanently terminate a group (admin, v0.14.8+)     |
+|                   | `joinGroup(uri)`                                                       | Join via invite link                                |
+|                   | `sendGroupInviteLink(groupId, recipient)`                              | Send invite link to a contact                       |
+|                   | `resetGroupLink(groupId)`                                              | Reset the invite link                               |
+|                   | `setBannedMembers(groupId, members)`                                   | Ban members from a group                            |
+| **Contacts**      | `listContacts()`                                                       | List all contacts                                   |
+|                   | `getContactsWithProfiles()`                                            | List contacts with parsed profile data              |
+|                   | `updateContact(number, name?, options?)`                               | Update a contact                                    |
+|                   | `removeContact(number, options?)`                                      | Remove a contact                                    |
+|                   | `block(recipients, groupId?)`                                          | Block contacts or a group                           |
+|                   | `unblock(recipients, groupId?)`                                        | Unblock contacts or a group                         |
+|                   | `getUserStatus(numbers?, usernames?)`                                  | Check Signal registration status                    |
+|                   | `sendContacts(options?)`                                               | Sync contacts to linked devices                     |
+| **Identity**      | `listIdentities(number?)`                                              | List identity keys                                  |
+|                   | `trustIdentity(number, verifiedSafetyNumber)`                          | Trust an identity key                               |
+|                   | `getSafetyNumber(number)`                                              | Get the safety number for a contact                 |
+|                   | `verifySafetyNumber(number, safetyNumber)`                             | Verify and auto-trust a safety number               |
+|                   | `listUntrustedIdentities()`                                            | List all untrusted identities                       |
+|                   | `trustAllKnownKeys(number)`                                            | Trust all keys (testing only)                       |
+| **Account**       | `register(number, voice?, captcha?)`                                   | Register a phone number                             |
+|                   | `verify(number, code, pin?)`                                           | Complete registration verification                  |
+|                   | `unregister()`                                                         | Deactivate the account                              |
+|                   | `deleteLocalAccountData()`                                             | Delete all local account data                       |
+|                   | `updateAccount(options)`                                               | Update account settings                             |
+|                   | `updateAccountConfiguration(config)`                                   | Update sync configuration                           |
+|                   | `updateProfile(givenName, about?, aboutEmoji?, avatar?, options?)`     | Update profile                                      |
+|                   | `setUsername(username)`                                                | Set a Signal username                               |
+|                   | `deleteUsername()`                                                     | Delete the Signal username                          |
+|                   | `setPin(pin)`                                                          | Set a registration lock PIN                         |
+|                   | `removePin()`                                                          | Remove the registration lock PIN                    |
+|                   | `startChangeNumber(number, voice?, captcha?)`                          | Start a phone number change                         |
+|                   | `finishChangeNumber(number, code, pin?)`                               | Complete a phone number change                      |
+|                   | `listAccounts()`                                                       | List all local accounts                             |
+|                   | `listAccountsDetailed()`                                               | List accounts with name and UUID                    |
+|                   | `sendPaymentNotification(recipient, data)`                             | Send a payment notification                         |
+|                   | `submitRateLimitChallenge(challenge, captcha)`                         | Resolve a rate limit captcha                        |
+|                   | `isRegistered(number)`                                                 | Check if a number is registered on Signal           |
+| **Devices**       | `listDevices()`                                                        | List linked devices                                 |
+|                   | `removeDevice(deviceId)`                                               | Remove a linked device                              |
+|                   | `updateDevice(options)`                                                | Rename a linked device                              |
+|                   | `addDevice(uri, name?)`                                                | Link a new device by URI                            |
+|                   | `deviceLink(options?)`                                                 | Start device linking and show QR code               |
+| **Voice Calling** | `startCall(options)`                                                   | Start a voice or video call (v0.14.2)               |
+|                   | `acceptCall(options)`                                                  | Accept an incoming call (v0.14.2)                   |
+|                   | `hangUpCall(options)`                                                  | Hang up a call (v0.14.2)                            |
+|                   | `sendCallRelayCandidates(options)`                                     | Send ICE relay candidates (v0.14.2)                 |
+| **Stickers**      | `listStickerPacks()`                                                   | List installed sticker packs                        |
+|                   | `addStickerPack(packId, packKey)`                                      | Install a sticker pack                              |
+|                   | `uploadStickerPack(manifest)`                                          | Upload a custom sticker pack                        |
+|                   | `getSticker(options)`                                                  | Retrieve sticker data                               |
+| **Attachments**   | `getAttachment(options)`                                               | Retrieve an attachment by ID                        |
+|                   | `getAvatar(options)`                                                   | Retrieve a contact or group avatar                  |
+| **Sync**          | `sendSyncRequest()`                                                    | Request sync from primary device                    |
+|                   | `sendMessageRequestResponse(recipient, response)`                      | Respond to a message request                        |
+|                   | `getVersion()`                                                         | Get signal-cli version info                         |
 
 ### SendMessageOptions
 
@@ -685,28 +687,28 @@ The bot includes built-in `/help` and `/ping` commands automatically.
 
 ### PollCreateOptions
 
-| Option        | Type       | Description                              |
-| ------------- | ---------- | ---------------------------------------- |
-| `question`    | `string`   | The poll question (required)             |
-| `options`     | `string[]` | Array of poll options (required)         |
-| `multiSelect` | `boolean`  | Allow multiple selections (default: true)|
-| `recipients`  | `string[]` | Recipients for direct message poll       |
-| `groupId`     | `string`   | Group ID for group poll                  |
+| Option        | Type       | Description                               |
+| ------------- | ---------- | ----------------------------------------- |
+| `question`    | `string`   | The poll question (required)              |
+| `options`     | `string[]` | Array of poll options (required)          |
+| `multiSelect` | `boolean`  | Allow multiple selections (default: true) |
+| `recipients`  | `string[]` | Recipients for direct message poll        |
+| `groupId`     | `string`   | Group ID for group poll                   |
 
 ### PollVoteOptions
 
-| Option          | Type       | Description                        |
-| --------------- | ---------- | ---------------------------------- |
-| `pollAuthor`    | `string`   | Author of the poll (required)      |
-| `pollTimestamp` | `number`   | Poll message timestamp (required)  |
-| `optionIndexes` | `number[]` | Array of option indices to vote for|
-| `voteCount`     | `number`   | Optional vote count                |
+| Option          | Type       | Description                         |
+| --------------- | ---------- | ----------------------------------- |
+| `pollAuthor`    | `string`   | Author of the poll (required)       |
+| `pollTimestamp` | `number`   | Poll message timestamp (required)   |
+| `optionIndexes` | `number[]` | Array of option indices to vote for |
+| `voteCount`     | `number`   | Optional vote count                 |
 
 ### PollTerminateOptions
 
-| Option          | Type     | Description                       |
-| --------------- | -------- | --------------------------------- |
-| `pollTimestamp` | `number` | Timestamp of the poll to terminate|
+| Option          | Type     | Description                        |
+| --------------- | -------- | ---------------------------------- |
+| `pollTimestamp` | `number` | Timestamp of the poll to terminate |
 
 ### PinMessageOptions
 
@@ -744,14 +746,14 @@ The bot includes built-in `/help` and `/ping` commands automatically.
 
 ### JsonRpcStartOptions (connect)
 
-| Option              | Type                     | Description                                            |
-| ------------------- | ------------------------ | ------------------------------------------------------ |
-| `ignoreAttachments` | `boolean`                | Skip downloading attachments for all received messages |
-| `ignoreStories`     | `boolean`                | Skip story messages for the entire session             |
-| `ignoreAvatars`     | `boolean`                | Skip downloading avatars for the entire session        |
-| `ignoreStickers`    | `boolean`                | Skip downloading sticker packs for the entire session  |
-| `sendReadReceipts`  | `boolean`                | Auto-send read receipts for the entire session         |
-| `receiveMode`       | `'on-start' \| 'on-connection' \| 'manual'` | When to start receiving messages              |
+| Option              | Type                                        | Description                                            |
+| ------------------- | ------------------------------------------- | ------------------------------------------------------ |
+| `ignoreAttachments` | `boolean`                                   | Skip downloading attachments for all received messages |
+| `ignoreStories`     | `boolean`                                   | Skip story messages for the entire session             |
+| `ignoreAvatars`     | `boolean`                                   | Skip downloading avatars for the entire session        |
+| `ignoreStickers`    | `boolean`                                   | Skip downloading sticker packs for the entire session  |
+| `sendReadReceipts`  | `boolean`                                   | Auto-send read receipts for the entire session         |
+| `receiveMode`       | `'on-start' \| 'on-connection' \| 'manual'` | When to start receiving messages                       |
 
 ---
 
@@ -779,6 +781,7 @@ new SignalCli(accountOrPath?, account?, config?)
 | `config`        | `SignalCliConfig` object (see below)                          |
 
 The constructor uses smart parameter detection:
+
 - If `accountOrPath` starts with `+`, it's treated as a phone number
 - Otherwise, it's treated as a path to the signal-cli binary
 
@@ -819,61 +822,45 @@ npm test -- --coverage
 npm test -- --watch
 ```
 
-### Test statistics
+### Test reporting
 
-| Metric           | Value       |
-| ---------------- | ----------- |
-| Total tests      | 571 passing |
-| Test suites      | 25          |
-| Overall coverage | ~87%        |
-
-### Coverage by module
-
-| Module                   | Statements | Branches | Functions | Lines  |
-| ------------------------ | ---------- | -------- | --------- | ------ |
-| `errors.ts`              | 100%       | 100%     | 100%      | 100%   |
-| `validators.ts`          | 100%       | 100%     | 100%      | 100%   |
-| `config.ts`              | 100%       | 97%      | 100%      | 100%   |
-| `retry.ts`               | 97%        | 85%      | 100%      | 98%    |
-| `BaseManager.ts`         | 100%       | 100%     | 100%      | 100%   |
-| `AccountManager.ts`      | 98.73%     | 88%      | 100%      | 98.46% |
-| `ContactManager.ts`      | 98.88%     | 91.35%   | 100%      | 100%   |
-| `DeviceManager.ts`       | 90.74%     | 80.48%   | 90.9%     | 90.74% |
-| `GroupManager.ts`        | 100%       | 98.38%   | 100%      | 100%   |
-| `MessageManager.ts`      | 90.28%     | 86.66%   | 90%       | 91.07% |
-| `StickerManager.ts`      | 92.85%     | 83.33%   | 100%      | 92.85% |
-| `SignalCli.ts`           | 83.47%     | 70.99%   | 79.72%    | 85.32% |
-| `SignalBot.ts`           | 73.03%     | 59.75%   | 65.62%    | 72.62% |
-| `MultiAccountManager.ts` | 88.49%     | 74.28%   | 82.6%     | 90.09% |
+Run `npm test -- --coverage` to generate the current suite and coverage report. The report is deliberately not copied into this README, so release documentation cannot drift from the checked revision.
 
 ### Test suites
 
-| Suite                                    | Focus                                                                                                           |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `errors.test.ts`                         | Error class hierarchy and serialization                                                                         |
-| `validators.test.ts`                     | Phone number, UUID, and input validation                                                                        |
-| `config.test.ts`                         | Configuration validation and defaults                                                                           |
-| `retry.test.ts`                          | Retry logic and exponential backoff                                                                             |
-| `security.test.ts`                       | Input sanitization and injection prevention                                                                     |
-| `robustness.test.ts`                     | Edge cases and failure scenarios                                                                                |
-| `SignalCli.test.ts`                      | Core connection and messaging                                                                                   |
-| `SignalCli.methods.test.ts`              | Full API method coverage                                                                                        |
-| `SignalCli.advanced.test.ts`             | Advanced send options, receive, identity                                                                        |
-| `SignalCli.integration.test.ts`          | Connection lifecycle and JSON-RPC parsing                                                                       |
-| `SignalCli.simple.test.ts`               | isRegistered, sendNoteToSelf                                                                                    |
-| `SignalCli.parsing.test.ts`              | Envelope parsing and event emission                                                                             |
-| `SignalCli.events.test.ts`               | Reaction, receipt, typing events                                                                                |
-| `SignalCli.connections.test.ts`          | Unix socket, TCP, HTTP daemon modes                                                                             |
-| `SignalCli.e2e.test.ts`                  | End-to-end multi-step workflows                                                                                 |
-| `SignalCli.v0140.test.ts`                | sendPinMessage, sendUnpinMessage, sendAdminDelete, noUrgent, ignoreAvatars, ignoreStickers, JsonRpcStartOptions |
-| `DeviceManager.test.ts`                  | Device listing, linking, renaming                                                                               |
-| `MultiAccountManager.test.ts`            | Multi-account management                                                                                        |
-| `MultiAccountManager.coverage.test.ts`   | Edge cases for multi-account                                                                                    |
-| `SignalBot.test.ts`                      | Bot startup, commands, events                                                                                   |
-| `SignalBot.additional.test.ts`           | Extended bot features                                                                                           |
-| `SignalBot.coverage.test.ts`             | Bot edge cases and error handling                                                                               |
-| `signal-cli-v0141-compatibility.test.ts` | signal-cli v0.14.1 compatibility tests                                                                          |
-| `coverage-improvement.test.ts`           | Additional coverage tests for managers                                                                          |
+| Suite                                   | Focus                                                                                                           |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `errors.test.ts`                        | Error class hierarchy and serialization                                                                         |
+| `validators.test.ts`                    | Phone number, UUID, and input validation                                                                        |
+| `config.test.ts`                        | Configuration validation and defaults                                                                           |
+| `retry.test.ts`                         | Retry logic and exponential backoff                                                                             |
+| `security.test.ts`                      | Input sanitization and injection prevention                                                                     |
+| `robustness.test.ts`                    | Edge cases and failure scenarios                                                                                |
+| `SignalCli.test.ts`                     | Core connection and messaging                                                                                   |
+| `SignalCli.methods.test.ts`             | Full API method coverage                                                                                        |
+| `SignalCli.advanced.test.ts`            | Advanced send options, receive, identity                                                                        |
+| `SignalCli.integration.test.ts`         | Connection lifecycle and JSON-RPC parsing                                                                       |
+| `SignalCli.simple.test.ts`              | isRegistered, sendNoteToSelf                                                                                    |
+| `SignalCli.parsing.test.ts`             | Envelope parsing and event emission                                                                             |
+| `SignalCli.events.test.ts`              | Reaction, receipt, typing events                                                                                |
+| `SignalCli.connections.test.ts`         | Unix socket, TCP, HTTP daemon modes                                                                             |
+| `SignalCli.e2e.test.ts`                 | End-to-end multi-step workflows                                                                                 |
+| `SignalCli.v0140.test.ts`               | sendPinMessage, sendUnpinMessage, sendAdminDelete, noUrgent, ignoreAvatars, ignoreStickers, JsonRpcStartOptions |
+| `SignalCli.v0142.test.ts`               | signal-cli v0.14.2 compatibility                                                                                |
+| `DeviceManager.test.ts`                 | Device listing, linking, renaming                                                                               |
+| `MultiAccountManager.test.ts`           | Multi-account management                                                                                        |
+| `MultiAccountManager.coverage.test.ts`  | Edge cases for multi-account                                                                                    |
+| `SignalBot.test.ts`                     | Bot startup, commands, events                                                                                   |
+| `SignalBot.additional.test.ts`          | Extended bot features                                                                                           |
+| `SignalBot.coverage.test.ts`            | Bot edge cases and error handling                                                                               |
+| `SignalCli.v0148.test.ts`               | signal-cli v0.14.8 compatibility tests                                                                          |
+| `MultiAccountManager.reconnect.test.ts` | Reconnection cancellation and lifecycle behavior                                                                |
+| `config.test.ts`                        | Configuration parsing and validation                                                                            |
+| `retry.test.ts`                         | Retry policy and rate-limit behavior                                                                            |
+| `security.test.ts`                      | Sensitive-data and input-security safeguards                                                                    |
+| `validators.test.ts`                    | Public validation helpers                                                                                       |
+| `coverage-improvement.test.ts`          | Additional coverage tests for managers                                                                          |
+| `calibration.test.ts`                   | Test-environment calibration                                                                                    |
 
 ---
 
@@ -891,14 +878,14 @@ Or download manually from the [signal-cli releases page](https://github.com/Asam
 
 **Java not found (macOS / Windows)**
 
-The JVM-based signal-cli distribution requires Java 21 or later:
+The JVM-based signal-cli distribution requires Java 25 or later:
 
 ```bash
 # macOS
-brew install openjdk@21
+brew install openjdk@25
 
 # Ubuntu / Debian
-sudo apt install openjdk-21-jre
+sudo apt install openjdk-25-jre
 
 # Verify
 java -version
@@ -932,11 +919,11 @@ signal-cli returns exit code 5 when rate-limited. The SDK automatically retries 
 ```javascript
 // RateLimitError includes retryAfter information
 try {
-  await signal.sendMessage(recipient, text);
+    await signal.sendMessage(recipient, text);
 } catch (error) {
-  if (error.code === 'RATE_LIMIT') {
-    console.log('Rate limited, retry after:', error.retryAfter);
-  }
+    if (error.code === 'RATE_LIMIT') {
+        console.log('Rate limited, retry after:', error.retryAfter);
+    }
 }
 ```
 
@@ -948,11 +935,11 @@ signal-cli returns exit code 6 when CAPTCHA verification fails. This error is no
 import { CaptchaRejectedError } from 'signal-sdk';
 
 try {
-  await signal.register(number, false, captchaToken);
+    await signal.register(number, false, captchaToken);
 } catch (error) {
-  if (error instanceof CaptchaRejectedError) {
-    console.error('CAPTCHA rejected. Please solve a new one.');
-  }
+    if (error instanceof CaptchaRejectedError) {
+        console.error('CAPTCHA rejected. Please solve a new one.');
+    }
 }
 ```
 
@@ -996,4 +983,4 @@ If you find this project useful, consider supporting its development:
 
 ---
 
-_Made with ❤️ for the Signal community_
+_Made for the Signal community_

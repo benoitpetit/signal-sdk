@@ -43,17 +43,17 @@ Replace with your actual phone number (the one linked to Signal).
 
 ```javascript
 // test.js
-require("dotenv").config();
-const { SignalCli } = require("signal-sdk");
+require('dotenv').config();
+const { SignalCli } = require('signal-sdk');
 
 async function sendFirstMessage() {
-  const signal = new SignalCli(process.env.SIGNAL_PHONE_NUMBER);
+    const signal = new SignalCli(process.env.SIGNAL_PHONE_NUMBER);
 
-  await signal.connect();
-  await signal.sendMessage("+33000000000", "Hello from Signal SDK!");
-  await signal.gracefulShutdown();
+    await signal.connect();
+    await signal.sendMessage('+33000000000', 'Hello from Signal SDK!');
+    await signal.gracefulShutdown();
 
-  console.log("Message sent successfully!");
+    console.log('Message sent successfully!');
 }
 
 sendFirstMessage().catch(console.error);
@@ -70,17 +70,17 @@ node test.js
 ### Send Text Messages
 
 ```javascript
-const { SignalCli } = require("signal-sdk");
+const { SignalCli } = require('signal-sdk');
 
-const signal = new SignalCli("+33111111111");
+const signal = new SignalCli('+33111111111');
 
 await signal.connect();
 
 // Send to individual
-await signal.sendMessage("+33000000000", "Hello there!");
+await signal.sendMessage('+33000000000', 'Hello there!');
 
 // Send to group (after creating/joining group)
-await signal.sendMessage("groupId123", "Hello group!");
+await signal.sendMessage('groupId123', 'Hello group!');
 
 await signal.gracefulShutdown();
 ```
@@ -89,13 +89,13 @@ await signal.gracefulShutdown();
 
 ```javascript
 // Send with attachments
-await signal.sendMessage("+33000000000", "Here are some files:", {
-  attachments: ["document.pdf", "photo.jpg", "video.mp4"],
+await signal.sendMessage('+33000000000', 'Here are some files:', {
+    attachments: ['document.pdf', 'photo.jpg', 'video.mp4'],
 });
 
 // Send image with caption
-await signal.sendMessage("+33000000000", "Check out this photo!", {
-  attachments: ["vacation.jpg"],
+await signal.sendMessage('+33000000000', 'Check out this photo!', {
+    attachments: ['vacation.jpg'],
 });
 ```
 
@@ -104,42 +104,42 @@ await signal.sendMessage("+33000000000", "Check out this photo!", {
 ```javascript
 // Create a poll in a group
 await signal.sendPollCreate({
-  question: "What's for lunch?",
-  options: ["Pizza", "Sushi", "Burger", "Salad"],
-  groupId: "groupId==",
-  multiSelect: false,
+    question: "What's for lunch?",
+    options: ['Pizza', 'Sushi', 'Burger', 'Salad'],
+    groupId: 'groupId==',
+    multiSelect: false,
 });
 
 // Create a poll for individual recipients
 await signal.sendPollCreate({
-  question: "Meeting time?",
-  options: ["9 AM", "12 PM", "3 PM"],
-  recipients: ["+33000000000"],
+    question: 'Meeting time?',
+    options: ['9 AM', '12 PM', '3 PM'],
+    recipients: ['+33000000000'],
 });
 
 // Vote on a poll (use timestamp from poll message)
-await signal.sendPollVote("groupId==", {
-  pollAuthor: "+33111111111",
-  pollTimestamp: 1705843200000,
-  optionIndexes: [0], // Vote for first option
+await signal.sendPollVote('groupId==', {
+    pollAuthor: '+33111111111',
+    pollTimestamp: 1705843200000,
+    optionIndexes: [0], // Vote for first option
 });
 ```
 
 ### Advanced Configuration
 
 ```javascript
-const { SignalCli } = require("signal-sdk");
+const { SignalCli } = require('signal-sdk');
 
 // Configure for reliability
-const signal = new SignalCli("+33111111111", undefined, {
-  maxRetries: 5,
-  retryDelay: 1000,
-  maxConcurrentRequests: 5,
-  minRequestInterval: 200,
-  requestTimeout: 60000,
-  connectionTimeout: 30000,
-  autoReconnect: true,
-  verbose: false,
+const signal = new SignalCli('+33111111111', undefined, {
+    maxRetries: 5,
+    retryDelay: 1000,
+    maxConcurrentRequests: 5,
+    minRequestInterval: 200,
+    requestTimeout: 60000,
+    connectionTimeout: 30000,
+    autoReconnect: true,
+    verbose: false,
 });
 
 await signal.connect();
@@ -150,46 +150,46 @@ await signal.connect();
 ```javascript
 // Receive with options
 const messages = await signal.receive({
-  timeout: 10, // Wait up to 10 seconds
-  maxMessages: 50, // Maximum 50 messages
-  ignoreAttachments: true, // Skip downloading attachments (faster)
-  ignoreStories: true, // Ignore story messages
-  sendReadReceipts: false, // Don't send read receipts
+    timeout: 10, // Wait up to 10 seconds
+    maxMessages: 50, // Maximum 50 messages
+    ignoreAttachments: true, // Skip downloading attachments (faster)
+    ignoreStories: true, // Ignore story messages
+    sendReadReceipts: false, // Don't send read receipts
 });
 
 messages.forEach((msg) => {
-  if (msg.dataMessage) {
-    console.log(`From ${msg.source}: ${msg.dataMessage.message}`);
-  }
+    if (msg.dataMessage) {
+        console.log(`From ${msg.source}: ${msg.dataMessage.message}`);
+    }
 });
 
 // Or listen for incoming messages with events
-signal.on("message", (message) => {
-  console.log(`New message from ${message.source}: ${message.body}`);
+signal.on('message', (message) => {
+    console.log(`New message from ${message.source}: ${message.body}`);
 
-  // Auto-reply
-  if (message.body.toLowerCase() === "ping") {
-    signal.sendMessage(message.source, "pong");
-  }
+    // Auto-reply
+    if (message.body.toLowerCase() === 'ping') {
+        signal.sendMessage(message.source, 'pong');
+    }
 });
 
 await signal.connect();
-console.log("Listening for messages...");
+console.log('Listening for messages...');
 ```
 
 ### Create and Manage Groups
 
 ```javascript
 // Create a new group
-const group = await signal.createGroup("My Awesome Group", ["+33000000000"]);
+const group = await signal.createGroup('My Awesome Group', ['+33000000000']);
 console.log(`Group created with ID: ${group.groupId}`);
 
 // Send a message to the new group
-await signal.sendMessage(group.groupId, "Welcome to the group!");
+await signal.sendMessage(group.groupId, 'Welcome to the group!');
 
 // Update group - add a new member
 await signal.updateGroup(group.groupId, {
-  addMembers: ["+33200000000"],
+    addMembers: ['+33200000000'],
 });
 ```
 
@@ -199,30 +199,30 @@ The `SignalBot` framework makes creating bots incredibly simple.
 
 ```javascript
 // bot.js
-require("dotenv").config();
-const { SignalBot } = require("signal-sdk");
+require('dotenv').config();
+const { SignalBot } = require('signal-sdk');
 
 const bot = new SignalBot({
-  phoneNumber: process.env.SIGNAL_PHONE_NUMBER,
-  admins: ["+33000000000"], // Your admin number
-  group: {
-    name: "My First Bot Group",
-    createIfNotExists: true,
-  },
+    phoneNumber: process.env.SIGNAL_PHONE_NUMBER,
+    admins: ['+33000000000'], // Your admin number
+    group: {
+        name: 'My First Bot Group',
+        createIfNotExists: true,
+    },
 });
 
 // Add a simple command
 bot.addCommand({
-  name: "hello",
-  description: "Say hello",
-  handler: async (message, args) => {
-    return `Hello ${args.join(" ")}!`;
-  },
+    name: 'hello',
+    description: 'Say hello',
+    handler: async (message, args) => {
+        return `Hello ${args.join(' ')}!`;
+    },
 });
 
 // Start the bot
 bot.start().then(() => {
-  console.log("Bot is running!");
+    console.log('Bot is running!');
 });
 ```
 
@@ -240,36 +240,36 @@ Now, in your Signal group, you can type `/hello` and the bot will respond!
 
 ```javascript
 // notify.js
-const { SignalCli } = require("signal-sdk");
+const { SignalCli } = require('signal-sdk');
 
 async function sendNotification(recipient, message) {
-  const signal = new SignalCli(process.env.SIGNAL_PHONE_NUMBER);
-  await signal.connect();
-  await signal.sendMessage(recipient, message);
-  await signal.gracefulShutdown();
+    const signal = new SignalCli(process.env.SIGNAL_PHONE_NUMBER);
+    await signal.connect();
+    await signal.sendMessage(recipient, message);
+    await signal.gracefulShutdown();
 }
 
-sendNotification("+33000000000", "This is an automated notification.");
+sendNotification('+33000000000', 'This is an automated notification.');
 ```
 
 ### Interactive Chatbot
 
 ```javascript
-const { SignalBot } = require("signal-sdk");
+const { SignalBot } = require('signal-sdk');
 
 const bot = new SignalBot({
-  phoneNumber: process.env.SIGNAL_PHONE_NUMBER,
-  admins: ["+33000000000"],
+    phoneNumber: process.env.SIGNAL_PHONE_NUMBER,
+    admins: ['+33000000000'],
 });
 
 bot.addCommand({
-  name: "weather",
-  description: "Get the weather",
-  handler: async (message, args) => {
-    const city = args[0] || "Paris";
-    // In a real bot, you would fetch this from an API
-    return `The weather in ${city} is sunny.`;
-  },
+    name: 'weather',
+    description: 'Get the weather',
+    handler: async (message, args) => {
+        const city = args[0] || 'Paris';
+        // In a real bot, you would fetch this from an API
+        return `The weather in ${city} is sunny.`;
+    },
 });
 
 bot.start();
@@ -281,17 +281,18 @@ bot.start();
 
 ```javascript
 const signal = new SignalCli(
-  "+33111111111", // Your Signal phone number
-  undefined,      // Use default signal-cli path
-  {
-    maxRetries: 3,
-    retryDelay: 1000,
-    verbose: true,
-  }
+    '+33111111111', // Your Signal phone number
+    undefined, // Use default signal-cli path
+    {
+        maxRetries: 3,
+        retryDelay: 1000,
+        verbose: true,
+    },
 );
 ```
 
 The constructor supports smart parameter detection:
+
 - If the first argument starts with `+`, it's treated as a phone number
 - Otherwise, it's treated as a path to the signal-cli binary
 
@@ -299,21 +300,21 @@ The constructor supports smart parameter detection:
 
 ```javascript
 const bot = new SignalBot({
-  phoneNumber: "+33111111111", // Required
-  admins: ["+33000000000"],    // Required
-  group: {
-    // Optional
-    name: "My Bot Group",
-    createIfNotExists: true,
-    avatar: "./group-avatar.jpg",
-  },
-  settings: {
-    // Optional
-    commandPrefix: "!",
-    logMessages: true,
-    welcomeNewMembers: true,
-    cooldownSeconds: 2,
-  },
+    phoneNumber: '+33111111111', // Required
+    admins: ['+33000000000'], // Required
+    group: {
+        // Optional
+        name: 'My Bot Group',
+        createIfNotExists: true,
+        avatar: './group-avatar.jpg',
+    },
+    settings: {
+        // Optional
+        commandPrefix: '!',
+        logMessages: true,
+        welcomeNewMembers: true,
+        cooldownSeconds: 2,
+    },
 });
 ```
 

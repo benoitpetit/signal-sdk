@@ -40,6 +40,12 @@ export interface SignalCliConfig {
     tcpPort?: number;
     /** HTTP base URL (for http mode) */
     httpBaseUrl?: string;
+    /** Enable circuit breaker for JSON-RPC requests (fail-fast on repeated failures) */
+    circuitBreakerEnabled?: boolean;
+    /** Consecutive failures before the circuit breaker opens */
+    circuitBreakerFailureThreshold?: number;
+    /** Time in ms before an open circuit breaker allows probe requests */
+    circuitBreakerResetTimeout?: number;
 }
 
 export const DEFAULT_CONFIG: Required<
@@ -68,6 +74,9 @@ export const DEFAULT_CONFIG: Required<
     tcpHost: 'localhost',
     tcpPort: 7583,
     httpBaseUrl: 'http://localhost:8080',
+    circuitBreakerEnabled: false,
+    circuitBreakerFailureThreshold: 5,
+    circuitBreakerResetTimeout: 30000,
 };
 
 /**
@@ -103,6 +112,14 @@ export function validateConfig(userConfig: SignalCliConfig = {}): Required<Signa
         throw new Error('minRequestInterval must be non-negative');
     }
 
+    if (config.circuitBreakerFailureThreshold < 1) {
+        throw new Error('circuitBreakerFailureThreshold must be at least 1');
+    }
+
+    if (config.circuitBreakerResetTimeout < 0) {
+        throw new Error('circuitBreakerResetTimeout must be non-negative');
+    }
+
     return config;
 }
 
@@ -114,6 +131,10 @@ export interface LoggerConfig {
     enableConsole: boolean;
     includeTimestamp: boolean;
     includeLevel: boolean;
+    /** Redact phone numbers and other sensitive patterns from log output */
+    redactSensitiveData?: boolean;
+    /** Static structured context appended to every log entry (e.g. account, component) */
+    context?: Record<string, unknown>;
 }
 
 export const DEFAULT_LOGGER_CONFIG: LoggerConfig = {
@@ -121,6 +142,7 @@ export const DEFAULT_LOGGER_CONFIG: LoggerConfig = {
     enableConsole: true,
     includeTimestamp: true,
     includeLevel: true,
+    redactSensitiveData: false,
 };
 
 /**
@@ -143,6 +165,25 @@ export class Logger {
         return this.levels[level] >= this.levels[this.config.level];
     }
 
+    /**
+     * Create a child logger that inherits this logger's configuration
+     * and adds static structured context to every entry.
+     */
+    child(context: Record<string, unknown>): Logger {
+        return new Logger({
+            ...this.config,
+            context: { ...this.config.context, ...context },
+        });
+    }
+
+    private redact(value: string): string {
+        if (!this.config.redactSensitiveData) {
+            return value;
+        }
+        // Redact E.164 phone numbers, keeping country code prefix and last 2 digits for diagnostics
+        return value.replace(/\+(\d{1,3})\d{4,12}(\d{2})\b/g, '+$1***$2');
+    }
+
     private format(level: string, message: string, data?: unknown): string {
         const parts: string[] = [];
 
@@ -154,10 +195,17 @@ export class Logger {
             parts.push(`[${level.toUpperCase()}]`);
         }
 
-        parts.push(message);
+        if (this.config.context && Object.keys(this.config.context).length > 0) {
+            const contextStr = Object.entries(this.config.context)
+                .map(([key, value]) => `${key}=${String(value)}`)
+                .join(' ');
+            parts.push(`[${this.redact(contextStr)}]`);
+        }
+
+        parts.push(this.redact(message));
 
         if (data !== undefined) {
-            parts.push(JSON.stringify(data, null, 2));
+            parts.push(this.redact(JSON.stringify(data, null, 2)));
         }
 
         return parts.join(' ');

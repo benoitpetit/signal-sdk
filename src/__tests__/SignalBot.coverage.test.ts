@@ -95,6 +95,7 @@ describe('SignalBot Coverage', () => {
             const mockRedirectResponse: any = new EventEmitter();
             mockRedirectResponse.statusCode = 301;
             mockRedirectResponse.headers = { location: 'https://new-url.com/image.jpg' };
+            mockRedirectResponse.resume = jest.fn();
             
             const mockSuccessResponse: any = new EventEmitter();
             mockSuccessResponse.statusCode = 200;

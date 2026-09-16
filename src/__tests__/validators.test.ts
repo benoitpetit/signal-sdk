@@ -12,6 +12,7 @@ import {
     validateEmoji,
     validateDeviceId,
     sanitizeInput,
+    validatePublicHttpUrl,
 } from '../validators';
 import { ValidationError } from '../errors';
 
@@ -162,6 +163,20 @@ describe('Validators', () => {
             expect(() => validateDeviceId(-1)).toThrow(ValidationError);
             expect(() => validateDeviceId(1.5)).toThrow(ValidationError);
             expect(() => validateDeviceId('1' as any)).toThrow(ValidationError);
+        });
+    });
+
+    describe('validatePublicHttpUrl', () => {
+        it('should accept public HTTP(S) URLs', () => {
+            expect(() => validatePublicHttpUrl('https://example.com/image.jpg')).not.toThrow();
+            expect(() => validatePublicHttpUrl('http://198.51.100.10/image.jpg')).not.toThrow();
+        });
+
+        it('should reject local and private-network addresses', () => {
+            expect(() => validatePublicHttpUrl('http://localhost:8080/image.jpg')).toThrow(ValidationError);
+            expect(() => validatePublicHttpUrl('http://127.0.0.1/image.jpg')).toThrow(ValidationError);
+            expect(() => validatePublicHttpUrl('http://192.168.1.20/image.jpg')).toThrow(ValidationError);
+            expect(() => validatePublicHttpUrl('http://[::1]/image.jpg')).toThrow(ValidationError);
         });
     });
 

@@ -59,31 +59,31 @@ Your device is now connected to Signal
 If you prefer to handle device linking in your own code:
 
 ```javascript
-const { SignalCli } = require("signal-sdk");
+const { SignalCli } = require('signal-sdk');
 
 async function linkDevice() {
-  const signal = new SignalCli();
+    const signal = new SignalCli();
 
-  const result = await signal.deviceLink({
-    name: "My Signal App",
-    qrCodeOutput: "console", // Display QR code in terminal
-  });
+    const result = await signal.deviceLink({
+        name: 'My Signal App',
+        qrCodeOutput: 'console', // Display QR code in terminal
+    });
 
-  if (result.success) {
-    console.log("QR Code generated!");
-    console.log("Scan this with your Signal app:");
-    console.log(result.qrCode.uri);
+    if (result.success) {
+        console.log('QR Code generated!');
+        console.log('Scan this with your Signal app:');
+        console.log(result.qrCode.uri);
 
-    if (result.isLinked) {
-      console.log("Device linked successfully!");
+        if (result.isLinked) {
+            console.log('Device linked successfully!');
+        } else {
+            console.log('Waiting for you to scan the QR code...');
+        }
     } else {
-      console.log("Waiting for you to scan the QR code...");
+        console.error('Linking failed:', result.error);
     }
-  } else {
-    console.error("Linking failed:", result.error);
-  }
 
-  await signal.gracefulShutdown();
+    await signal.gracefulShutdown();
 }
 
 linkDevice();
@@ -97,8 +97,8 @@ The SDK supports multiple ways to display the QR code:
 
 ```javascript
 await signal.deviceLink({
-  name: "My App",
-  qrCodeOutput: "console", // Shows QR code in terminal
+    name: 'My App',
+    qrCodeOutput: 'console', // Shows QR code in terminal
 });
 ```
 
@@ -106,20 +106,20 @@ await signal.deviceLink({
 
 ```javascript
 const result = await signal.deviceLink({
-  name: "My App",
-  // No qrCodeOutput - just get the URI
+    name: 'My App',
+    // No qrCodeOutput - just get the URI
 });
 
-console.log("Scan this URI:", result.qrCode.uri);
+console.log('Scan this URI:', result.qrCode.uri);
 ```
 
 ### Option 3: Save QR Code to File
 
 ```javascript
 await signal.deviceLink({
-  name: "My App",
-  qrCodeOutput: "file",
-  qrCodePath: "./signal-qr.png", // Save as PNG file
+    name: 'My App',
+    qrCodeOutput: 'file',
+    qrCodePath: './signal-qr.png', // Save as PNG file
 });
 ```
 
@@ -127,11 +127,11 @@ await signal.deviceLink({
 
 ```javascript
 const result = await signal.deviceLink({
-  name: "My App",
-  qrCodeOutput: "base64",
+    name: 'My App',
+    qrCodeOutput: 'base64',
 });
 
-console.log("Base64 QR Code:", result.qrCode.base64);
+console.log('Base64 QR Code:', result.qrCode.base64);
 // Useful for web UIs
 ```
 

@@ -5,31 +5,84 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.6] - 2026-09-14
+
+### Added - signal-cli v0.14.8 Compatibility
+
+- Added `sendStory()` (v0.14.6+) for attachment stories posted to My Story or a group.
+- Added `terminateGroup()` (v0.14.8+) for group administrators.
+- Added `Attachment.isVoiceNote` to match received JSON-RPC attachment payloads.
+
+### Changed
+
+- Updated the bundled installer to signal-cli v0.14.8 and Java 25 on every JVM platform.
+- Aligned group-update JSON-RPC parameter names and permission values with signal-cli.
+- Updated production dependencies to axios 1.20.0, tar 7.5.22, and uuid 11.1.1.
+
+### Fixed
+
+- Manual account disconnect now always cancels a pending reconnect.
+- Image downloads enforce their 25 MB limit while streaming and reject local/private literal addresses.
+- Logger context now participates in sensitive-data redaction.
+
+## [0.2.5] - 2026-05-25
+
+### Added - signal-cli v0.14.4 Compatibility
+
+#### FEAT-21: notifySelf Flag for Send
+
+- Added `notifySelf?: boolean` to `SendMessageOptions` and `JsonRpcSendParams`
+- When enabled, sends a non-sync message even when self is part of recipients/groups
+- Wired through `MessageManager.sendMessage()` to the JSON-RPC `send` method
+
+#### FEAT-22: Sticker Support in sendMessage()
+
+- `MessageManager.sendMessage()` now properly routes the `sticker` option to JSON-RPC params
+- Previously, stickers defined in `SendMessageOptions` were silently ignored
+
+### Changed
+
+#### Installer Updated to signal-cli v0.14.4
+
+- `scripts/install.js` now downloads signal-cli v0.14.4 (was v0.14.2)
+- Updated Java requirement note from JDK 21+ to JDK 25+
+
+### Compatibility
+
+- Updated for signal-cli v0.14.4 compatibility
+- Full feature coverage for v0.14.0 through v0.14.4 JSON-RPC methods
+- Updated package version to 0.2.5
+
 ## [0.2.4] - 2026-04-23
 
 ### Added - signal-cli v0.14.3 Compatibility
 
 #### FEAT-16: CAPTCHA Rejection Error Handling
+
 - Added `CaptchaRejectedError` class for distinct handling of exit code 6
 - Error is thrown when signal-cli returns CAPTCHA rejection without retrying
 - Added `CaptchaRejectedError` to exports in `index.ts`
 
 #### FEAT-17: Retry-After Header Support
+
 - Updated `withRetry()` to respect server `Retry-After` header for rate limit errors
 - Added optional `retryAfterMs` parameter to `onRetry` callback
 - Updated retry logic to use server-specified delay when available
 - Rate limit errors (exit code 5) are now retried with proper backoff
 
 #### FEAT-18: Username Validation
+
 - Added `validateUsername()` function for proper `u:username.format` validation
 - Updated `validateRecipient()` to use the new username validator
 - Supports Signal usernames with format `u:username.000`
 
 #### FEAT-19: Trust Identity with Verification
+
 - Added `trustIdentityWithVerification()` method in `ContactManager`
 - Provides explicit method for trusting identity with verified safety number
 
 #### FEAT-20: Enhanced Call Event Handling
+
 - Improved `emitDetailedEvents()` for better call state detection
 - Added `callEnded` event for ended/declined/missed calls
 - Added `callConnected` event for connected calls
@@ -38,12 +91,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 #### Documentation Updates
+
 - Updated test count badge: 548 → 571 passing tests
 - Test suites: 24 → 25
 - Added Error Codes section in troubleshooting guide
 - Updated robust-infrastructure.md with new error types and retry behavior
 
 ### Compatibility
+
 - Updated for signal-cli v0.14.3 compatibility
 - 571 passing unit and integration tests
 - No breaking changes
@@ -66,28 +121,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added - signal-cli v0.14.2 Compatibility
 
 #### FEAT-13: Poll Option Length Validation (v0.14.2)
+
 - Enforced poll option length validation (1-100 characters) in `sendPollCreate()`
 - Options shorter than 1 character or longer than 100 characters now throw `MessageError`
 - Aligns with signal-cli v0.14.2's server-side validation
 
 #### FEAT-14: Voice Note Support (v0.14.2)
+
 - Added `voiceNote?: boolean` option to `SendMessageOptions` interface
 - When enabled, attachments are marked as voice notes and displayed accordingly in Signal clients
 - Example usage: `sendMessage(recipient, '', { attachments: ['/path/audio.ogg'], voiceNote: true })`
 
 #### FEAT-15: Voice/Video Calling Support (v0.14.2)
+
 - **New Methods:**
-  - `startCall({ recipient, video? })` - Start an outgoing voice or video call
-  - `acceptCall({ callId })` - Accept an incoming call
-  - `hangUpCall({ callId })` - Hang up an active call
-  - `sendCallRelayCandidates({ callId, candidates })` - Send ICE candidates for WebRTC
+    - `startCall({ recipient, video? })` - Start an outgoing voice or video call
+    - `acceptCall({ callId })` - Accept an incoming call
+    - `hangUpCall({ callId })` - Hang up an active call
+    - `sendCallRelayCandidates({ callId, candidates })` - Send ICE candidates for WebRTC
 - **New Event:**
-  - `'call'` event emitted when receiving call messages
+    - `'call'` event emitted when receiving call messages
 - **New Interfaces:**
-  - `StartCallOptions`, `AcceptCallOptions`, `HangUpCallOptions`
-  - `SendCallRelayCandidatesOptions`, `CallRelayCandidate`, `CallInfo`, `CallEvent`
+    - `StartCallOptions`, `AcceptCallOptions`, `HangUpCallOptions`
+    - `SendCallRelayCandidatesOptions`, `CallRelayCandidate`, `CallInfo`, `CallEvent`
 
 ### Compatibility
+
 - Updated for signal-cli v0.14.2 compatibility
 - 594 passing unit and integration tests (23 new tests for v0.14.2)
 
@@ -96,72 +155,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed - Critical Bugs
 
 #### BUG-01: updateProfile() Parameter Fix
+
 - **Breaking Change**: Renamed `name` parameter to `givenName` in `updateProfile()` to match signal-cli JSON-RPC specification
 - signal-cli expects `givenName` and `familyName`, not `name`
 - Previous implementation was silently failing as signal-cli doesn't recognize the `name` parameter
 
 #### BUG-02: Duplicate ReceiveOptions Interface
+
 - Removed duplicate `ReceiveOptions` interface declaration from `interfaces.ts`
 - Removed unsupported `since?: number` field (not recognized by signal-cli)
 
 #### BUG-03: Reconnection Options Preservation
+
 - Fixed auto-reconnection in `handleProcessClose()` to preserve JSON-RPC options
 - Now correctly passes `this.jsonRpcStartOptions` to `connect()` during reconnection
 - Previously, reconnection would lose all flags (`ignoreAttachments`, `ignoreAvatars`, etc.)
 
 #### PROB-04: trustIdentity() Parameter Fix
+
 - **Breaking Change**: Fixed `trustIdentity()` to use `verifiedSafetyNumber` instead of `safetyNumber` + `verified`
 - Removed `verified` parameter as signal-cli doesn't have a `--verified` flag
 - Now matches signal-cli's expected parameter format
 
 #### PROB-06: listContacts() Options Support
+
 - `listContacts()` now accepts optional `ListContactsOptions` parameter
 - Supports: `detailed`, `blocked`, `allRecipients`, `name`, `recipients`, `internal`
 
 #### PROB-07: parseEnvelope() Text Attachment Support
+
 - Added support for `textAttachment` in `parseEnvelope()` (v0.14.0+)
 - Long messages are now correctly parsed from `data.textAttachment.text`
 
 #### PROB-08: AccountConfiguration Cleanup
+
 - Removed unsupported fields from `AccountConfiguration` interface:
-  - `keepMutedChatsArchived`
-  - `universalExpireTimer`
-  - `phoneNumberSharingMode`
-  - `phoneNumberDiscoverability`
+    - `keepMutedChatsArchived`
+    - `universalExpireTimer`
+    - `phoneNumberSharingMode`
+    - `phoneNumberDiscoverability`
 - signal-cli only supports: `readReceipts`, `unidentifiedDeliveryIndicators`, `typingIndicators`, `linkPreviews`
 
 ### Added - New Features
 
 #### FEAT-09: isArchived Field
+
 - Added `isArchived?: boolean` to `GroupInfo` interface (v0.14.1+)
 - Added `isArchived?: boolean` to `Contact` interface for consistency
 
 #### FEAT-10: quitGroup() Delete Option
+
 - `quitGroup()` now accepts optional `options?: { delete?: boolean }` parameter
 - When `delete: true`, local group data is also deleted when quitting
 
 #### FEAT-11: Pin/Unpin Events
+
 - Added `'pin'` event emission in `emitDetailedEvents()` for message pinning
 - Event is triggered when `envelope.dataMessage.pinnedMessageTimestamps` is present
 - Added `pinnedMessageTimestamps?: number[]` to `Message` interface
 
 #### FEAT-12: Register Reregister Option
+
 - `register()` now accepts optional `reregister?: boolean` parameter
 - Allows forcing re-registration of an already registered number
 
 ### Changed
 
 #### GroupInfo Interface Unification (MINOR-17)
+
 - **Breaking Change**: `GroupInfo` members now use `string[]` instead of `Address[]`
 - Fields affected: `members`, `pendingMembers`, `requestingMembers`, `admins`, `banned`
 - The `Address` interface is deprecated and will be removed in a future version
 - This aligns `GroupInfo` with the actual signal-cli JSON-RPC response format
 
 #### Updated Dependencies
+
 - signal-cli version bumped to 0.14.1 in `install.js`
 - Updated Java requirement from JDK 17+ to JDK 25+ in documentation
 
 #### Documentation Updates
+
 - Added clear documentation about `sendMessageWithProgress()` simulated progress
 - Documented that progress callback provides artificial progress (0-100 in steps of 10)
 - Real-time upload progress is not available via JSON-RPC
@@ -169,11 +242,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 
 #### StoryOptions Interface (FEAT-13)
+
 - Marked `StoryOptions` interface as `@deprecated`
 - No `sendStory()` method is currently implemented
 - Interface kept for potential future implementation
 
 ### Additional Fixes (Post-analysis)
+
 - **JsonRpcStartOptions**: Added `'on-connection'` value for `receiveMode`
 - **quitGroup()**: Added `admins?: string[]` option to designate new admins before quitting (required when user is the only admin)
 - **ContactManager**: Added `trustAllKnownKeys()` method for testing purposes
@@ -181,6 +256,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **PinMessageOptions**: Added `story?: boolean` option
 
 ### Compatibility
+
 - Updated for signal-cli v0.14.1 compatibility
 - 468 passing unit and integration tests
 - **Note**: This release contains breaking changes for `updateProfile()` and `trustIdentity()`
@@ -190,32 +266,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added - Full Feature Parity with signal-cli v0.13.23
 
 #### Story Interactions
+
 - Support for story reactions in `sendReaction()` via the `isStory` parameter
 - Updated `JsonRpcReactionParams` with `story` field support
 
 #### Enhanced Link Previews
+
 - Added comprehensive link preview fields to `sendMessage()`: `previewTitle`, `previewDescription`, and `previewImage`
 - Allows manual specification of link preview metadata for better control
 
 #### Advanced Contact Management
+
 - Expanded `updateContact()` with support for multiple new fields:
-  - `givenName` and `familyName`
-  - `nickGivenName` and `nickFamilyName`
-  - `note` (contact notes)
-  - `expiration` (disappearing messages timer per contact)
+    - `givenName` and `familyName`
+    - `nickGivenName` and `nickFamilyName`
+    - `note` (contact notes)
+    - `expiration` (disappearing messages timer per contact)
 
 #### Profile Management Improvements
+
 - Updated `updateProfile()` with new options:
-  - `familyName` support
-  - `mobileCoinAddress` for Signal payments
-  - `removeAvatar` flag for easier profile management
+    - `familyName` support
+    - `mobileCoinAddress` for Signal payments
+    - `removeAvatar` flag for easier profile management
 
 ### Changed
+
 - Improved type definitions in `interfaces.ts` to reflect the latest signal-cli JSON-RPC specifications
 - Refactored `ContactManager.updateContact()` to use a more flexible parameter structure
 - Updated `MessageManager.sendMessage()` to handle full link preview metadata
 
 ### Compatibility
+
 - Achieves 100% parameter coverage for core signal-cli v0.13.23 JSON-RPC methods
 - Fully backward compatible with version 0.1.2
 - Verified with 393 passing unit and integration tests

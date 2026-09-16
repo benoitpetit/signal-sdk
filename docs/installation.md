@@ -7,12 +7,12 @@ Before installing the Signal SDK, ensure you have the following requirements:
 ### System Requirements
 
 1. **Node.js** (version 18 or later)
-   - Check your version: `node --version`
-   - Download: [https://nodejs.org/](https://nodejs.org/)
+    - Check your version: `node --version`
+    - Download: [https://nodejs.org/](https://nodejs.org/)
 
-2. **Java Runtime Environment (JRE)**
-   - Required by signal-cli (automatically downloaded by the SDK)
-   - Check if installed: `java --version`
+2. **Java Development Kit (JDK) 25 or later**
+    - Required by the JVM signal-cli distribution on macOS and Windows
+    - Check if installed: `java --version`
 
 ### Java Installation by Platform
 
@@ -20,14 +20,14 @@ Before installing the Signal SDK, ensure you have the following requirements:
 
 ```bash
 sudo apt update
-sudo apt install default-jre
+sudo apt install openjdk-25-jdk
 ```
 
 #### macOS
 
 ```bash
 # Using Homebrew
-brew install openjdk
+brew install openjdk@25
 
 # Or download from Oracle
 # https://www.oracle.com/java/technologies/downloads/
@@ -35,8 +35,8 @@ brew install openjdk
 
 #### Windows
 
-1. Download from [Oracle Java](https://www.oracle.com/java/technologies/downloads/)
-2. Or install via Chocolatey: `choco install openjdk`
+1. Download JDK 25 or later from [Oracle Java](https://www.oracle.com/java/technologies/downloads/)
+2. Or install via Chocolatey: `choco install openjdk --version=25`
 
 ## Installation
 
@@ -69,7 +69,7 @@ The Signal SDK includes signal-cli binaries and handles the setup automatically.
 
 **What's included:**
 
-- signal-cli v0.14.1 binaries (located in `bin/` directory)
+- signal-cli v0.14.8 binaries (located in `bin/` directory)
 - All required Java libraries
 - Cross-platform compatibility (Windows, macOS, Linux)
 
@@ -90,11 +90,11 @@ node node_modules/signal-sdk/examples/sdk/00-device-linking.js
 Verify your installation works:
 
 ```javascript
-const { SignalCli } = require("signal-sdk");
+const { SignalCli } = require('signal-sdk');
 
-console.log("Signal SDK installed successfully!");
-console.log("Next step: Link your device with QR code");
-console.log("Run: npx signal-sdk connect");
+console.log('Signal SDK installed successfully!');
+console.log('Next step: Link your device with QR code');
+console.log('Run: npx signal-sdk connect');
 ```
 
 ## Environment Setup

@@ -10,7 +10,7 @@ Before diving into specific issues, run these quick diagnostic commands:
 # Check Node.js version (should be 18+)
 node --version
 
-# Check Java installation (required by signal-cli)
+# Check Java 25+ installation (required by signal-cli on macOS and Windows)
 java --version
 
 # Check if device is linked
@@ -46,38 +46,38 @@ QR code characters appear as boxes or question marks
 
 1. **Use a better terminal**:
 
-   ```bash
-   # macOS - use Terminal.app or iTerm2
-   # Windows - use Windows Terminal (not Command Prompt)
-   # Linux - use gnome-terminal or konsole
-   ```
+    ```bash
+    # macOS - use Terminal.app or iTerm2
+    # Windows - use Windows Terminal (not Command Prompt)
+    # Linux - use gnome-terminal or konsole
+    ```
 
 2. **Enable Unicode support**:
 
-   ```bash
-   # Windows Command Prompt
-   chcp 65001
+    ```bash
+    # Windows Command Prompt
+    chcp 65001
 
-   # PowerShell
-   [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-   ```
+    # PowerShell
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    ```
 
 3. **Save QR code to file instead**:
 
-   ```javascript
-   const result = await signal.deviceLink({
-     name: "My Device",
-     qrCodeOutput: "file",
-     qrCodePath: "./qr-code.png",
-   });
-   ```
+    ```javascript
+    const result = await signal.deviceLink({
+        name: 'My Device',
+        qrCodeOutput: 'file',
+        qrCodePath: './qr-code.png',
+    });
+    ```
 
 4. **Use QR code URI directly**:
-   ```javascript
-   const result = await signal.deviceLink({ name: "My Device" });
-   console.log("Scan this:", result.qrCode.uri);
-   // Copy URI and create QR code with online tool
-   ```
+    ```javascript
+    const result = await signal.deviceLink({ name: 'My Device' });
+    console.log('Scan this:', result.qrCode.uri);
+    // Copy URI and create QR code with online tool
+    ```
 
 ### Java Not Found
 
@@ -92,23 +92,23 @@ Error: spawn java ENOENT
 
 **Solutions**:
 
-1. **Install Java JRE**:
+1. **Install JDK 25 or later**:
 
-   ```bash
-   # Ubuntu/Debian
-   sudo apt update && sudo apt install default-jre
+    ```bash
+    # Ubuntu/Debian
+    sudo apt update && sudo apt install openjdk-25-jdk
 
-   # macOS with Homebrew
-   brew install openjdk
+    # macOS with Homebrew
+    brew install openjdk@25
 
-   # Windows - download from java.com
-   ```
+    # Windows - download from java.com
+    ```
 
 2. **Verify Java in PATH**:
-   ```bash
-   # Should output Java path
-   which java
-   ```
+    ```bash
+    # Should output Java path
+    which java
+    ```
 
 ### Linking Timeout
 
@@ -125,8 +125,8 @@ Error: Timeout while waiting for device to be linked
 1. **Scan QR code faster**: You have a limited time to scan.
 2. **Check internet connection**: Ensure both phone and computer are online.
 3. **Firewall issues**:
-   - Disable firewall temporarily
-   - Allow connections for Node.js and Java
+    - Disable firewall temporarily
+    - Allow connections for Node.js and Java
 
 ### "Account Already Linked"
 
@@ -141,18 +141,18 @@ Error: Account already linked on this device
 **Solutions**:
 
 1. **Use existing account**:
-   - Your phone number is already configured.
-   - Use `new SignalCli(undefined, 'YOUR_PHONE_NUMBER')`
+    - Your phone number is already configured.
+    - Use `new SignalCli(undefined, 'YOUR_PHONE_NUMBER')`
 
 2. **Unlink and relink**:
 
-   ```bash
-   # Unlink from your phone:
-   # Signal > Settings > Linked Devices > Remove this device
+    ```bash
+    # Unlink from your phone:
+    # Signal > Settings > Linked Devices > Remove this device
 
-   # Then run linking again
-   node examples/sdk/00-device-linking.js
-   ```
+    # Then run linking again
+    node examples/sdk/00-device-linking.js
+    ```
 
 ---
 
@@ -171,15 +171,15 @@ Error: connect ECONNREFUSED 127.0.0.1:XXXX
 **Solutions**:
 
 1. **Check if signal-cli is running**:
-   - The SDK automatically starts signal-cli.
-   - If you run it manually, ensure it's in `json-rpc` mode.
+    - The SDK automatically starts signal-cli.
+    - If you run it manually, ensure it's in `json-rpc` mode.
 
 2. **Port conflicts**:
-   - Another application might be using the port.
-   - The SDK will try to find a free port automatically.
+    - Another application might be using the port.
+    - The SDK will try to find a free port automatically.
 
 3. **Firewall**:
-   - Ensure firewall is not blocking local connections.
+    - Ensure firewall is not blocking local connections.
 
 ### Connection Timeout
 
@@ -194,13 +194,13 @@ Error: Connection timeout
 **Solutions**:
 
 1. **Slow system**:
-   - Increase timeout in `connect()`:
-     ```javascript
-     await signal.connect({ timeout: 30000 }); // 30 seconds
-     ```
+    - Increase timeout in `connect()`:
+        ```javascript
+        await signal.connect({ timeout: 30000 }); // 30 seconds
+        ```
 
 2. **signal-cli slow to start**:
-   - Check for Java or system performance issues.
+    - Check for Java or system performance issues.
 
 ### "Account not registered"
 
@@ -216,14 +216,14 @@ Error: User +XXXXXXXXXXX is not registered.
 
 1. **Register the number first**:
 
-   ```bash
-   # Use signal-cli directly to register
-   signal-cli -a +XXXXXXXXXXX register
-   signal-cli -a +XXXXXXXXXXX verify YOUR_CODE
-   ```
+    ```bash
+    # Use signal-cli directly to register
+    signal-cli -a +XXXXXXXXXXX register
+    signal-cli -a +XXXXXXXXXXX verify YOUR_CODE
+    ```
 
 2. **Check for typos**:
-   - Ensure the phone number is correct.
+    - Ensure the phone number is correct.
 
 ---
 
@@ -241,22 +241,23 @@ Error: User +XXXXXXXXXXX is not registered.
 **Solutions**:
 
 1. **Check for rate limiting**:
-   - You might be sending too many messages.
-   - Wait a while and try again.
+    - You might be sending too many messages.
+    - Wait a while and try again.
 
 2. **Recipient has blocked you**:
-   - Verify with the recipient.
+    - Verify with the recipient.
 
 3. **Safety numbers changed**:
-   - You may need to verify the new safety numbers.
-   - This usually happens automatically.
+    - You may need to verify the new safety numbers.
+    - This usually happens automatically.
 
 4. **Enable debug logs**:
-   ```bash
-   DEBUG=signal-cli,signal-sdk node your-script.js
-   ```
 
-   - Look for errors in the signal-cli output.
+    ```bash
+    DEBUG=signal-cli,signal-sdk node your-script.js
+    ```
+
+    - Look for errors in the signal-cli output.
 
 ### Messages Not Being Received
 
@@ -270,14 +271,14 @@ Error: User +XXXXXXXXXXX is not registered.
 **Solutions**:
 
 1. **Listener not attached**:
-   - Ensure you have `signal.on('message', ...)` set up.
+    - Ensure you have `signal.on('message', ...)` set up.
 
 2. **Another client is receiving messages**:
-   - If you have multiple signal-cli instances running, only one will receive the message.
-   - Ensure only one client is connected for that number.
+    - If you have multiple signal-cli instances running, only one will receive the message.
+    - Ensure only one client is connected for that number.
 
 3. **Group message settings**:
-   - For groups, ensure you haven't muted the conversation.
+    - For groups, ensure you haven't muted the conversation.
 
 ### Attachments Not Working
 
@@ -293,15 +294,15 @@ Error: Invalid attachment
 **Solutions**:
 
 1. **Check file path**:
-   - Use absolute paths for attachments.
-   - `path.resolve('./my-file.txt')`
+    - Use absolute paths for attachments.
+    - `path.resolve('./my-file.txt')`
 
 2. **File permissions**:
-   - Ensure the Node.js process has read access to the file.
+    - Ensure the Node.js process has read access to the file.
 
 3. **File size limits**:
-   - Signal has file size limits (around 100MB).
-   - Check file size before sending.
+    - Signal has file size limits (around 100MB).
+    - Check file size before sending.
 
 ---
 
@@ -319,15 +320,15 @@ Error: Invalid attachment
 **Solutions**:
 
 1. **Command prefix**:
-   - Default prefix is `/`.
-   - Check if you customized it: `new SignalBot({ settings: { commandPrefix: '!' } })`
+    - Default prefix is `/`.
+    - Check if you customized it: `new SignalBot({ settings: { commandPrefix: '!' } })`
 
 2. **Admin permissions**:
-   - Some commands require admin rights.
-   - Ensure your number is in the `admins` array.
+    - Some commands require admin rights.
+    - Ensure your number is in the `admins` array.
 
 3. **Group settings**:
-   - If the bot is in a group, ensure it has permission to read messages.
+    - If the bot is in a group, ensure it has permission to read messages.
 
 ### Bot Not Starting
 
@@ -341,12 +342,12 @@ Error: Invalid attachment
 **Solutions**:
 
 1. **Missing `await`**:
-   - `bot.start()` is an async function.
-   - Make sure you are using `await bot.start()`.
+    - `bot.start()` is an async function.
+    - Make sure you are using `await bot.start()`.
 
 2. **Invalid configuration**:
-   - Check `phoneNumber` and `admins` are correctly set.
-   - Enable debug logs for more details.
+    - Check `phoneNumber` and `admins` are correctly set.
+    - Enable debug logs for more details.
 
 ---
 
@@ -373,32 +374,32 @@ You can test signal-cli directly to isolate problems.
 
 1. **Find signal-cli path**:
 
-   ```javascript
-   const { signalCliPath } = require("./dist/SignalCli");
-   console.log(signalCliPath);
-   ```
+    ```javascript
+    const { signalCliPath } = require('./dist/SignalCli');
+    console.log(signalCliPath);
+    ```
 
 2. **Run a command**:
 
-   ```bash
-   # Example: list devices
-   /path/to/signal-cli -a +XXXXXXXXXXX listDevices
+    ```bash
+    # Example: list devices
+    /path/to/signal-cli -a +XXXXXXXXXXX listDevices
 
-   # Example: send a message
-   /path/to/signal-cli -a +XXXXXXXXXXX send +YYYYYYYYYYY "Test"
-   ```
+    # Example: send a message
+    /path/to/signal-cli -a +XXXXXXXXXXX send +YYYYYYYYYYY "Test"
+    ```
 
 3. **Test JSON-RPC mode**:
 
-   ```bash
-   # Start signal-cli in JSON-RPC mode
-   /path/to/signal-cli -a +XXXXXXXXXXX jsonRpc
+    ```bash
+    # Start signal-cli in JSON-RPC mode
+    /path/to/signal-cli -a +XXXXXXXXXXX jsonRpc
 
-   # In another terminal, send a JSON-RPC request
-   echo '{"jsonrpc":"2.0","method":"version","id":1}' | nc localhost 12345
-   ```
+    # In another terminal, send a JSON-RPC request
+    echo '{"jsonrpc":"2.0","method":"version","id":1}' | nc localhost 12345
+    ```
 
-   _(Replace `12345` with the port signal-cli is listening on)_
+    _(Replace `12345` with the port signal-cli is listening on)_
 
 ### Checking signal-cli Data Directory
 
@@ -422,42 +423,42 @@ You can inspect this directory for:
 
 The SDK maps signal-cli exit codes to specific error types:
 
-| Exit Code | Error Type | Description | Retry? |
-|-----------|------------|-------------|--------|
-| 1 | `SignalError` | User error (invalid input) | No |
-| 2 | `SignalError` | Unexpected error | No |
-| 3 | `SignalError` | Server/IO error | Yes |
-| 4 | `SignalError` | Untrusted identity key | No |
-| 5 | `RateLimitError` | Rate limit exceeded | Yes (with backoff) |
-| 6 | `CaptchaRejectedError` | CAPTCHA rejected | No |
+| Exit Code | Error Type             | Description                | Retry?             |
+| --------- | ---------------------- | -------------------------- | ------------------ |
+| 1         | `SignalError`          | User error (invalid input) | No                 |
+| 2         | `SignalError`          | Unexpected error           | No                 |
+| 3         | `SignalError`          | Server/IO error            | Yes                |
+| 4         | `SignalError`          | Untrusted identity key     | No                 |
+| 5         | `RateLimitError`       | Rate limit exceeded        | Yes (with backoff) |
+| 6         | `CaptchaRejectedError` | CAPTCHA rejected           | No                 |
 
 ### Handling RateLimitError
 
 ```typescript
-import { RateLimitError } from "signal-sdk";
+import { RateLimitError } from 'signal-sdk';
 
 try {
-  await signal.sendMessage(recipient, text);
+    await signal.sendMessage(recipient, text);
 } catch (error) {
-  if (error instanceof RateLimitError) {
-    console.log(`Rate limited. Retry after: ${error.retryAfter}s`);
-    // The SDK automatically retries rate-limited requests
-  }
+    if (error instanceof RateLimitError) {
+        console.log(`Rate limited. Retry after: ${error.retryAfter}s`);
+        // The SDK automatically retries rate-limited requests
+    }
 }
 ```
 
 ### Handling CaptchaRejectedError
 
 ```typescript
-import { CaptchaRejectedError } from "signal-sdk";
+import { CaptchaRejectedError } from 'signal-sdk';
 
 try {
-  await signal.register(number);
+    await signal.register(number);
 } catch (error) {
-  if (error instanceof CaptchaRejectedError) {
-    console.error("CAPTCHA was rejected. Please solve a new captcha.");
-    // You need to obtain a new captcha token and retry
-  }
+    if (error instanceof CaptchaRejectedError) {
+        console.error('CAPTCHA was rejected. Please solve a new captcha.');
+        // You need to obtain a new captcha token and retry
+    }
 }
 ```
 

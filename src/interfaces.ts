@@ -133,6 +133,11 @@ export interface JsonRpcSendParams {
      * v0.14.2 — Mark the attachment(s) as voice notes.
      */
     voiceNote?: boolean;
+    /**
+     * v0.13.0 — Send a non-sync message when self is part of the recipients or groups.
+     * Without this flag, sending to self only sends a sync message to linked devices.
+     */
+    notifySelf?: boolean;
 }
 
 /**
@@ -538,6 +543,9 @@ export interface Attachment {
     width?: number;
     height?: number;
     caption?: string;
+    /** signal-cli v0.14.8+ flag for a received voice-note attachment */
+    isVoiceNote?: boolean;
+    /** @deprecated Use isVoiceNote, which matches signal-cli's JSON-RPC payload. */
     voiceNote?: boolean;
     borderless?: boolean;
     gif?: boolean;
@@ -595,6 +603,11 @@ export interface SendMessageOptions {
      * When true, the attachment will be displayed and played as a voice message.
      */
     voiceNote?: boolean;
+    /**
+     * v0.13.0 — Send a non-sync message when self is part of the recipients or groups.
+     * Without this flag, sending to self only sends a sync message to linked devices.
+     */
+    notifySelf?: boolean;
 }
 
 /**
@@ -1170,26 +1183,13 @@ export interface PollTerminateOptions {
 // ===== STORIES =====
 
 /**
- * Options for sending a story
- * @deprecated This interface is not yet implemented. sendStory() method is not available.
+ * Options for sending a story (signal-cli v0.14.6+).
  */
 export interface StoryOptions {
-    /** Story content (text or attachment path) */
-    content?: string;
-    /** Attachment for the story */
-    attachment?: string;
-    /** Text attachment with style */
-    textAttachment?: {
-        text: string;
-        textStyle?: 'DEFAULT' | 'REGULAR' | 'BOLD' | 'SERIF' | 'SCRIPT' | 'CONDENSED';
-        textForegroundColor?: string;
-        textBackgroundColor?: string;
-        preview?: {
-            url: string;
-            title?: string;
-            description?: string;
-        };
-    };
+    /** File path to the image or video attachment (required). */
+    attachment: string;
+    /** Optional Signal group ID; omitting it posts to My Story. */
+    groupId?: string;
     /** Allow replies (default: true) */
     allowReplies?: boolean;
 }

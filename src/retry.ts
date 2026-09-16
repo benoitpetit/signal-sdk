@@ -24,6 +24,8 @@ export interface RetryOptions {
     onRetry?: (attempt: number, error: RetryableError, retryAfterMs?: number) => void;
     /** Whether retry is enabled (defaults to true) */
     enabled?: boolean;
+    /** Whether to apply jitter to retry delays (defaults to true). Prevents retry storms. */
+    jitter?: boolean;
 }
 
 const DEFAULT_RETRY_OPTIONS: Required<Omit<RetryOptions, 'enabled'>> & { enabled: boolean } = {
@@ -54,6 +56,7 @@ const DEFAULT_RETRY_OPTIONS: Required<Omit<RetryOptions, 'enabled'>> & { enabled
     },
     onRetry: () => {},
     enabled: true,
+    jitter: true,
 };
 
 /**
@@ -96,6 +99,10 @@ export async function withRetry<T>(operation: () => Promise<T>, options: RetryOp
             const retryAfterMs = (lastError as RetryableError & { retryAfter?: number })?.retryAfter;
             if (retryAfterMs && retryAfterMs > 0) {
                 delay = Math.min(retryAfterMs, config.maxDelay);
+            } else if (config.jitter) {
+                // Apply jitter to decorrelate retry bursts from concurrent clients.
+                // The effective delay stays within [50%, 100%] of the computed backoff.
+                delay = Math.round(delay * (0.5 + Math.random() * 0.5));
             }
 
             // Notify about retry
@@ -153,6 +160,129 @@ export function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+export interface CircuitBreakerOptions {
+    /** Number of consecutive failures before the circuit opens (default: 5) */
+    failureThreshold?: number;
+    /** Time in milliseconds before an open circuit transitions to half-open (default: 30000) */
+    resetTimeoutMs?: number;
+    /** Max number of probe attempts allowed while half-open (default: 1) */
+    halfOpenMaxAttempts?: number;
+    /** Callback when the circuit changes state */
+    onStateChange?: (state: CircuitBreakerState, previousState: CircuitBreakerState) => void;
+}
+
+export type CircuitBreakerState = 'closed' | 'open' | 'half-open';
+
+/**
+ * Circuit breaker to fail fast when a downstream service is unavailable.
+ *
+ * States:
+ * - `closed`: requests flow normally; consecutive failures are counted.
+ * - `open`: requests are rejected immediately until `resetTimeoutMs` has elapsed.
+ * - `half-open`: a limited number of probe requests are allowed through;
+ *   a success closes the circuit, a failure re-opens it.
+ */
+export class CircuitBreaker {
+    private state: CircuitBreakerState = 'closed';
+    private consecutiveFailures = 0;
+    private openedAt = 0;
+    private halfOpenAttempts = 0;
+
+    private readonly failureThreshold: number;
+    private readonly resetTimeoutMs: number;
+    private readonly halfOpenMaxAttempts: number;
+    private readonly onStateChange?: (state: CircuitBreakerState, previousState: CircuitBreakerState) => void;
+
+    constructor(options: CircuitBreakerOptions = {}) {
+        this.failureThreshold = options.failureThreshold ?? 5;
+        this.resetTimeoutMs = options.resetTimeoutMs ?? 30000;
+        this.halfOpenMaxAttempts = options.halfOpenMaxAttempts ?? 1;
+        this.onStateChange = options.onStateChange;
+    }
+
+    getState(): CircuitBreakerState {
+        if (this.state === 'open' && Date.now() - this.openedAt >= this.resetTimeoutMs) {
+            this.transitionTo('half-open');
+        }
+        return this.state;
+    }
+
+    getConsecutiveFailures(): number {
+        return this.consecutiveFailures;
+    }
+
+    private transitionTo(next: CircuitBreakerState): void {
+        if (this.state === next) return;
+        const previous = this.state;
+        this.state = next;
+        if (next === 'half-open') {
+            this.halfOpenAttempts = 0;
+        }
+        if (next === 'closed') {
+            this.consecutiveFailures = 0;
+        }
+        this.onStateChange?.(next, previous);
+    }
+
+    /**
+     * Execute an operation through the circuit breaker.
+     * @param operation Function to execute
+     * @throws Error when the circuit is open
+     */
+    async execute<T>(operation: () => Promise<T>): Promise<T> {
+        const currentState = this.getState();
+
+        if (currentState === 'open') {
+            throw new Error(
+                `Circuit breaker is open. Failing fast. Retry in ${Math.max(0, this.resetTimeoutMs - (Date.now() - this.openedAt))}ms.`,
+            );
+        }
+
+        if (currentState === 'half-open') {
+            if (this.halfOpenAttempts >= this.halfOpenMaxAttempts) {
+                throw new Error('Circuit breaker is half-open and probe limit reached.');
+            }
+            this.halfOpenAttempts++;
+        }
+
+        try {
+            const result = await operation();
+            this.recordSuccess();
+            return result;
+        } catch (error) {
+            this.recordFailure();
+            throw error;
+        }
+    }
+
+    private recordSuccess(): void {
+        this.consecutiveFailures = 0;
+        if (this.state === 'half-open') {
+            this.transitionTo('closed');
+        }
+    }
+
+    private recordFailure(): void {
+        this.consecutiveFailures++;
+        if (this.state === 'half-open') {
+            this.openedAt = Date.now();
+            this.transitionTo('open');
+            return;
+        }
+        if (this.state === 'closed' && this.consecutiveFailures >= this.failureThreshold) {
+            this.openedAt = Date.now();
+            this.transitionTo('open');
+        }
+    }
+
+    /** Manually reset the circuit breaker to the closed state. */
+    reset(): void {
+        this.consecutiveFailures = 0;
+        this.halfOpenAttempts = 0;
+        this.transitionTo('closed');
+    }
+}
+
 /**
  * Rate limiter to prevent exceeding API limits
  */
@@ -203,5 +333,20 @@ export class RateLimiter {
                 resolve();
             });
         });
+    }
+
+    /** Current number of requests waiting for a slot. */
+    getQueueDepth(): number {
+        return this.queue.length;
+    }
+
+    /** Current number of in-flight requests. */
+    getActiveRequests(): number {
+        return this.activeRequests;
+    }
+
+    /** Maximum number of concurrent requests allowed. */
+    getMaxConcurrent(): number {
+        return this.maxConcurrent;
     }
 }

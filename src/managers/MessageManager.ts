@@ -9,6 +9,7 @@ import {
     PollVoteOptions,
     PollTerminateOptions,
     GetAttachmentOptions,
+    StoryOptions,
     UploadProgress,
 } from '../interfaces';
 // v0.14.0 — no additional imports needed, flags are part of existing interfaces
@@ -17,6 +18,27 @@ import { MessageError } from '../errors';
 import { withRetry } from '../retry';
 
 export class MessageManager extends BaseManager {
+    /** Post an image or video attachment to My Story or to a group (v0.14.6+). */
+    async sendStory(options: StoryOptions): Promise<SendResponse> {
+        if (!options.attachment?.trim()) {
+            throw new MessageError('Story attachment is required');
+        }
+
+        const params: Record<string, unknown> = {
+            account: this.account,
+            attachment: options.attachment,
+        };
+        if (options.groupId) {
+            validateGroupId(options.groupId);
+            params.groupId = options.groupId;
+        }
+        if (options.allowReplies === false) {
+            params.noReplies = true;
+        }
+
+        return this.sendRequest<SendResponse>('sendStory', params);
+    }
+
     async sendMessage(
         recipient: string,
         message: string,
@@ -106,6 +128,15 @@ export class MessageManager extends BaseManager {
                     params.endSession = options.endSession;
                 }
 
+                if (options.sticker) {
+                    params.sticker = {
+                        packId: options.sticker.packId,
+                        stickerId: options.sticker.stickerId,
+                        packKey: options.sticker.packKey,
+                        emoji: options.sticker.emoji,
+                    };
+                }
+
                 // v0.14.0 — send without urgent flag (no push notification triggered)
                 if (options.noUrgent) {
                     params.noUrgent = true;
@@ -114,6 +145,11 @@ export class MessageManager extends BaseManager {
                 // v0.14.2 — mark attachments as voice notes
                 if (options.voiceNote) {
                     params.voiceNote = true;
+                }
+
+                // v0.13.0 — send a non-sync message when self is part of recipients/groups
+                if (options.notifySelf) {
+                    params.notifySelf = true;
                 }
 
                 return this.sendRequest('send', params);

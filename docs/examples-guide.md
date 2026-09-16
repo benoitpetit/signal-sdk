@@ -10,20 +10,20 @@ This guide walks you through all the examples provided with the Signal SDK, from
 
 1. **Link Device** (one-time setup):
 
-   ```bash
-   node examples/sdk/00-device-linking.js
-   ```
+    ```bash
+    node examples/sdk/00-device-linking.js
+    ```
 
 2. **Set Environment Variable**:
 
-   ```bash
-   echo 'SIGNAL_PHONE_NUMBER="+33111111111"' > .env
-   ```
+    ```bash
+    echo 'SIGNAL_PHONE_NUMBER="+33111111111"' > .env
+    ```
 
 3. **Run Examples**:
-   ```bash
-   node examples/sdk/01-basic-usage.js
-   ```
+    ```bash
+    node examples/sdk/01-basic-usage.js
+    ```
 
 ---
 
@@ -38,17 +38,27 @@ examples/
 │   ├── 03-group-management.js    # Groups & management
 │   ├── 04-contact-management.js  # Contacts & blocking
 │   ├── 05-file-handling.js       # Files & attachments
-│   ├── 13-multi-account.js       # Multi-account management ✨ NEW
-│   ├── 14-advanced-messaging.js  # Text styling, mentions, quotes ✨ NEW
-│   ├── 15-identity-verification.js # Safety numbers ✨ NEW
-│   ├── 16-username-management.js # Username features ✨ NEW
-│   ├── 17-enhanced-parsing.js    # Profile & group parsing ✨ NEW
-│   └── 18-phone-number-change-payment.js # Number change & payments ✨ NEW
+│   ├── 06-advanced-features.js   # Advanced feature overview
+│   ├── 07-cross-platform.js      # Platform-specific setup
+│   ├── 08-polls.js               # Poll management
+│   ├── 09-attachments.js         # Attachment retrieval
+│   ├── 10-account-management.js  # Account settings
+│   ├── 11-synchronization.js     # Synchronization
+│   ├── 12-advanced-features.js   # Additional advanced features
+│   ├── 13-multi-account.js       # Multi-account management
+│   ├── 14-advanced-messaging.js  # Text styling, mentions, quotes
+│   ├── 15-identity-verification.js # Safety numbers
+│   ├── 16-username-management.js # Username features
+│   ├── 17-enhanced-parsing.js    # Profile and group parsing
+│   ├── 18-phone-number-change-payment.js # Number change and payments
+│   ├── 19-device-management.js   # Device management
+│   ├── 19-voice-notes.js         # Voice notes
+│   ├── 20-simple-features.js     # Basic features
+│   └── 20-voice-calling.js       # Voice calling
 ├── bot/                    # Bot framework examples
 │   ├── 01-minimal-bot.js         # Simple bot setup
-│   └── 02-advanced-bot.js        # Full-featured bot
-└── advanced/               # Advanced techniques
-    └── (coming soon)
+│   ├── 02-advanced-bot.js        # Full-featured bot
+│   └── 03-advanced-bot.js        # Alternate advanced bot setup
 ```
 
 ---
@@ -258,19 +268,19 @@ Multi-Account Manager Example
 =============================
 
 1. Adding accounts...
-✓ Added account: +1234567890
-✓ Added account: +1987654321
+Added account: +1234567890
+Added account: +1987654321
 
 2. Connecting all accounts...
-✓ All accounts connected
+All accounts connected
 
 3. Checking account status...
 Account: +1234567890 - Connected: true
 Account: +1987654321 - Connected: true
 
 4. Sending messages from different accounts...
-✓ Message sent from +1234567890
-✓ Message sent from +1987654321
+Message sent from +1234567890
+Message sent from +1987654321
 ```
 
 ### 14-advanced-messaging.js - Advanced Messaging Features
@@ -365,7 +375,7 @@ Safety Number: 12345 67890 12345 67890 12345 67890 12345 67890 12345 67890 12345
 Trusted: false
 
 2. Verifying safety number...
-✓ Safety number verified and marked as trusted
+Safety number verified and marked as trusted
 
 3. Listing untrusted identities...
 Found 0 untrusted identities
@@ -414,8 +424,8 @@ Username Management Example
 ===========================
 
 1. Setting username...
-✓ Username set: john.doe.42
-✓ Username link: https://signal.me/#u/john.doe.42
+Username set: john.doe.42
+Username link: https://signal.me/#u/john.doe.42
 
 Share this link to let people contact you without revealing your phone number!
 
@@ -423,7 +433,7 @@ Share this link to let people contact you without revealing your phone number!
 Your username link: https://signal.me/#u/john.doe.42
 
 3. Deleting username...
-✓ Username deleted
+Username deleted
 ```
 
 ### 17-enhanced-parsing.js - Enhanced Parsing
@@ -445,15 +455,15 @@ node examples/sdk/17-enhanced-parsing.js
 **Key Features**:
 
 - **Contact Parsing**:
-  - Given name and family name
-  - MobileCoin payment address
-  - Profile key and username
-  - Registration status
+    - Given name and family name
+    - MobileCoin payment address
+    - Profile key and username
+    - Registration status
 - **Group Parsing**:
-  - Pending members list
-  - Banned members list
-  - Group invite links
-  - Group version and master key
+    - Pending members list
+    - Banned members list
+    - Group invite links
+    - Group version and master key
 
 **Use Cases**:
 
@@ -497,7 +507,7 @@ Group: Family Chat
 
 ---
 
-### 18-phone-number-change-payment.js - Phone Number Change & Payments ✨
+### 18-phone-number-change-payment.js - Phone Number Change & Payments
 
 **Purpose**: Demonstrates phone number change and payment notifications
 
@@ -578,16 +588,16 @@ node examples/bot/02-advanced-bot.js
 ## How to Customize Examples
 
 1. **Copy an example file**:
-   ```bash
-   cp examples/sdk/01-basic-usage.js my-app.js
-   ```
+    ```bash
+    cp examples/sdk/01-basic-usage.js my-app.js
+    ```
 2. **Modify the code**:
-   - Change recipient numbers
-   - Customize message content
-   - Add new logic
+    - Change recipient numbers
+    - Customize message content
+    - Add new logic
 3. **Run your custom script**:
-   ```bash
-   node my-app.js
-   ```
+    ```bash
+    node my-app.js
+    ```
 
 These examples are designed to be a starting point for your own applications. Feel free to modify and extend them to fit your needs.

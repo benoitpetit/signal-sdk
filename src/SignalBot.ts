@@ -1,10 +1,15 @@
 import { EventEmitter } from 'events';
 import { SignalCli } from './SignalCli';
 import { BotConfig, BotCommand, ParsedMessage, BotStats } from './interfaces';
+import { validatePublicHttpUrl } from './validators';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import * as https from 'https';
 import * as http from 'http';
+
+/** Maximum allowed size for downloaded images (25 MB) */
+const MAX_DOWNLOAD_BYTES = 25 * 1024 * 1024;
 
 function getErrorMessage(error: unknown): string {
     if (error instanceof Error) return error.message;
@@ -52,6 +57,7 @@ export class SignalBot extends EventEmitter {
     private isProcessingQueue = false;
 
     private activeTimers: NodeJS.Timeout[] = [];
+    private tempFiles: Set<string> = new Set();
 
     constructor(config: BotConfig, signalCliPath?: string) {
         super();
@@ -98,38 +104,7 @@ export class SignalBot extends EventEmitter {
      * @returns Path to the temporary file
      */
     private async downloadImage(imageUrl: string): Promise<string> {
-        return new Promise((resolve, reject) => {
-            const tempFileName = `bot_avatar_${Date.now()}.jpg`;
-            const tempFilePath = path.join(process.cwd(), tempFileName);
-            const file = fs.createWriteStream(tempFilePath);
-
-            const client = imageUrl.startsWith('https:') ? https : http;
-
-            client
-                .get(imageUrl, (response) => {
-                    if (response.statusCode !== 200) {
-                        fs.unlink(tempFilePath, () => {}); // Clean up on error
-                        reject(new Error(`Failed to download image: ${response.statusCode}`));
-                        return;
-                    }
-
-                    response.pipe(file);
-
-                    file.on('finish', () => {
-                        file.close();
-                        resolve(tempFilePath);
-                    });
-
-                    file.on('error', (err) => {
-                        fs.unlink(tempFilePath, () => {}); // Clean up on error
-                        reject(err);
-                    });
-                })
-                .on('error', (err) => {
-                    fs.unlink(tempFilePath, () => {}); // Clean up on error
-                    reject(err);
-                });
-        });
+        return this.downloadImageFromUrl(imageUrl, 'bot_avatar');
     }
 
     /**
@@ -139,6 +114,8 @@ export class SignalBot extends EventEmitter {
      * @returns Path to the temporary file
      */
     async downloadImageFromUrl(imageUrl: string, prefix: string = 'bot_image'): Promise<string> {
+        validatePublicHttpUrl(imageUrl, 'imageUrl');
+
         return new Promise((resolve, reject) => {
             const downloadWithRedirect = (url: string, maxRedirects: number = 5): void => {
                 const client = url.startsWith('https:') ? https : http;
@@ -159,10 +136,17 @@ export class SignalBot extends EventEmitter {
                             }
 
                             // Resolve relative URLs
-                            const finalUrl = redirectUrl.startsWith('http')
-                                ? redirectUrl
-                                : new URL(redirectUrl, url).href;
+                            const finalUrl = new URL(redirectUrl, url).href;
+
+                            try {
+                                validatePublicHttpUrl(finalUrl, 'redirectUrl');
+                            } catch (validationError) {
+                                reject(validationError);
+                                return;
+                            }
+
                             this.log(`🔄 Following redirect to: ${finalUrl}`, 'DEBUG');
+                            response.resume(); // Drain the redirect response
 
                             downloadWithRedirect(finalUrl, maxRedirects - 1);
                             return;
@@ -170,7 +154,18 @@ export class SignalBot extends EventEmitter {
 
                         // Handle non-success status codes
                         if (response.statusCode !== 200) {
+                            response.resume();
                             reject(new Error(`Failed to download image: ${response.statusCode}`));
+                            return;
+                        }
+
+                        // Enforce a size limit to protect disk and memory
+                        const contentLength = Number(response.headers['content-length'] || 0);
+                        if (contentLength > MAX_DOWNLOAD_BYTES) {
+                            response.resume();
+                            reject(
+                                new Error(`Image too large: ${contentLength} bytes (max ${MAX_DOWNLOAD_BYTES} bytes)`),
+                            );
                             return;
                         }
 
@@ -178,19 +173,35 @@ export class SignalBot extends EventEmitter {
                         const urlObj = new URL(url);
                         const extension = path.extname(urlObj.pathname) || '.jpg';
                         const tempFileName = `${prefix}_${Date.now()}${extension}`;
-                        const tempFilePath = path.join(process.cwd(), tempFileName);
+                        const tempFilePath = path.join(os.tmpdir(), tempFileName);
                         const file = fs.createWriteStream(tempFilePath);
+
+                        let downloadedBytes = 0;
+                        let sizeLimitExceeded = false;
+                        response.on('data', (chunk: Buffer) => {
+                            downloadedBytes += chunk.length;
+                            if (!sizeLimitExceeded && downloadedBytes > MAX_DOWNLOAD_BYTES) {
+                                sizeLimitExceeded = true;
+                                response.destroy();
+                                file.destroy();
+                                fs.unlink(tempFilePath, () => {});
+                                reject(new Error(`Image too large: exceeds ${MAX_DOWNLOAD_BYTES} bytes`));
+                            }
+                        });
 
                         response.pipe(file);
 
                         file.on('finish', () => {
                             file.close();
+                            this.tempFiles.add(tempFilePath);
                             resolve(tempFilePath);
                         });
 
                         file.on('error', (err) => {
                             fs.unlink(tempFilePath, () => {}); // Clean up on error
-                            reject(err);
+                            if (!sizeLimitExceeded) {
+                                reject(err);
+                            }
                         });
                     })
                     .on('error', (err) => {
@@ -255,6 +266,18 @@ export class SignalBot extends EventEmitter {
             }
         } catch (error: unknown) {
             this.log(`WARNING: Could not cleanup temp file ${filePath}: ${getErrorMessage(error)}`, 'DEBUG');
+        } finally {
+            this.tempFiles.delete(filePath);
+        }
+    }
+
+    /**
+     * Cleans up all tracked temporary files (called on stop/shutdown)
+     */
+    private async cleanupAllTempFiles(): Promise<void> {
+        const files = Array.from(this.tempFiles);
+        for (const filePath of files) {
+            await this.cleanupTempFile(filePath);
         }
     }
 
@@ -292,9 +315,10 @@ export class SignalBot extends EventEmitter {
             try {
                 const base64Data = avatar.split(',')[1];
                 const tempFileName = `bot_avatar_${Date.now()}.jpg`;
-                const tempFilePath = path.join(process.cwd(), tempFileName);
+                const tempFilePath = path.join(os.tmpdir(), tempFileName);
 
                 await fs.promises.writeFile(tempFilePath, base64Data, 'base64');
+                this.tempFiles.add(tempFilePath);
                 this.log(`- Saved base64 avatar to: ${tempFilePath}`, 'DEBUG');
                 return tempFilePath;
             } catch (error: unknown) {
@@ -376,6 +400,9 @@ export class SignalBot extends EventEmitter {
         this.activeTimers.forEach((timer) => clearTimeout(timer));
         this.activeTimers = [];
 
+        // Clean up any leftover temporary files
+        await this.cleanupAllTempFiles();
+
         this.signalCli.disconnect();
         this.emit('stopped');
         this.log('- Bot stopped');
@@ -388,6 +415,9 @@ export class SignalBot extends EventEmitter {
         // Clear all active timers
         this.activeTimers.forEach((timer) => clearTimeout(timer));
         this.activeTimers = [];
+
+        // Clean up any leftover temporary files
+        await this.cleanupAllTempFiles();
 
         try {
             await this.signalCli.gracefulShutdown();

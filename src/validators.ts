@@ -251,3 +251,78 @@ export function validateSanitizedString(input: string, fieldName: string = 'inpu
         );
     }
 }
+
+/**
+ * Validates that a string is a safe HTTP(S) URL.
+ * Rejects non-http(s) protocols (file:, javascript:, data:, etc.) and credentials in URLs.
+ *
+ * @param input URL string to validate
+ * @param fieldName Name of the field for error message
+ * @throws ValidationError if invalid
+ */
+export function validateHttpUrl(input: string, fieldName: string = 'url'): void {
+    if (!input) {
+        throw new ValidationError(`${fieldName} is required`, fieldName);
+    }
+
+    if (typeof input !== 'string') {
+        throw new ValidationError(`${fieldName} must be a string`, fieldName);
+    }
+
+    let parsed: URL;
+    try {
+        parsed = new URL(input);
+    } catch {
+        throw new ValidationError(`${fieldName} must be a valid URL`, fieldName);
+    }
+
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        throw new ValidationError(`${fieldName} must use the http or https protocol`, fieldName);
+    }
+
+    if (parsed.username || parsed.password) {
+        throw new ValidationError(`${fieldName} must not contain credentials`, fieldName);
+    }
+}
+
+/**
+ * Validates an external HTTP(S) URL intended for server-side downloading.
+ * Literal loopback, link-local and private-network addresses are rejected to
+ * avoid turning URL-based convenience features into an SSRF primitive.
+ *
+ * Host names are not resolved here; deployments should still apply egress
+ * controls to defend against DNS rebinding.
+ */
+export function validatePublicHttpUrl(input: string, fieldName: string = 'url'): void {
+    validateHttpUrl(input, fieldName);
+
+    const hostname = new URL(input).hostname.toLowerCase().replace(/^\[|\]$/g, '');
+    const isPrivateIpv4 = /^(?:10\.|127\.|169\.254\.|192\.168\.|0\.)/.test(hostname)
+        || /^172\.(?:1[6-9]|2\d|3[0-1])\./.test(hostname);
+    const isPrivateIpv6 = hostname === '::1'
+        || hostname.startsWith('fc')
+        || hostname.startsWith('fd')
+        || hostname.startsWith('fe80:');
+
+    if (hostname === 'localhost' || hostname.endsWith('.localhost') || isPrivateIpv4 || isPrivateIpv6) {
+        throw new ValidationError(`${fieldName} must not target a private network address`, fieldName);
+    }
+}
+
+/**
+ * Validates a byte size against a maximum limit.
+ *
+ * @param size Size in bytes
+ * @param maxBytes Maximum allowed size in bytes
+ * @param fieldName Name of the field for error message
+ * @throws ValidationError if size exceeds the limit
+ */
+export function validateByteSize(size: number, maxBytes: number, fieldName: string = 'size'): void {
+    if (typeof size !== 'number' || !Number.isFinite(size) || size < 0) {
+        throw new ValidationError(`${fieldName} must be a non-negative finite number`, fieldName);
+    }
+
+    if (size > maxBytes) {
+        throw new ValidationError(`${fieldName} exceeds the maximum allowed size of ${maxBytes} bytes`, fieldName);
+    }
+}

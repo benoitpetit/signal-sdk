@@ -21,7 +21,7 @@ You can build messaging applications, notification systems, chatbots, group mana
 ### What are the system requirements?
 
 - Node.js (version 18 or later)
-- Java Runtime Environment (JRE)
+- Java Development Kit (JDK) 25 or later on macOS and Windows
 - Internet connection for initial setup
 
 ### Do I need to install signal-cli separately?
@@ -53,17 +53,17 @@ Yes, you can send to multiple recipients by calling the `sendMessage()` method i
 Use the `SignalBot` class to create a bot with a command system:
 
 ```javascript
-const { SignalBot } = require("signal-sdk");
+const { SignalBot } = require('signal-sdk');
 const bot = new SignalBot({
-  phoneNumber: "+33111111111",
-  admins: ["+33000000000"],
-  group: { name: "My Bot Group", createIfNotExists: true },
+    phoneNumber: '+33111111111',
+    admins: ['+33000000000'],
+    group: { name: 'My Bot Group', createIfNotExists: true },
 });
 
 bot.addCommand({
-  name: "hello",
-  description: "Say hello",
-  handler: async (message, args) => `Hello ${args.join(" ")}!`,
+    name: 'hello',
+    description: 'Say hello',
+    handler: async (message, args) => `Hello ${args.join(' ')}!`,
 });
 
 await bot.start();
@@ -72,8 +72,8 @@ await bot.start();
 ### How do I send files/attachments?
 
 ```javascript
-await signal.sendMessage(recipient, "Here are some files:", {
-  attachments: ["document.pdf", "image.jpg"],
+await signal.sendMessage(recipient, 'Here are some files:', {
+    attachments: ['document.pdf', 'image.jpg'],
 });
 ```
 
@@ -93,8 +93,8 @@ Enable debug logging:
 
 ```javascript
 const signal = new SignalCli();
-signal.on("log", (log) => {
-  console.log(`[${log.level}] ${log.message}`);
+signal.on('log', (log) => {
+    console.log(`[${log.level}] ${log.message}`);
 });
 ```
 
@@ -113,7 +113,7 @@ The SDK automatically uses a compatible version of signal-cli. If you need a spe
 
 ### Does this SDK support all signal-cli features?
 
-Yes, the SDK provides 100% coverage of signal-cli methods (all 34+ methods).
+The SDK exposes the signal-cli features documented in the [API Reference](./api-reference.md). Check the changelog for the supported signal-cli version and newly added methods; upstream can add features between SDK releases.
 
 ### How does the JSON-RPC communication work?
 

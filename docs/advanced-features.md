@@ -30,23 +30,23 @@ Send messages with advanced formatting, mentions, quotes, and editing capabiliti
 ### Text Styling
 
 ```javascript
-const { SignalCli } = require("signal-sdk");
-const signal = new SignalCli("+1234567890");
+const { SignalCli } = require('signal-sdk');
+const signal = new SignalCli('+1234567890');
 
 await signal.connect();
 
 // Send message with bold text
-await signal.sendMessage("+1987654321", "This is bold text", {
-  textStyles: [{ start: 8, length: 4, style: "BOLD" }],
+await signal.sendMessage('+1987654321', 'This is bold text', {
+    textStyles: [{ start: 8, length: 4, style: 'BOLD' }],
 });
 
 // Send message with multiple styles
-await signal.sendMessage("+1987654321", "Bold, italic, and strikethrough", {
-  textStyles: [
-    { start: 0, length: 4, style: "BOLD" },
-    { start: 6, length: 6, style: "ITALIC" },
-    { start: 18, length: 13, style: "STRIKETHROUGH" },
-  ],
+await signal.sendMessage('+1987654321', 'Bold, italic, and strikethrough', {
+    textStyles: [
+        { start: 0, length: 4, style: 'BOLD' },
+        { start: 6, length: 6, style: 'ITALIC' },
+        { start: 18, length: 13, style: 'STRIKETHROUGH' },
+    ],
 });
 
 // Available styles: BOLD, ITALIC, STRIKETHROUGH, MONOSPACE, SPOILER
@@ -56,22 +56,22 @@ await signal.sendMessage("+1987654321", "Bold, italic, and strikethrough", {
 
 ```javascript
 // Send message with @mention
-await signal.sendMessage("+1987654321", "Hello @John, how are you?", {
-  mentions: [
-    {
-      start: 6,
-      length: 5,
-      number: "+1234567890",
-    },
-  ],
+await signal.sendMessage('+1987654321', 'Hello @John, how are you?', {
+    mentions: [
+        {
+            start: 6,
+            length: 5,
+            number: '+1234567890',
+        },
+    ],
 });
 
 // Multiple mentions
-await signal.sendMessage("group-id-123", "@Alice and @Bob, please review", {
-  mentions: [
-    { start: 0, length: 6, number: "+1111111111" },
-    { start: 11, length: 4, number: "+2222222222" },
-  ],
+await signal.sendMessage('group-id-123', '@Alice and @Bob, please review', {
+    mentions: [
+        { start: 0, length: 6, number: '+1111111111' },
+        { start: 11, length: 4, number: '+2222222222' },
+    ],
 });
 ```
 
@@ -79,22 +79,22 @@ await signal.sendMessage("group-id-123", "@Alice and @Bob, please review", {
 
 ```javascript
 // Reply to a message
-await signal.sendMessage("+1987654321", "That's a great point!", {
-  quote: {
-    timestamp: 1705843200000,
-    author: "+1987654321",
-    text: "What do you think about the new SDK?",
-  },
+await signal.sendMessage('+1987654321', "That's a great point!", {
+    quote: {
+        timestamp: 1705843200000,
+        author: '+1987654321',
+        text: 'What do you think about the new SDK?',
+    },
 });
 
 // Reply with mentions in quoted message
-await signal.sendMessage("+1987654321", "I agree!", {
-  quote: {
-    timestamp: 1705843200000,
-    author: "+1987654321",
-    text: "@John has a good idea",
-    mentions: [{ start: 0, length: 5, number: "+1234567890" }],
-  },
+await signal.sendMessage('+1987654321', 'I agree!', {
+    quote: {
+        timestamp: 1705843200000,
+        author: '+1987654321',
+        text: '@John has a good idea',
+        mentions: [{ start: 0, length: 5, number: '+1234567890' }],
+    },
 });
 ```
 
@@ -102,8 +102,8 @@ await signal.sendMessage("+1987654321", "I agree!", {
 
 ```javascript
 // Edit a previously sent message
-await signal.sendMessage("+1987654321", "Corrected text here", {
-  editTimestamp: 1705843200000, // Timestamp of message to edit
+await signal.sendMessage('+1987654321', 'Corrected text here', {
+    editTimestamp: 1705843200000, // Timestamp of message to edit
 });
 
 // Note: Only works with messages sent recently (within edit window)
@@ -113,10 +113,10 @@ await signal.sendMessage("+1987654321", "Corrected text here", {
 
 ```javascript
 // Send message with link preview
-await signal.sendMessage("+1987654321", "Check out https://example.com", {
-  previewUrl: "https://example.com",
-  previewTitle: "Example Website",
-  previewDescription: "This is an example website",
+await signal.sendMessage('+1987654321', 'Check out https://example.com', {
+    previewUrl: 'https://example.com',
+    previewTitle: 'Example Website',
+    previewDescription: 'This is an example website',
 });
 ```
 
@@ -124,9 +124,9 @@ await signal.sendMessage("+1987654321", "Check out https://example.com", {
 
 ```javascript
 // Reply to a story
-await signal.sendMessage("+1987654321", "Cool story!", {
-  storyTimestamp: 1705843200000,
-  storyAuthor: "+1987654321",
+await signal.sendMessage('+1987654321', 'Cool story!', {
+    storyTimestamp: 1705843200000,
+    storyAuthor: '+1987654321',
 });
 ```
 
@@ -135,31 +135,31 @@ await signal.sendMessage("+1987654321", "Cool story!", {
 ```javascript
 // Receive with advanced options
 const messages = await signal.receive({
-  timeout: 10, // Wait up to 10 seconds
-  maxMessages: 50, // Receive maximum 50 messages
-  ignoreAttachments: true, // Skip downloading attachments (faster)
-  ignoreStories: true, // Ignore story messages
-  ignoreAvatars: true, // Skip downloading avatars (v0.14.0+)
-  ignoreStickers: true, // Skip downloading sticker packs (v0.14.0+)
-  sendReadReceipts: false, // Don't send read receipts
+    timeout: 10, // Wait up to 10 seconds
+    maxMessages: 50, // Receive maximum 50 messages
+    ignoreAttachments: true, // Skip downloading attachments (faster)
+    ignoreStories: true, // Ignore story messages
+    ignoreAvatars: true, // Skip downloading avatars (v0.14.0+)
+    ignoreStickers: true, // Skip downloading sticker packs (v0.14.0+)
+    sendReadReceipts: false, // Don't send read receipts
 });
 
 // Process received messages
 messages.forEach((msg) => {
-  if (msg.dataMessage) {
-    console.log("From:", msg.source);
-    console.log("Message:", msg.dataMessage.message);
+    if (msg.dataMessage) {
+        console.log('From:', msg.source);
+        console.log('Message:', msg.dataMessage.message);
 
-    // Check for mentions
-    if (msg.dataMessage.mentions) {
-      console.log("Mentions:", msg.dataMessage.mentions);
-    }
+        // Check for mentions
+        if (msg.dataMessage.mentions) {
+            console.log('Mentions:', msg.dataMessage.mentions);
+        }
 
-    // Check for quotes
-    if (msg.dataMessage.quote) {
-      console.log("Replying to:", msg.dataMessage.quote.text);
+        // Check for quotes
+        if (msg.dataMessage.quote) {
+            console.log('Replying to:', msg.dataMessage.quote.text);
+        }
     }
-  }
 });
 ```
 
@@ -182,15 +182,15 @@ Verify contact identities using safety numbers for secure communication.
 
 ```javascript
 // Retrieve safety number for a contact
-const safetyNumber = await signal.getSafetyNumber("+1987654321");
+const safetyNumber = await signal.getSafetyNumber('+1987654321');
 
 if (safetyNumber) {
-  console.log("Safety Number:", safetyNumber);
-  
-  // Display safety number in groups of 5 digits
-  const formatted = safetyNumber.match(/.{1,5}/g).join(" ");
-  console.log("Formatted:", formatted);
-  // Output: 12345 67890 12345 67890 12345 67890 12345 67890 12345 67890 12345 67890
+    console.log('Safety Number:', safetyNumber);
+
+    // Display safety number in groups of 5 digits
+    const formatted = safetyNumber.match(/.{1,5}/g).join(' ');
+    console.log('Formatted:', formatted);
+    // Output: 12345 67890 12345 67890 12345 67890 12345 67890 12345 67890 12345 67890
 }
 ```
 
@@ -199,14 +199,14 @@ if (safetyNumber) {
 ```javascript
 // Verify and mark as trusted
 const isVerified = await signal.verifySafetyNumber(
-  "+1987654321",
-  "123456789012345678901234567890123456789012345678901234567890",
+    '+1987654321',
+    '123456789012345678901234567890123456789012345678901234567890',
 );
 
 if (isVerified) {
-  console.log("✓ Safety number verified and marked as trusted");
+    console.log('Safety number verified and marked as trusted');
 } else {
-  console.log("✗ Safety number does not match");
+    console.log('Safety number does not match');
 }
 ```
 
@@ -217,13 +217,13 @@ if (isVerified) {
 const untrusted = await signal.listUntrustedIdentities();
 
 if (untrusted.length > 0) {
-  console.log("⚠️  Identity changes detected:");
-  untrusted.forEach((identity) => {
-    console.log(`  ${identity.number}`);
-    console.log(`    Key: ${identity.identityKey}`);
-  });
+    console.log('Identity changes detected:');
+    untrusted.forEach((identity) => {
+        console.log(`  ${identity.number}`);
+        console.log(`    Key: ${identity.identityKey}`);
+    });
 } else {
-  console.log("✓ All identities are trusted");
+    console.log('All identities are trusted');
 }
 ```
 
@@ -232,39 +232,39 @@ if (untrusted.length > 0) {
 ```javascript
 // Complete verification workflow
 async function verifyContact(phoneNumber) {
-  // 1. Get safety number
-  const safetyNumber = await signal.getSafetyNumber(phoneNumber);
+    // 1. Get safety number
+    const safetyNumber = await signal.getSafetyNumber(phoneNumber);
 
-  if (!safetyNumber) {
-    console.log("Could not retrieve safety number");
-    return false;
-  }
-
-  console.log("\nSafety Number Verification");
-  console.log("===========================");
-  console.log("Contact:", phoneNumber);
-  console.log("Safety Number:", safetyNumber);
-  console.log("\n⚠️  Compare this number in person or via a trusted channel");
-
-  // 2. User confirms match (in real app, get user input)
-  const userConfirms = true; // Replace with actual user confirmation
-
-  if (userConfirms) {
-    // 3. Mark as trusted
-    const isVerified = await signal.verifySafetyNumber(phoneNumber, safetyNumber);
-
-    if (isVerified) {
-      console.log("\n✓ Identity verified and marked as trusted");
-      return true;
+    if (!safetyNumber) {
+        console.log('Could not retrieve safety number');
+        return false;
     }
-  }
 
-  console.log("\n✗ Verification cancelled or failed");
-  return false;
+    console.log('\nSafety Number Verification');
+    console.log('===========================');
+    console.log('Contact:', phoneNumber);
+    console.log('Safety Number:', safetyNumber);
+    console.log('\nCompare this number in person or via a trusted channel');
+
+    // 2. User confirms match (in real app, get user input)
+    const userConfirms = true; // Replace with actual user confirmation
+
+    if (userConfirms) {
+        // 3. Mark as trusted
+        const isVerified = await signal.verifySafetyNumber(phoneNumber, safetyNumber);
+
+        if (isVerified) {
+            console.log('\nIdentity verified and marked as trusted');
+            return true;
+        }
+    }
+
+    console.log('\nVerification cancelled or failed');
+    return false;
 }
 
 // Usage
-await verifyContact("+1987654321");
+await verifyContact('+1987654321');
 ```
 
 ### Identity Verification Use Cases
@@ -285,13 +285,13 @@ Manage Signal usernames for privacy-focused contact sharing.
 ```javascript
 // Set your Signal username
 const result = await signal.updateAccount({
-  username: "john.doe.42",
+    username: 'john.doe.42',
 });
 
 if (result.success) {
-  console.log("Username:", result.username);
-  console.log("Username Link:", result.usernameLink);
-  // Output: https://signal.me/#u/john.doe.42
+    console.log('Username:', result.username);
+    console.log('Username Link:', result.usernameLink);
+    // Output: https://signal.me/#u/john.doe.42
 }
 ```
 
@@ -302,8 +302,8 @@ if (result.success) {
 const result = await signal.updateAccount({});
 
 if (result.usernameLink) {
-  console.log("Your username link:", result.usernameLink);
-  // Can be shared on social media, websites, etc.
+    console.log('Your username link:', result.usernameLink);
+    // Can be shared on social media, websites, etc.
 }
 ```
 
@@ -312,11 +312,11 @@ if (result.usernameLink) {
 ```javascript
 // Remove your username
 const result = await signal.updateAccount({
-  deleteUsername: true,
+    deleteUsername: true,
 });
 
 if (result.success) {
-  console.log("✓ Username deleted");
+    console.log('Username deleted');
 }
 ```
 
@@ -333,16 +333,16 @@ if (result.success) {
 
 ```javascript
 // Valid usernames
-await signal.updateAccount({ username: "john.doe" });    // ✓
-await signal.updateAccount({ username: "alice.2023" });  // ✓
-await signal.updateAccount({ username: "bob.crypto" });  // ✓
-await signal.updateAccount({ username: "charlie.42" });  // ✓
+await signal.updateAccount({ username: 'john.doe' }); // valid
+await signal.updateAccount({ username: 'alice.2023' }); // valid
+await signal.updateAccount({ username: 'bob.crypto' }); // valid
+await signal.updateAccount({ username: 'charlie.42' }); // valid
 
 // Invalid usernames (will throw error)
-await signal.updateAccount({ username: "john doe" });    // ✗ (space)
-await signal.updateAccount({ username: "alice@signal" }); // ✗ (special char)
-await signal.updateAccount({ username: ".bob" });        // ✗ (starts with dot)
-await signal.updateAccount({ username: "charlie.." });   // ✗ (consecutive dots)
+await signal.updateAccount({ username: 'john doe' }); // invalid: space
+await signal.updateAccount({ username: 'alice@signal' }); // invalid: special character
+await signal.updateAccount({ username: '.bob' }); // invalid: starts with dot
+await signal.updateAccount({ username: 'charlie..' }); // invalid: consecutive dots
 ```
 
 ### Username Management Use Cases
@@ -362,18 +362,18 @@ Manage multiple Signal accounts simultaneously with automatic event routing.
 ### Setup Multi-Account Manager
 
 ```javascript
-const { MultiAccountManager } = require("signal-sdk");
+const { MultiAccountManager } = require('signal-sdk');
 
 const manager = new MultiAccountManager({
-  verbose: true,
-  autoReconnect: true,
+    verbose: true,
+    autoReconnect: true,
 });
 
 // Add accounts
-const account1 = await manager.addAccount("+1234567890");
-const account2 = await manager.addAccount("+1987654321");
+const account1 = await manager.addAccount('+1234567890');
+const account2 = await manager.addAccount('+1987654321');
 
-console.log("Added", manager.getAccounts().length, "accounts");
+console.log('Added', manager.getAccounts().length, 'accounts');
 ```
 
 ### Connect All Accounts
@@ -381,7 +381,7 @@ console.log("Added", manager.getAccounts().length, "accounts");
 ```javascript
 // Connect all accounts simultaneously
 await manager.connectAll();
-console.log("✓ All accounts connected");
+console.log('All accounts connected');
 
 // Check connection status
 const status = manager.getStatus();
@@ -392,40 +392,32 @@ console.log(`Connected: ${status.connectedAccounts}/${status.totalAccounts}`);
 
 ```javascript
 // Send from account 1
-await manager.sendMessage(
-  "+1234567890",
-  "+1111111111",
-  "Message from account 1",
-);
+await manager.sendMessage('+1234567890', '+1111111111', 'Message from account 1');
 
 // Send from account 2
-await manager.sendMessage(
-  "+1987654321",
-  "+1111111111",
-  "Message from account 2",
-);
+await manager.sendMessage('+1987654321', '+1111111111', 'Message from account 2');
 ```
 
 ### Event Handling by Account
 
 ```javascript
 // Listen to all messages with account context
-manager.on("message", (account, envelope) => {
-  console.log(`${account}: ${envelope.dataMessage?.message}`);
+manager.on('message', (account, envelope) => {
+    console.log(`${account}: ${envelope.dataMessage?.message}`);
 });
 
 // Listen to specific account
-manager.on("accountConnected", (account) => {
-  console.log("Account connected:", account);
+manager.on('accountConnected', (account) => {
+    console.log('Account connected:', account);
 });
 
-manager.on("accountDisconnected", (account) => {
-  console.log("Account disconnected:", account);
+manager.on('accountDisconnected', (account) => {
+    console.log('Account disconnected:', account);
 });
 
 // Error handling
-manager.on("error", (account, error) => {
-  console.error(`Account ${account} error:`, error);
+manager.on('error', (account, error) => {
+    console.error(`Account ${account} error:`, error);
 });
 ```
 
@@ -433,15 +425,15 @@ manager.on("error", (account, error) => {
 
 ```javascript
 // Get specific account
-const account = manager.getAccount("+1234567890");
+const account = manager.getAccount('+1234567890');
 if (account) {
-  // Use SignalCli methods directly
-  const contacts = await account.listContacts();
-  console.log(`Account 1 has ${contacts.length} contacts`);
+    // Use SignalCli methods directly
+    const contacts = await account.listContacts();
+    console.log(`Account 1 has ${contacts.length} contacts`);
 }
 
 // Remove account
-await manager.removeAccount("+1987654321");
+await manager.removeAccount('+1987654321');
 
 // Cleanup
 await manager.shutdown();
@@ -468,13 +460,13 @@ Extract detailed information from contacts and groups.
 const contacts = await signal.listContacts({ detailed: true });
 
 contacts.forEach((contact) => {
-  console.log("\nContact:", contact.number);
-  console.log("  Given Name:", contact.givenName || "N/A");
-  console.log("  Family Name:", contact.familyName || "N/A");
-  console.log("  Username:", contact.username ? `@${contact.username}` : "N/A");
-  console.log("  MobileCoin:", contact.mobileCoinAddress || "N/A");
-  console.log("  Profile Key:", contact.profileKey || "N/A");
-  console.log("  Registered:", contact.registered ? "Yes" : "No");
+    console.log('\nContact:', contact.number);
+    console.log('  Given Name:', contact.givenName || 'N/A');
+    console.log('  Family Name:', contact.familyName || 'N/A');
+    console.log('  Username:', contact.username ? `@${contact.username}` : 'N/A');
+    console.log('  MobileCoin:', contact.mobileCoinAddress || 'N/A');
+    console.log('  Profile Key:', contact.profileKey || 'N/A');
+    console.log('  Registered:', contact.registered ? 'Yes' : 'No');
 });
 ```
 
@@ -485,31 +477,31 @@ contacts.forEach((contact) => {
 const groups = await signal.listGroupsDetailed({ detailed: true });
 
 groups.forEach((group) => {
-  console.log("\nGroup:", group.name);
-  console.log("  ID:", group.groupId);
-  console.log("  Members:", group.members?.length || 0);
-  console.log("  Pending:", group.pendingMembers?.length || 0);
-  console.log("  Banned:", group.banned?.length || 0);
+    console.log('\nGroup:', group.name);
+    console.log('  ID:', group.groupId);
+    console.log('  Members:', group.members?.length || 0);
+    console.log('  Pending:', group.pendingMembers?.length || 0);
+    console.log('  Banned:', group.banned?.length || 0);
 
-  if (group.inviteLink || group.groupInviteLink) {
-    console.log("  Invite Link:", group.inviteLink || group.groupInviteLink);
-  }
+    if (group.inviteLink || group.groupInviteLink) {
+        console.log('  Invite Link:', group.inviteLink || group.groupInviteLink);
+    }
 
-  // List pending members
-  if (group.pendingMembers && group.pendingMembers.length > 0) {
-    console.log("  Pending Members:");
-    group.pendingMembers.forEach((member) => {
-      console.log(`    - ${member}`);
-    });
-  }
+    // List pending members
+    if (group.pendingMembers && group.pendingMembers.length > 0) {
+        console.log('  Pending Members:');
+        group.pendingMembers.forEach((member) => {
+            console.log(`    - ${member}`);
+        });
+    }
 
-  // List banned members
-  if (group.banned && group.banned.length > 0) {
-    console.log("  Banned Members:");
-    group.banned.forEach((member) => {
-      console.log(`    - ${member}`);
-    });
-  }
+    // List banned members
+    if (group.banned && group.banned.length > 0) {
+        console.log('  Banned Members:');
+        group.banned.forEach((member) => {
+            console.log(`    - ${member}`);
+        });
+    }
 });
 ```
 
@@ -523,8 +515,8 @@ const withPayment = contacts.filter((c) => c.mobileCoinAddress);
 
 console.log(`\n${withPayment.length} contacts have payment addresses:\n`);
 withPayment.forEach((contact) => {
-  console.log(`${contact.givenName || contact.name} ${contact.familyName || ""}`);
-  console.log(`  Address: ${contact.mobileCoinAddress}`);
+    console.log(`${contact.givenName || contact.name} ${contact.familyName || ''}`);
+    console.log(`  Address: ${contact.mobileCoinAddress}`);
 });
 ```
 
@@ -545,35 +537,35 @@ Connect to signal-cli daemon using different transport methods.
 ### Unix Socket Mode
 
 ```javascript
-const { SignalCli } = require("signal-sdk");
+const { SignalCli } = require('signal-sdk');
 
-const signal = new SignalCli("+1234567890", undefined, {
-  daemonMode: "unix-socket",
-  socketPath: "/var/run/signal-cli.sock",
+const signal = new SignalCli('+1234567890', undefined, {
+    daemonMode: 'unix-socket',
+    socketPath: '/var/run/signal-cli.sock',
 });
 
 await signal.connect();
-console.log("✓ Connected via Unix socket");
+console.log('Connected via Unix socket');
 ```
 
 ### TCP Mode
 
 ```javascript
 // Connect to remote daemon via TCP
-const signal = new SignalCli("+1234567890", undefined, {
-  daemonMode: "tcp",
-  tcpHost: "localhost",
-  tcpPort: 7583,
+const signal = new SignalCli('+1234567890', undefined, {
+    daemonMode: 'tcp',
+    tcpHost: 'localhost',
+    tcpPort: 7583,
 });
 
 await signal.connect();
-console.log("✓ Connected via TCP");
+console.log('Connected via TCP');
 
 // For remote servers
-const remoteSignal = new SignalCli("+1234567890", undefined, {
-  daemonMode: "tcp",
-  tcpHost: "signal-server.example.com",
-  tcpPort: 7583,
+const remoteSignal = new SignalCli('+1234567890', undefined, {
+    daemonMode: 'tcp',
+    tcpHost: 'signal-server.example.com',
+    tcpPort: 7583,
 });
 ```
 
@@ -581,20 +573,20 @@ const remoteSignal = new SignalCli("+1234567890", undefined, {
 
 ```javascript
 // Connect to HTTP REST API
-const signal = new SignalCli("+1234567890", undefined, {
-  daemonMode: "http",
-  httpBaseUrl: "http://localhost:8080",
+const signal = new SignalCli('+1234567890', undefined, {
+    daemonMode: 'http',
+    httpBaseUrl: 'http://localhost:8080',
 });
 
 await signal.connect();
-console.log("✓ Connected via HTTP");
+console.log('Connected via HTTP');
 ```
 
 ### Default JSON-RPC Mode (STDIO)
 
 ```javascript
 // Default mode - spawns signal-cli process
-const signal = new SignalCli("+1234567890");
+const signal = new SignalCli('+1234567890');
 await signal.connect();
 // Uses stdin/stdout JSON-RPC communication
 ```
@@ -616,25 +608,25 @@ Create, vote on, and manage polls in Signal conversations.
 ### Create a Poll
 
 ```javascript
-const { SignalCli } = require("signal-sdk");
-const signal = new SignalCli("+1234567890");
+const { SignalCli } = require('signal-sdk');
+const signal = new SignalCli('+1234567890');
 
 await signal.connect();
 
 // Create a poll in a group
 await signal.sendPollCreate({
-  question: "What's your favorite programming language?",
-  options: ["JavaScript", "Python", "Rust", "Go"],
-  groupId: "group-id-here",
-  multiSelect: false, // Single choice poll
+    question: "What's your favorite programming language?",
+    options: ['JavaScript', 'Python', 'Rust', 'Go'],
+    groupId: 'group-id-here',
+    multiSelect: false, // Single choice poll
 });
 
 // Create a multiple-choice poll with individual recipients
 await signal.sendPollCreate({
-  question: "Which features do you want next?",
-  options: ["Dark Mode", "File Sync", "Video Calls", "Screen Share"],
-  recipients: ["+1987654321", "+1112223334"],
-  multiSelect: true, // Allow multiple selections
+    question: 'Which features do you want next?',
+    options: ['Dark Mode', 'File Sync', 'Video Calls', 'Screen Share'],
+    recipients: ['+1987654321', '+1112223334'],
+    multiSelect: true, // Allow multiple selections
 });
 ```
 
@@ -643,19 +635,19 @@ await signal.sendPollCreate({
 ```javascript
 // Vote on a poll
 await signal.sendPollVote(
-  "group-id-or-phone", // Where the poll was sent
-  {
-    pollAuthor: "+1234567890", // Author of the poll
-    pollTimestamp: 1705843200000, // Poll message timestamp
-    optionIndexes: [1], // Vote for second option (0-indexed)
-  }
+    'group-id-or-phone', // Where the poll was sent
+    {
+        pollAuthor: '+1234567890', // Author of the poll
+        pollTimestamp: 1705843200000, // Poll message timestamp
+        optionIndexes: [1], // Vote for second option (0-indexed)
+    },
 );
 
 // Vote for multiple options (if poll allows)
-await signal.sendPollVote("group-id-or-phone", {
-  pollAuthor: "+1234567890",
-  pollTimestamp: 1705843200000,
-  optionIndexes: [0, 2, 3], // Vote for first, third, and fourth options
+await signal.sendPollVote('group-id-or-phone', {
+    pollAuthor: '+1234567890',
+    pollTimestamp: 1705843200000,
+    optionIndexes: [0, 2, 3], // Vote for first, third, and fourth options
 });
 ```
 
@@ -663,12 +655,9 @@ await signal.sendPollVote("group-id-or-phone", {
 
 ```javascript
 // Stop accepting votes (creator only)
-await signal.sendPollTerminate(
-  "group-id-or-phone",
-  {
+await signal.sendPollTerminate('group-id-or-phone', {
     pollTimestamp: 1705843200000, // Poll message timestamp
-  }
-);
+});
 ```
 
 ### Poll Use Cases
@@ -689,11 +678,11 @@ Retrieve attachments, avatars, and stickers by their unique identifiers.
 ```javascript
 // Retrieve attachment from a message
 const attachment = await signal.getAttachment({
-  id: "abc123...", // Attachment ID from message
-  recipient: "+1234567890", // Optional: recipient context
+    id: 'abc123...', // Attachment ID from message
+    recipient: '+1234567890', // Optional: recipient context
 });
 
-console.log("Attachment retrieved:", attachment);
+console.log('Attachment retrieved:', attachment);
 ```
 
 ### Get Avatar
@@ -701,17 +690,17 @@ console.log("Attachment retrieved:", attachment);
 ```javascript
 // Get contact's avatar
 const avatar = await signal.getAvatar({
-  contact: "+1234567890",
+    contact: '+1234567890',
 });
 
 // Get group avatar
 const groupAvatar = await signal.getAvatar({
-  groupId: "group-id-123",
+    groupId: 'group-id-123',
 });
 
 // Get profile avatar
 const profileAvatar = await signal.getAvatar({
-  profile: "+1234567890",
+    profile: '+1234567890',
 });
 ```
 
@@ -720,11 +709,11 @@ const profileAvatar = await signal.getAvatar({
 ```javascript
 // Retrieve sticker by ID
 const sticker = await signal.getSticker({
-  packId: "sticker-pack-id-123",
-  stickerId: 0,
+    packId: 'sticker-pack-id-123',
+    stickerId: 0,
 });
 
-console.log("Sticker format:", sticker);
+console.log('Sticker format:', sticker);
 ```
 
 ### Attachment Use Cases
@@ -745,24 +734,18 @@ Manage account settings, profile information, and account details.
 ```javascript
 // Update profile name and avatar
 await signal.updateProfile(
-  "John",                    // givenName (required)
-  "Software Developer",      // about
-  "💻",                      // aboutEmoji
-  "./profile-picture.jpg",   // avatar
-  {
-    familyName: "Doe",
-    mobileCoinAddress: "your-mobilecoin-address",
-  }
+    'John', // givenName (required)
+    'Software Developer', // about
+    undefined, // no profile symbol
+    './profile-picture.jpg', // avatar
+    {
+        familyName: 'Doe',
+        mobileCoinAddress: 'your-mobilecoin-address',
+    },
 );
 
 // Remove avatar
-await signal.updateProfile(
-  "John",
-  undefined,
-  undefined,
-  undefined,
-  { removeAvatar: true }
-);
+await signal.updateProfile('John', undefined, undefined, undefined, { removeAvatar: true });
 ```
 
 ### Update Account Settings
@@ -770,24 +753,24 @@ await signal.updateProfile(
 ```javascript
 // Update account settings
 const result = await signal.updateAccount({
-  deviceName: "My Laptop",
+    deviceName: 'My Laptop',
 });
 
 // Set username
 const result = await signal.updateAccount({
-  username: "john.doe.42",
+    username: 'john.doe.42',
 });
 
 // Update privacy settings
 await signal.updateAccount({
-  discoverableByNumber: false,
-  numberSharing: false,
-  unrestrictedUnidentifiedSender: false,
+    discoverableByNumber: false,
+    numberSharing: false,
+    unrestrictedUnidentifiedSender: false,
 });
 
 // Delete username
 await signal.updateAccount({
-  deleteUsername: true,
+    deleteUsername: true,
 });
 ```
 
@@ -798,9 +781,9 @@ await signal.updateAccount({
 const accounts = await signal.listAccountsDetailed();
 
 accounts.forEach((account) => {
-  console.log(`Account: ${account.name || "N/A"} (${account.number})`);
-  console.log(`  UUID: ${account.uuid || "N/A"}`);
-  console.log(`  Registered: ${account.registered !== false ? "Yes" : "No"}`);
+    console.log(`Account: ${account.name || 'N/A'} (${account.number})`);
+    console.log(`  UUID: ${account.uuid || 'N/A'}`);
+    console.log(`  Registered: ${account.registered !== false ? 'Yes' : 'No'}`);
 });
 ```
 
@@ -817,30 +800,30 @@ Change your Signal account to a new phone number with two-step verification proc
 
 ```javascript
 // Step 1: Start the change number process
-await signal.startChangeNumber("+33612345678");
+await signal.startChangeNumber('+33612345678');
 
 // Wait for SMS/voice verification code...
 
 // Step 2: Complete the change with verification code
-await signal.finishChangeNumber("+33612345678", "123456");
+await signal.finishChangeNumber('+33612345678', '123456');
 
 // With PIN if registration lock is enabled
-await signal.finishChangeNumber("+33612345678", "123456", "1234");
+await signal.finishChangeNumber('+33612345678', '123456', '1234');
 ```
 
 **Voice Verification:**
 
 ```javascript
 // Use voice call instead of SMS
-await signal.startChangeNumber("+33612345678", true);
+await signal.startChangeNumber('+33612345678', true);
 ```
 
 **With Captcha:**
 
 ```javascript
 // If captcha is required
-const captcha = "captcha_token_from_signalcaptchas.org";
-await signal.startChangeNumber("+33612345678", false, captcha);
+const captcha = 'captcha_token_from_signalcaptchas.org';
+await signal.startChangeNumber('+33612345678', false, captcha);
 ```
 
 ### Payment Notifications
@@ -849,14 +832,14 @@ Send MobileCoin payment notifications through Signal's cryptocurrency integratio
 
 ```javascript
 // Send payment notification with receipt and note
-await signal.sendPaymentNotification("+33612345678", {
-  receipt: "base64EncodedMobileCoinReceipt",
-  note: "Thanks for dinner! 🍕",
+await signal.sendPaymentNotification('+33612345678', {
+    receipt: 'base64EncodedMobileCoinReceipt',
+    note: 'Thanks for dinner!',
 });
 
 // Without note
-await signal.sendPaymentNotification("+33612345678", {
-  receipt: "base64EncodedMobileCoinReceipt",
+await signal.sendPaymentNotification('+33612345678', {
+    receipt: 'base64EncodedMobileCoinReceipt',
 });
 ```
 
@@ -885,27 +868,27 @@ Get comprehensive group information including permissions and member roles.
 const groups = await signal.listGroupsDetailed({ detailed: true });
 
 groups.forEach((group) => {
-  console.log(`Group: ${group.name}`);
-  console.log(`  ID: ${group.groupId}`);
-  console.log(`  Description: ${group.description || "None"}`);
-  console.log(`  Members: ${group.members?.length || 0}`);
-  console.log(`  Admin: ${group.isAdmin ? "Yes" : "No"}`);
+    console.log(`Group: ${group.name}`);
+    console.log(`  ID: ${group.groupId}`);
+    console.log(`  Description: ${group.description || 'None'}`);
+    console.log(`  Members: ${group.members?.length || 0}`);
+    console.log(`  Admin: ${group.isAdmin ? 'Yes' : 'No'}`);
 
-  if (group.inviteLink || group.groupInviteLink) {
-    console.log(`  Invite Link: ${group.inviteLink || group.groupInviteLink}`);
-  }
+    if (group.inviteLink || group.groupInviteLink) {
+        console.log(`  Invite Link: ${group.inviteLink || group.groupInviteLink}`);
+    }
 
-  // Member details
-  if (group.members) {
-    group.members.forEach((member) => {
-      console.log(`    - ${member}`);
-    });
-  }
+    // Member details
+    if (group.members) {
+        group.members.forEach((member) => {
+            console.log(`    - ${member}`);
+        });
+    }
 
-  // Pending members
-  if (group.pendingMembers?.length > 0) {
-    console.log(`  Pending: ${group.pendingMembers.length}`);
-  }
+    // Pending members
+    if (group.pendingMembers?.length > 0) {
+        console.log(`  Pending: ${group.pendingMembers.length}`);
+    }
 });
 ```
 
@@ -925,26 +908,20 @@ The SDK includes enterprise-grade reliability features:
 ### Error Handling
 
 ```javascript
-import {
-  SignalCli,
-  ConnectionError,
-  ValidationError,
-  RateLimitError,
-  TimeoutError,
-} from "signal-sdk";
+import { SignalCli, ConnectionError, ValidationError, RateLimitError, TimeoutError } from 'signal-sdk';
 
 try {
-  await signal.sendMessage(recipient, message);
+    await signal.sendMessage(recipient, message);
 } catch (error) {
-  if (error instanceof ConnectionError) {
-    console.error("Connection failed:", error.message);
-    // Automatic retry with exponential backoff
-  } else if (error instanceof ValidationError) {
-    console.error("Invalid input:", error.message);
-  } else if (error instanceof RateLimitError) {
-    console.error("Rate limited, waiting...");
-    await sleep(error.retryAfter);
-  }
+    if (error instanceof ConnectionError) {
+        console.error('Connection failed:', error.message);
+        // Automatic retry with exponential backoff
+    } else if (error instanceof ValidationError) {
+        console.error('Invalid input:', error.message);
+    } else if (error instanceof RateLimitError) {
+        console.error('Rate limited, waiting...');
+        await sleep(error.retryAfter);
+    }
 }
 ```
 
@@ -953,9 +930,9 @@ try {
 The SDK automatically retries operations with exponential backoff based on the `maxRetries` and `retryDelay` configuration options.
 
 ```javascript
-const signal = new SignalCli("+1234567890", undefined, {
-  maxRetries: 5,
-  retryDelay: 1000,
+const signal = new SignalCli('+1234567890', undefined, {
+    maxRetries: 5,
+    retryDelay: 1000,
 });
 
 // Operations automatically retry on transient failures
@@ -967,15 +944,15 @@ await signal.sendMessage(recipient, message);
 The SDK includes built-in rate limiting to prevent hitting Signal's API limits:
 
 ```javascript
-const signal = new SignalCli("+1234567890", undefined, {
-  maxConcurrentRequests: 5, // Max 5 concurrent operations
-  minRequestInterval: 200,  // 200ms between requests
+const signal = new SignalCli('+1234567890', undefined, {
+    maxConcurrentRequests: 5, // Max 5 concurrent operations
+    minRequestInterval: 200, // 200ms between requests
 });
 
 // Bulk operations automatically rate-limited
-const recipients = ["+1111111111", "+2222222222", "+3333333333"];
+const recipients = ['+1111111111', '+2222222222', '+3333333333'];
 for (const recipient of recipients) {
-  await signal.sendMessage(recipient, "Bulk message");
+    await signal.sendMessage(recipient, 'Bulk message');
 }
 ```
 
@@ -984,26 +961,26 @@ for (const recipient of recipients) {
 All SDK methods automatically validate inputs:
 
 ```javascript
-import { validatePhoneNumber, validateMessage } from "signal-sdk";
+import { validatePhoneNumber, validateMessage } from 'signal-sdk';
 
 // Validate before sending
 try {
-  validatePhoneNumber(userInput);
-  validateMessage(userMessage);
-  await signal.sendMessage(userInput, userMessage);
+    validatePhoneNumber(userInput);
+    validateMessage(userMessage);
+    await signal.sendMessage(userInput, userMessage);
 } catch (error) {
-  console.error("Validation failed:", error.message);
+    console.error('Validation failed:', error.message);
 }
 ```
 
 ### Structured Logging
 
 ```javascript
-const { SignalCli } = require("signal-sdk");
+const { SignalCli } = require('signal-sdk');
 
-const signal = new SignalCli("+1234567890", undefined, {
-  verbose: true,
-  logFile: "./signal-sdk.log",
+const signal = new SignalCli('+1234567890', undefined, {
+    verbose: true,
+    logFile: './signal-sdk.log',
 });
 
 // Automatic structured logging
@@ -1022,16 +999,16 @@ For complete infrastructure documentation, see [Robust Infrastructure Guide](./r
 Remove contacts from your Signal account with different levels of data removal.
 
 ```javascript
-const { SignalCli } = require("signal-sdk");
-const signal = new SignalCli("+1234567890");
+const { SignalCli } = require('signal-sdk');
+const signal = new SignalCli('+1234567890');
 
 await signal.connect();
 
 // Hide contact from list but keep encryption data
-await signal.removeContact("+1987654321", { hide: true });
+await signal.removeContact('+1987654321', { hide: true });
 
 // Completely remove all contact data (sessions, keys, etc.)
-await signal.removeContact("+1987654321", { forget: true });
+await signal.removeContact('+1987654321', { forget: true });
 ```
 
 #### Options
@@ -1046,11 +1023,12 @@ Send your contact list to another Signal user or export for backup.
 ```javascript
 // Send contact list to a user (exports contacts in vCard format)
 await signal.sendContacts({
-  includeAllRecipients: true,
+    includeAllRecipients: true,
 });
 ```
 
 This is useful for:
+
 - Contact sharing between devices
 - Backup and restore operations
 - Contact synchronization
@@ -1073,19 +1051,13 @@ Verify if phone numbers are registered with Signal before sending messages.
 
 ```javascript
 const userStatus = await signal.getUserStatus({
-  recipients: [
-    "+1234567890",
-    "+1987654321",
-    "+1122334455",
-  ],
+    recipients: ['+1234567890', '+1987654321', '+1122334455'],
 });
 
 userStatus.forEach((status) => {
-  console.log(
-    `${status.number}: ${status.isRegistered ? "Registered" : "Not registered"}`,
-  );
-  if (status.uuid) console.log(`  UUID: ${status.uuid}`);
-  if (status.username) console.log(`  Username: ${status.username}`);
+    console.log(`${status.number}: ${status.isRegistered ? 'Registered' : 'Not registered'}`);
+    if (status.uuid) console.log(`  UUID: ${status.uuid}`);
+    if (status.username) console.log(`  Username: ${status.username}`);
 });
 ```
 
@@ -1093,10 +1065,10 @@ userStatus.forEach((status) => {
 
 ```typescript
 interface UserStatusResult {
-  number: string;        // Phone number checked
-  isRegistered: boolean; // Whether user is on Signal
-  uuid?: string;         // Signal UUID if registered
-  username?: string;     // Username if available
+    number: string; // Phone number checked
+    isRegistered: boolean; // Whether user is on Signal
+    uuid?: string; // Signal UUID if registered
+    username?: string; // Username if available
 }
 ```
 
@@ -1117,7 +1089,7 @@ Create and upload custom sticker packs to Signal.
 
 ```javascript
 const stickerResult = await signal.uploadStickerPack({
-  path: "./my-stickers/manifest.json",
+    path: './my-stickers/manifest.json',
 });
 
 console.log(`Pack ID: ${stickerResult.packId}`);
@@ -1131,17 +1103,17 @@ Create a manifest.json file:
 
 ```json
 {
-  "title": "My Custom Stickers",
-  "author": "Your Name",
-  "cover": {
-    "id": 0,
-    "emoji": "smile"
-  },
-  "stickers": [
-    { "id": 0, "emoji": "smile" },
-    { "id": 1, "emoji": "cool" },
-    { "id": 2, "emoji": "party" }
-  ]
+    "title": "My Custom Stickers",
+    "author": "Your Name",
+    "cover": {
+        "id": 0,
+        "emoji": "smile"
+    },
+    "stickers": [
+        { "id": 0, "emoji": "smile" },
+        { "id": 1, "emoji": "cool" },
+        { "id": 2, "emoji": "party" }
+    ]
 }
 ```
 
@@ -1172,28 +1144,25 @@ Automatically recover from rate limiting with captcha challenges.
 
 ```javascript
 try {
-  await signal.sendMessage("+1234567890", "Hello!");
+    await signal.sendMessage('+1234567890', 'Hello!');
 } catch (error) {
-  if (error.message.includes("proof required")) {
-    // Extract challenge token from error
-    const challengeToken = extractChallenge(error);
+    if (error.message.includes('proof required')) {
+        // Extract challenge token from error
+        const challengeToken = extractChallenge(error);
 
-    // Solve captcha (integrate with captcha service)
-    const captchaToken = await solveCaptcha();
+        // Solve captcha (integrate with captcha service)
+        const captchaToken = await solveCaptcha();
 
-    // Submit challenge
-    const result = await signal.submitRateLimitChallenge(
-      challengeToken,
-      captchaToken,
-    );
+        // Submit challenge
+        const result = await signal.submitRateLimitChallenge(challengeToken, captchaToken);
 
-    if (result.success) {
-      // Retry the original operation
-      await signal.sendMessage("+1234567890", "Hello!");
-    } else {
-      console.log(`Wait ${result.retryAfter} seconds before retry`);
+        if (result.success) {
+            // Retry the original operation
+            await signal.sendMessage('+1234567890', 'Hello!');
+        } else {
+            console.log(`Wait ${result.retryAfter} seconds before retry`);
+        }
     }
-  }
 }
 ```
 
@@ -1201,9 +1170,9 @@ try {
 
 ```typescript
 interface RateLimitChallengeResult {
-  success: boolean;    // Whether challenge was accepted
-  retryAfter?: number; // Seconds to wait before retry
-  message?: string;    // Additional server message
+    success: boolean; // Whether challenge was accepted
+    retryAfter?: number; // Seconds to wait before retry
+    message?: string; // Additional server message
 }
 ```
 
@@ -1218,18 +1187,14 @@ Track upload progress for large attachments.
 **Note:** The progress callback currently provides simulated progress (0-100 in steps of 10) for attachment uploads. This is not the actual upload progress from signal-cli, as JSON-RPC does not provide real-time upload progress feedback. The simulation occurs before the actual send operation and is for UX purposes only.
 
 ```javascript
-await signal.sendMessageWithProgress(
-  "+1234567890",
-  "Sending large file...",
-  {
-    attachments: ["./large-video.mp4"],
+await signal.sendMessageWithProgress('+1234567890', 'Sending large file...', {
+    attachments: ['./large-video.mp4'],
     onProgress: (progress) => {
-      console.log(`Upload: ${progress.percentage}%`);
-      console.log(`Total: ${progress.total}`);
-      console.log(`Uploaded: ${progress.uploaded}`);
+        console.log(`Upload: ${progress.percentage}%`);
+        console.log(`Total: ${progress.total}`);
+        console.log(`Uploaded: ${progress.uploaded}`);
     },
-  }
-);
+});
 ```
 
 ---
@@ -1241,108 +1206,102 @@ await signal.sendMessageWithProgress(
 For high-throughput scenarios, implement connection pooling:
 
 ```javascript
-const { SignalCli } = require("signal-sdk");
+const { SignalCli } = require('signal-sdk');
 
 class SignalPool {
-  constructor(phoneNumbers, poolSize = 3) {
-    this.pools = new Map();
-    this.poolSize = poolSize;
+    constructor(phoneNumbers, poolSize = 3) {
+        this.pools = new Map();
+        this.poolSize = poolSize;
 
-    phoneNumbers.forEach((phone) => {
-      this.pools.set(phone, {
-        connections: [],
-        activeIndex: 0,
-      });
-    });
-  }
-
-  async getConnection(phoneNumber) {
-    const pool = this.pools.get(phoneNumber);
-    if (!pool) throw new Error(`No pool for ${phoneNumber}`);
-
-    // Create connections if needed
-    if (pool.connections.length < this.poolSize) {
-      const signal = new SignalCli(phoneNumber);
-      await signal.connect();
-      pool.connections.push(signal);
+        phoneNumbers.forEach((phone) => {
+            this.pools.set(phone, {
+                connections: [],
+                activeIndex: 0,
+            });
+        });
     }
 
-    // Round-robin selection
-    const connection = pool.connections[pool.activeIndex];
-    pool.activeIndex = (pool.activeIndex + 1) % pool.connections.length;
+    async getConnection(phoneNumber) {
+        const pool = this.pools.get(phoneNumber);
+        if (!pool) throw new Error(`No pool for ${phoneNumber}`);
 
-    return connection;
-  }
+        // Create connections if needed
+        if (pool.connections.length < this.poolSize) {
+            const signal = new SignalCli(phoneNumber);
+            await signal.connect();
+            pool.connections.push(signal);
+        }
 
-  async sendMessage(phoneNumber, recipient, message, options = {}) {
-    const signal = await this.getConnection(phoneNumber);
-    return signal.sendMessage(recipient, message, options);
-  }
+        // Round-robin selection
+        const connection = pool.connections[pool.activeIndex];
+        pool.activeIndex = (pool.activeIndex + 1) % pool.connections.length;
 
-  async shutdown() {
-    for (const [phone, pool] of this.pools) {
-      await Promise.all(
-        pool.connections.map((conn) => conn.gracefulShutdown()),
-      );
+        return connection;
     }
-  }
+
+    async sendMessage(phoneNumber, recipient, message, options = {}) {
+        const signal = await this.getConnection(phoneNumber);
+        return signal.sendMessage(recipient, message, options);
+    }
+
+    async shutdown() {
+        for (const [phone, pool] of this.pools) {
+            await Promise.all(pool.connections.map((conn) => conn.gracefulShutdown()));
+        }
+    }
 }
 
 // Usage
-const pool = new SignalPool(["+33111111111", "+33222222222"]);
-await pool.sendMessage("+33111111111", "+33000000000", "Hello!");
+const pool = new SignalPool(['+33111111111', '+33222222222']);
+await pool.sendMessage('+33111111111', '+33000000000', 'Hello!');
 ```
 
 ### Batch Operations
 
 ```javascript
 class BatchProcessor {
-  constructor(signalCli, batchSize = 10, delayMs = 100) {
-    this.signal = signalCli;
-    this.batchSize = batchSize;
-    this.delayMs = delayMs;
-    this.queue = [];
-    this.processing = false;
-  }
-
-  async addMessage(recipient, message, options = {}) {
-    return new Promise((resolve, reject) => {
-      this.queue.push({ recipient, message, options, resolve, reject });
-      this.processQueue();
-    });
-  }
-
-  async processQueue() {
-    if (this.processing || this.queue.length === 0) return;
-
-    this.processing = true;
-
-    while (this.queue.length > 0) {
-      const batch = this.queue.splice(0, this.batchSize);
-
-      await Promise.all(
-        batch.map(async (item) => {
-          try {
-            const result = await this.signal.sendMessage(
-              item.recipient,
-              item.message,
-              item.options,
-            );
-            item.resolve(result);
-          } catch (error) {
-            item.reject(error);
-          }
-        }),
-      );
-
-      // Delay between batches to avoid rate limiting
-      if (this.queue.length > 0) {
-        await new Promise((resolve) => setTimeout(resolve, this.delayMs));
-      }
+    constructor(signalCli, batchSize = 10, delayMs = 100) {
+        this.signal = signalCli;
+        this.batchSize = batchSize;
+        this.delayMs = delayMs;
+        this.queue = [];
+        this.processing = false;
     }
 
-    this.processing = false;
-  }
+    async addMessage(recipient, message, options = {}) {
+        return new Promise((resolve, reject) => {
+            this.queue.push({ recipient, message, options, resolve, reject });
+            this.processQueue();
+        });
+    }
+
+    async processQueue() {
+        if (this.processing || this.queue.length === 0) return;
+
+        this.processing = true;
+
+        while (this.queue.length > 0) {
+            const batch = this.queue.splice(0, this.batchSize);
+
+            await Promise.all(
+                batch.map(async (item) => {
+                    try {
+                        const result = await this.signal.sendMessage(item.recipient, item.message, item.options);
+                        item.resolve(result);
+                    } catch (error) {
+                        item.reject(error);
+                    }
+                }),
+            );
+
+            // Delay between batches to avoid rate limiting
+            if (this.queue.length > 0) {
+                await new Promise((resolve) => setTimeout(resolve, this.delayMs));
+            }
+        }
+
+        this.processing = false;
+    }
 }
 
 // Usage
@@ -1350,9 +1309,9 @@ const batch = new BatchProcessor(signal, 5, 200);
 
 // Queue multiple messages
 const promises = [
-  batch.addMessage("+33000000001", "Hello 1"),
-  batch.addMessage("+33000000002", "Hello 2"),
-  batch.addMessage("+33000000003", "Hello 3"),
+    batch.addMessage('+33000000001', 'Hello 1'),
+    batch.addMessage('+33000000002', 'Hello 2'),
+    batch.addMessage('+33000000003', 'Hello 3'),
 ];
 
 await Promise.all(promises);
@@ -1365,81 +1324,81 @@ await Promise.all(promises);
 ### Message Encryption
 
 ```javascript
-const crypto = require("crypto");
+const crypto = require('crypto');
 
 class SecureSignalBot {
-  constructor(signalBot, encryptionKey) {
-    this.bot = signalBot;
-    this.key = crypto.scryptSync(encryptionKey, "salt", 32);
-    this.setupSecureHandlers();
-  }
-
-  setupSecureHandlers() {
-    // Intercept outgoing messages
-    const originalSendMessage = this.bot.sendMessage.bind(this.bot);
-    this.bot.sendMessage = async (recipient, message, options = {}) => {
-      if (options.encrypt) {
-        message = this.encrypt(message);
-      }
-      return originalSendMessage(recipient, message, options);
-    };
-
-    // Decrypt incoming messages
-    this.bot.on("message", (message) => {
-      if (this.isEncrypted(message.text)) {
-        try {
-          message.decryptedText = this.decrypt(message.text);
-          this.bot.emit("secureMessage", message);
-        } catch (error) {
-          console.error("Failed to decrypt message:", error);
-        }
-      }
-    });
-  }
-
-  encrypt(text) {
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv("aes-256-cbc", this.key, iv);
-
-    let encrypted = cipher.update(text, "utf8", "hex");
-    encrypted += cipher.final("hex");
-
-    return `🔒${iv.toString("hex")}:${encrypted}`;
-  }
-
-  decrypt(encryptedText) {
-    if (!encryptedText.startsWith("🔒")) {
-      throw new Error("Not an encrypted message");
+    constructor(signalBot, encryptionKey) {
+        this.bot = signalBot;
+        this.key = crypto.scryptSync(encryptionKey, 'salt', 32);
+        this.setupSecureHandlers();
     }
 
-    const content = encryptedText.substring(2);
-    const [ivHex, encrypted] = content.split(":");
+    setupSecureHandlers() {
+        // Intercept outgoing messages
+        const originalSendMessage = this.bot.sendMessage.bind(this.bot);
+        this.bot.sendMessage = async (recipient, message, options = {}) => {
+            if (options.encrypt) {
+                message = this.encrypt(message);
+            }
+            return originalSendMessage(recipient, message, options);
+        };
 
-    const iv = Buffer.from(ivHex, "hex");
-    const decipher = crypto.createDecipheriv("aes-256-cbc", this.key, iv);
+        // Decrypt incoming messages
+        this.bot.on('message', (message) => {
+            if (this.isEncrypted(message.text)) {
+                try {
+                    message.decryptedText = this.decrypt(message.text);
+                    this.bot.emit('secureMessage', message);
+                } catch (error) {
+                    console.error('Failed to decrypt message:', error);
+                }
+            }
+        });
+    }
 
-    let decrypted = decipher.update(encrypted, "hex", "utf8");
-    decrypted += decipher.final("utf8");
+    encrypt(text) {
+        const iv = crypto.randomBytes(16);
+        const cipher = crypto.createCipheriv('aes-256-cbc', this.key, iv);
 
-    return decrypted;
-  }
+        let encrypted = cipher.update(text, 'utf8', 'hex');
+        encrypted += cipher.final('hex');
 
-  isEncrypted(text) {
-    return text && text.startsWith("🔒");
-  }
+        return `encrypted:${iv.toString('hex')}:${encrypted}`;
+    }
+
+    decrypt(encryptedText) {
+        if (!encryptedText.startsWith('encrypted:')) {
+            throw new Error('Not an encrypted message');
+        }
+
+        const content = encryptedText.substring('encrypted:'.length);
+        const [ivHex, encrypted] = content.split(':');
+
+        const iv = Buffer.from(ivHex, 'hex');
+        const decipher = crypto.createDecipheriv('aes-256-cbc', this.key, iv);
+
+        let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+
+        return decrypted;
+    }
+
+    isEncrypted(text) {
+        return text && text.startsWith('encrypted:');
+    }
 }
 
 // Usage
-const secureBot = new SecureSignalBot(bot, "my-secret-key");
+const secureBot = new SecureSignalBot(bot, 'my-secret-key');
 
 // Send encrypted message
-await secureBot.bot.sendMessage("+33000000000", "Secret message", {
-  encrypt: true,
+await secureBot.bot.sendMessage('+33000000000', 'Secret message', {
+    encrypt: true,
 });
 
 // Handle decrypted messages
-secureBot.bot.on("secureMessage", (message) => {
-  console.log("🔓 Decrypted:", message.decryptedText);
+secureBot.bot.on('secureMessage', (message) => {
+    console.log('Decrypted:', message.decryptedText);
 });
 ```
 
@@ -1453,17 +1412,17 @@ secureBot.bot.on("secureMessage", (message) => {
 // Simple event tracking
 const eventCounts = new Map();
 
-signal.on("message", () => {
-  eventCounts.set("message", (eventCounts.get("message") || 0) + 1);
+signal.on('message', () => {
+    eventCounts.set('message', (eventCounts.get('message') || 0) + 1);
 });
 
-signal.on("reaction", () => {
-  eventCounts.set("reaction", (eventCounts.get("reaction") || 0) + 1);
+signal.on('reaction', () => {
+    eventCounts.set('reaction', (eventCounts.get('reaction') || 0) + 1);
 });
 
 // Print stats every minute
 setInterval(() => {
-  console.log("Event stats:", Object.fromEntries(eventCounts));
+    console.log('Event stats:', Object.fromEntries(eventCounts));
 }, 60000);
 ```
 

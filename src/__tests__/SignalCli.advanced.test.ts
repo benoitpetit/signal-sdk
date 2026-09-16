@@ -396,7 +396,7 @@ describe('SignalCli Advanced Features', () => {
                 'updateGroup',
                 expect.objectContaining({
                     groupId: 'group123==',
-                    banMembers: ['+33111111111', '+33222222222'],
+                    ban: ['+33111111111', '+33222222222'],
                 }),
             );
         });

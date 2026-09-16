@@ -17,31 +17,31 @@ SignalBot is a high-level framework built on top of SignalCli that simplifies bo
 ### Basic Bot Setup
 
 ```javascript
-const { SignalBot } = require("signal-sdk");
+const { SignalBot } = require('signal-sdk');
 
 const bot = new SignalBot({
-  phoneNumber: "+33111111111",
-  admins: ["+33000000000"],
-  group: {
-    name: "My Awesome Bot",
-    createIfNotExists: true,
-    description: "A bot that does cool things!",
-  },
+    phoneNumber: '+33111111111',
+    admins: ['+33000000000'],
+    group: {
+        name: 'My Awesome Bot',
+        createIfNotExists: true,
+        description: 'A bot that does cool things!',
+    },
 });
 
 // Add a simple command
 bot.addCommand({
-  name: "hello",
-  description: "Say hello",
-  handler: async (message, args) => {
-    const name = args.join(" ") || "World";
-    return `Hello ${name}!`;
-  },
+    name: 'hello',
+    description: 'Say hello',
+    handler: async (message, args) => {
+        const name = args.join(' ') || 'World';
+        return `Hello ${name}!`;
+    },
 });
 
 // Start the bot
 await bot.start();
-console.log("Bot is running!");
+console.log('Bot is running!');
 ```
 
 ### Built-in Commands
@@ -59,30 +59,30 @@ Every SignalBot automatically includes these commands:
 
 ```javascript
 const bot = new SignalBot({
-  // Required
-  phoneNumber: "+33111111111",
+    // Required
+    phoneNumber: '+33111111111',
 
-  // Admin users (full access)
-  admins: ["+33000000000"],
+    // Admin users (full access)
+    admins: ['+33000000000'],
 
-  // Group settings
-  group: {
-    name: "Bot Group",
-    createIfNotExists: true,
-    description: "My bot group",
-    avatar: "./group-avatar.jpg", // Optional
-    initialMembers: ["+33222222222"], // Optional
-  },
+    // Group settings
+    group: {
+        name: 'Bot Group',
+        createIfNotExists: true,
+        description: 'My bot group',
+        avatar: './group-avatar.jpg', // Optional
+        initialMembers: ['+33222222222'], // Optional
+    },
 
-  // Bot settings
-  settings: {
-    commandPrefix: "/", // Default command prefix
-    autoReact: false, // Automatically react to messages
-    logMessages: true, // Log incoming messages
-    welcomeNewMembers: true, // Welcome message for new members
-    cooldownSeconds: 2, // Per-user command cooldown
-    maxMessageLength: 1000, // Maximum message length
-  },
+    // Bot settings
+    settings: {
+        commandPrefix: '/', // Default command prefix
+        autoReact: false, // Automatically react to messages
+        logMessages: true, // Log incoming messages
+        welcomeNewMembers: true, // Welcome message for new members
+        cooldownSeconds: 2, // Per-user command cooldown
+        maxMessageLength: 1000, // Maximum message length
+    },
 });
 ```
 
@@ -94,13 +94,13 @@ Use `bot.addCommand()` to add new commands.
 
 ```javascript
 bot.addCommand({
-  name: "weather",
-  description: "Get the weather for a city",
-  handler: async (message, args) => {
-    const city = args.join(" ") || "Paris";
-    // Fetch weather from an API...
-    return `The weather in ${city} is sunny.`;
-  },
+    name: 'weather',
+    description: 'Get the weather for a city',
+    handler: async (message, args) => {
+        const city = args.join(' ') || 'Paris';
+        // Fetch weather from an API...
+        return `The weather in ${city} is sunny.`;
+    },
 });
 ```
 
@@ -129,13 +129,13 @@ Listen to events using `bot.on()`.
 
 ```javascript
 // Listen for all incoming messages
-bot.on("message", (message) => {
-  console.log(`Message from ${message.source}: ${message.text}`);
+bot.on('message', (message) => {
+    console.log(`Message from ${message.source}: ${message.text}`);
 });
 
 // Listen for executed commands
-bot.on("command", (event) => {
-  console.log(`Command ${event.command} executed by ${event.user}`);
+bot.on('command', (event) => {
+    console.log(`Command ${event.command} executed by ${event.user}`);
 });
 ```
 
@@ -157,25 +157,25 @@ The `SignalBot` class provides methods to interact with Signal.
 ### Send Message
 
 ```javascript
-await bot.sendMessage("+33123456789", "Hello!");
+await bot.sendMessage('+33123456789', 'Hello!');
 ```
 
 ### Send Reaction
 
 ```javascript
-await bot.sendReaction(recipient, targetAuthor, targetTimestamp, "👍");
+await bot.sendReaction(recipient, targetAuthor, targetTimestamp, reactionEmoji);
 ```
 
 ### Send Message with Attachment
 
 ```javascript
-await bot.sendMessageWithAttachment(recipient, "Check this out!", ["./path/to/file.jpg"]);
+await bot.sendMessageWithAttachment(recipient, 'Check this out!', ['./path/to/file.jpg']);
 ```
 
 ### Send Message with Image from URL
 
 ```javascript
-await bot.sendMessageWithImage(recipient, "Look at this!", "https://example.com/image.jpg");
+await bot.sendMessageWithImage(recipient, 'Look at this!', 'https://example.com/image.jpg');
 ```
 
 ## Group Management
@@ -193,11 +193,8 @@ If `group.createIfNotExists` is `true`, the bot will:
 ### Welcoming New Members
 
 ```javascript
-bot.on("groupMemberJoined", (event) => {
-  bot.sendMessage(
-    event.groupId,
-    `Welcome to the group, ${event.member.number}! Please read the rules.`
-  );
+bot.on('groupMemberJoined', (event) => {
+    bot.sendMessage(event.groupId, `Welcome to the group, ${event.member.number}! Please read the rules.`);
 });
 ```
 
@@ -207,21 +204,21 @@ You can create commands to manage the group using the underlying SignalCli insta
 
 ```javascript
 bot.addCommand({
-  name: "kick",
-  description: "Remove a user from the group",
-  adminOnly: true,
-  usage: "<number>",
-  handler: async (message, args) => {
-    const number = args[0];
-    if (!number) return "Please provide a number to kick.";
+    name: 'kick',
+    description: 'Remove a user from the group',
+    adminOnly: true,
+    usage: '<number>',
+    handler: async (message, args) => {
+        const number = args[0];
+        if (!number) return 'Please provide a number to kick.';
 
-    const groupId = bot.getBotGroupId();
-    if (!groupId) return "Bot is not configured for group management.";
+        const groupId = bot.getBotGroupId();
+        if (!groupId) return 'Bot is not configured for group management.';
 
-    const signal = bot.getSignalCli();
-    await signal.updateGroup(groupId, { removeMembers: [number] });
-    return `${number} has been kicked from the group.`;
-  },
+        const signal = bot.getSignalCli();
+        await signal.updateGroup(groupId, { removeMembers: [number] });
+        return `${number} has been kicked from the group.`;
+    },
 });
 ```
 
@@ -235,24 +232,22 @@ For bots that need to remember information, you can implement state management.
 const userStates = {};
 
 bot.addCommand({
-  name: "remind",
-  description: "Set a reminder",
-  handler: async (message, args) => {
-    const reminder = args.join(" ");
-    userStates[message.source] = { reminder };
-    return "Reminder set!";
-  },
+    name: 'remind',
+    description: 'Set a reminder',
+    handler: async (message, args) => {
+        const reminder = args.join(' ');
+        userStates[message.source] = { reminder };
+        return 'Reminder set!';
+    },
 });
 
 bot.addCommand({
-  name: "myreminder",
-  description: "Get your reminder",
-  handler: async (message) => {
-    const state = userStates[message.source];
-    return state
-      ? `Your reminder: ${state.reminder}`
-      : "You have no reminder set.";
-  },
+    name: 'myreminder',
+    description: 'Get your reminder',
+    handler: async (message) => {
+        const state = userStates[message.source];
+        return state ? `Your reminder: ${state.reminder}` : 'You have no reminder set.';
+    },
 });
 ```
 
@@ -261,32 +256,32 @@ bot.addCommand({
 For more robust state, save to a file.
 
 ```javascript
-const fs = require("fs");
-const path = require("path");
+const fs = require('fs');
+const path = require('path');
 
-const STATE_FILE = path.join(__dirname, "bot-state.json");
+const STATE_FILE = path.join(__dirname, 'bot-state.json');
 
 let state = {};
 
 // Load state on startup
 if (fs.existsSync(STATE_FILE)) {
-  state = JSON.parse(fs.readFileSync(STATE_FILE, "utf-8"));
+    state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf-8'));
 }
 
 // Save state whenever it changes
 function saveState() {
-  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
 }
 
 // Example command using persistent state
 bot.addCommand({
-  name: "setcity",
-  handler: async (message, args) => {
-    const city = args.join(" ");
-    state[message.source] = { city };
-    saveState();
-    return `Your city is set to ${city}.`;
-  },
+    name: 'setcity',
+    handler: async (message, args) => {
+        const city = args.join(' ');
+        state[message.source] = { city };
+        saveState();
+        return `Your city is set to ${city}.`;
+    },
 });
 ```
 
@@ -299,15 +294,15 @@ Intercept commands before they are executed.
 ```javascript
 // Log every command execution
 bot.use(async (command, message, next) => {
-  console.log(`Executing command: ${command.name} by ${message.source}`);
-  await next();
-  console.log(`Finished command: ${command.name}`);
+    console.log(`Executing command: ${command.name} by ${message.source}`);
+    await next();
+    console.log(`Finished command: ${command.name}`);
 });
 
 // Add a custom property to the message object
 bot.use(async (command, message, next) => {
-  message.customData = { executionTime: new Date() };
-  await next();
+    message.customData = { executionTime: new Date() };
+    await next();
 });
 ```
 
@@ -317,15 +312,15 @@ You can override the default `/help` command.
 
 ```javascript
 bot.addCommand({
-  name: "help",
-  description: "Show this help message",
-  handler: async () => {
-    let helpText = "Here are the available commands:\n\n";
-    bot.commands.forEach((cmd) => {
-      helpText += `*${bot.commandPrefix}${cmd.name}*: ${cmd.description}\n`;
-    });
-    return helpText;
-  },
+    name: 'help',
+    description: 'Show this help message',
+    handler: async () => {
+        let helpText = 'Here are the available commands:\n\n';
+        bot.commands.forEach((cmd) => {
+            helpText += `*${bot.commandPrefix}${cmd.name}*: ${cmd.description}\n`;
+        });
+        return helpText;
+    },
 });
 ```
 
@@ -334,10 +329,10 @@ bot.addCommand({
 Ensure your bot shuts down cleanly.
 
 ```javascript
-process.on("SIGINT", async () => {
-  console.log("Shutting down bot...");
-  await bot.gracefulShutdown();
-  process.exit(0);
+process.on('SIGINT', async () => {
+    console.log('Shutting down bot...');
+    await bot.gracefulShutdown();
+    process.exit(0);
 });
 ```
 

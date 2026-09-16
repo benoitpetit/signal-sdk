@@ -75,6 +75,7 @@ export interface AccountStatus {
  */
 export class MultiAccountManager extends EventEmitter {
     private accounts: Map<string, ManagedAccount> = new Map();
+    private reconnectTimers: Map<string, NodeJS.Timeout> = new Map();
     private options: MultiAccountOptions;
     private logger: Logger;
 
@@ -147,6 +148,9 @@ export class MultiAccountManager extends EventEmitter {
             await managedAccount.instance.disconnect();
         }
 
+        // Cancel any pending reconnect for this account
+        this.clearReconnectTimer(account);
+
         // Remove all listeners
         managedAccount.instance.removeAllListeners();
 
@@ -216,10 +220,41 @@ export class MultiAccountManager extends EventEmitter {
 
             if (this.options.autoReconnect) {
                 this.logger.info(`Will retry connection for ${account}`);
-                setTimeout(() => this.connect(account), 5000);
+                this.scheduleReconnect(account);
             }
 
             throw error;
+        }
+    }
+
+    /**
+     * Schedule a reconnection attempt for an account.
+     * Deduplicates attempts: only one reconnect timer per account can be pending.
+     *
+     * @private
+     */
+    private scheduleReconnect(account: string, delayMs: number = 5000): void {
+        this.clearReconnectTimer(account);
+
+        const timer = setTimeout(() => {
+            this.reconnectTimers.delete(account);
+            this.connect(account).catch((error) => {
+                this.logger.error(`Scheduled reconnect for ${account} failed:`, error);
+            });
+        }, delayMs);
+
+        if (timer.unref) {
+            timer.unref();
+        }
+
+        this.reconnectTimers.set(account, timer);
+    }
+
+    private clearReconnectTimer(account: string): void {
+        const timer = this.reconnectTimers.get(account);
+        if (timer) {
+            clearTimeout(timer);
+            this.reconnectTimers.delete(account);
         }
     }
 
@@ -233,6 +268,10 @@ export class MultiAccountManager extends EventEmitter {
         if (!managedAccount) {
             throw new Error(`Account ${account} not found`);
         }
+
+        // A transport disconnection marks the account offline before callers
+        // can request a manual disconnect. Clear a pending retry either way.
+        this.clearReconnectTimer(account);
 
         if (!managedAccount.connected) {
             this.logger.warn(`Account ${account} not connected`);
@@ -384,7 +423,7 @@ export class MultiAccountManager extends EventEmitter {
             // Auto-reconnect if enabled
             if (this.options.autoReconnect) {
                 this.logger.info(`Auto-reconnecting account ${account}`);
-                setTimeout(() => this.connect(account), 5000);
+                this.scheduleReconnect(account);
             }
         });
     }
@@ -394,6 +433,11 @@ export class MultiAccountManager extends EventEmitter {
      */
     async shutdown(): Promise<void> {
         this.logger.info('Shutting down MultiAccountManager');
+
+        // Cancel all pending reconnects first
+        for (const account of this.reconnectTimers.keys()) {
+            this.clearReconnectTimer(account);
+        }
 
         await this.disconnectAll();
 
