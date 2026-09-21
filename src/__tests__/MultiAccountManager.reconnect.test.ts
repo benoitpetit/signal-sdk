@@ -68,6 +68,22 @@ describe('MultiAccountManager reconnect lifecycle', () => {
         expect(mockInstance.connect).not.toHaveBeenCalled();
     });
 
+    it('should not schedule a reconnect when the real instance emits disconnected during manual disconnect', async () => {
+        mockInstance.connect.mockResolvedValueOnce(undefined);
+        mockInstance.disconnect.mockImplementation(() => {
+            mockInstance.emit('disconnected');
+        });
+
+        await manager.addAccount('+33123456789');
+        await manager.connect('+33123456789');
+        await manager.disconnect('+33123456789');
+
+        mockInstance.connect.mockClear();
+        await jest.advanceTimersByTimeAsync(10000);
+
+        expect(mockInstance.connect).not.toHaveBeenCalled();
+    });
+
     it('should cancel pending reconnect on shutdown', async () => {
         await manager.addAccount('+33123456789');
 

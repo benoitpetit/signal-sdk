@@ -1,5 +1,5 @@
 /**
- * Tests for SDK calibration improvements:
+ * Resilience and runtime-safety tests:
  * - Circuit breaker
  * - Retry jitter
  * - Rate limiter introspection
@@ -14,7 +14,7 @@ import { SignalCli } from '../SignalCli';
 import { validateHttpUrl, validateByteSize } from '../validators';
 import { Logger, validateConfig } from '../config';
 
-describe('Calibration improvements', () => {
+describe('Resilience and runtime safety', () => {
     describe('CircuitBreaker', () => {
         it('should allow requests when closed', async () => {
             const breaker = new CircuitBreaker();

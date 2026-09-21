@@ -570,6 +570,16 @@ describe('SignalCli — v0.14.0 new features', () => {
             expect(args).not.toContain('--ignore-avatars');
             expect(args).not.toContain('--ignore-stickers');
         });
+
+        it('passes the configured data directory before account and jsonRpc', async () => {
+            const isolated = new SignalCli('signal-cli', '+1234567890', { dataPath: '/tmp/signal-sdk-data' });
+            await isolated.connect();
+
+            const [, args] = (spawn as jest.MockedFunction<typeof spawn>).mock.calls[0];
+            expect(args).toEqual(['--config', '/tmp/signal-sdk-data', '-a', '+1234567890', 'jsonRpc']);
+
+            isolated.disconnect();
+        });
     });
 
     // =========================================================================

@@ -20,6 +20,7 @@ Welcome to the complete documentation for the Signal SDK - a comprehensive TypeS
 - [SignalBot Framework](./signalbot-framework.md) - Build powerful bots with minimal code
 - [Advanced Features](./advanced-features.md) - Polls, attachments, account management
 - [Robust Infrastructure](./robust-infrastructure.md) - Error handling, retry, rate limiting, logging
+- [Maintenance Guide](./maintenance.md) - Architecture, test strategy, and safe change workflow
 
 ### Support
 

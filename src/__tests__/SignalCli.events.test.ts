@@ -117,4 +117,39 @@ describe('SignalCli - Advanced Events', () => {
 
         (signalCli as any).handleRpcResponse(JSON.stringify(typingPayload));
     });
+
+    it('should emit a groupUpdate event from signal-cli group context data', () => {
+        const handler = jest.fn();
+        signalCli.on('groupUpdate', handler);
+
+        (signalCli as any).handleRpcResponse(
+            JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'receive',
+                params: {
+                    envelope: {
+                        sourceNumber: '+1111111111',
+                        timestamp: 1600000000000,
+                        dataMessage: {
+                            groupInfo: {
+                                groupId: 'group-id',
+                                groupName: 'Example Group',
+                                revision: 4,
+                                type: 'UPDATE',
+                            },
+                        },
+                    },
+                },
+            }),
+        );
+
+        expect(handler).toHaveBeenCalledWith({
+            groupId: 'group-id',
+            groupName: 'Example Group',
+            revision: 4,
+            type: 'UPDATE',
+            sender: '+1111111111',
+            timestamp: 1600000000000,
+        });
+    });
 });

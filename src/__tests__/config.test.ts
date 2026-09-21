@@ -101,6 +101,24 @@ describe('Config Additional Tests', () => {
 
             expect(config).toMatchObject(fullConfig);
         });
+
+        test('should reject non-finite and fractional numeric values', () => {
+            expect(() => validateConfig({ requestTimeout: Number.NaN })).toThrow('requestTimeout must be a finite number');
+            expect(() => validateConfig({ maxRetries: 1.5 })).toThrow('maxRetries must be an integer');
+            expect(() => validateConfig({ maxConcurrentRequests: 1.5 })).toThrow(
+                'maxConcurrentRequests must be an integer',
+            );
+            expect(() => validateConfig({ tcpPort: 70000 })).toThrow('tcpPort must be an integer between 1 and 65535');
+        });
+
+        test('should validate HTTP configuration when HTTP mode is selected', () => {
+            expect(() => validateConfig({ daemonMode: 'http', httpBaseUrl: 'not-a-url' })).toThrow(
+                'httpBaseUrl must be a valid HTTP(S) URL',
+            );
+            expect(() => validateConfig({ daemonMode: 'http', httpBaseUrl: 'file:///tmp/rpc' })).toThrow(
+                'httpBaseUrl must be a valid HTTP(S) URL',
+            );
+        });
     });
 
     describe('Logger', () => {

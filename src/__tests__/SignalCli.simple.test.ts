@@ -12,8 +12,8 @@ jest.mock('../config', () => ({
     })),
     validateConfig: jest.fn().mockReturnValue({
         verbose: false,
-        logFile: undefined,
-        maxConcurrentRequests: 10,
+        maxConcurrentRequests: 5,
+        dataPath: '',
         minRequestInterval: 100,
         maxRetries: 3,
         retryDelay: 1000,

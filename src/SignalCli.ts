@@ -49,15 +49,17 @@ import {
     JsonRpcStartOptions,
     StartCallOptions,
     CallInfo,
+    ActiveCall,
     AcceptCallOptions,
     HangUpCallOptions,
     SendCallRelayCandidatesOptions,
     ListContactsOptions,
+    GroupUpdateEvent,
 } from './interfaces';
 import { EventEmitter } from 'events';
 import * as path from 'path';
 import * as fs from 'fs';
-import { validatePhoneNumber, validateSanitizedString } from './validators';
+import { isAccountIdentifier, validateAccountIdentifier, validateSanitizedString } from './validators';
 import { CircuitBreaker, RateLimiter } from './retry';
 import { Logger, SignalCliConfig, validateConfig } from './config';
 import { ConnectionError } from './errors';
@@ -83,6 +85,9 @@ export class SignalCli extends EventEmitter {
     private healthCheckTimer: NodeJS.Timeout | null = null;
     private reconnectTimer: NodeJS.Timeout | null = null;
     private socket?: net.Socket;
+    private httpEventRequest: http.ClientRequest | null = null;
+    private httpEventResponse: http.IncomingMessage | null = null;
+    private httpEventBuffer = '';
     private circuitBreaker: CircuitBreaker | null = null;
     private metrics = {
         requestsSent: 0,
@@ -132,8 +137,8 @@ export class SignalCli extends EventEmitter {
 
         // Smart parameter detection
         if (typeof accountOrPath === 'string') {
-            if (accountOrPath.startsWith('+')) {
-                // First parameter is a phone number
+            if (isAccountIdentifier(accountOrPath)) {
+                // First parameter is an account identifier
                 phoneNumber = accountOrPath;
                 signalCliPath = undefined;
             } else {
@@ -141,7 +146,14 @@ export class SignalCli extends EventEmitter {
                 signalCliPath = accountOrPath;
                 phoneNumber = account;
             }
+        } else {
+            phoneNumber = account;
         }
+
+        // Configuration values are the programmatic alternative to the
+        // positional constructor arguments. Positional values keep precedence
+        // for backward compatibility.
+        phoneNumber = phoneNumber || this.config.account || undefined;
 
         // Determine the correct signal-cli path based on platform
         let defaultPath;
@@ -157,12 +169,12 @@ export class SignalCli extends EventEmitter {
             defaultPath = process.platform === 'win32' ? 'signal-cli.bat' : 'signal-cli';
         }
 
-        this.signalCliPath = signalCliPath || defaultPath;
+        this.signalCliPath = signalCliPath || this.config.signalCliPath || defaultPath;
         this.account = phoneNumber;
 
         // Validate account if provided
         if (this.account) {
-            validatePhoneNumber(this.account);
+            validateAccountIdentifier(this.account);
         }
 
         // Validate CLI path
@@ -176,7 +188,7 @@ export class SignalCli extends EventEmitter {
         this.groups = new GroupManager(rpcCall, this.account, this.logger, this.config);
         this.contacts = new ContactManager(rpcCall, this.account, this.logger, this.config);
         this.devices = new DeviceManager(rpcCall, this.account, this.logger, this.config, this.signalCliPath);
-        this.accounts = new AccountManager(rpcCall, this.account, this.logger, this.config);
+        this.accounts = new AccountManager(rpcCall, this.account, this.logger, this.config, (args) => this.executeCliCommand(args));
         this.stickers = new StickerManager(rpcCall, this.account, this.logger, this.config);
     }
 
@@ -212,7 +224,14 @@ export class SignalCli extends EventEmitter {
 
     private async connectJsonRpc(options: JsonRpcStartOptions = {}): Promise<void> {
         this.jsonRpcStartOptions = options;
-        const baseArgs = this.account ? ['-a', this.account, 'jsonRpc'] : ['jsonRpc'];
+        const baseArgs: string[] = [];
+        if (this.config.dataPath) {
+            baseArgs.push('--config', this.config.dataPath);
+        }
+        if (this.account) {
+            baseArgs.push('-a', this.account);
+        }
+        baseArgs.push('jsonRpc');
         const args = [...baseArgs];
 
         // v0.14.0 flags for the jsonRpc sub-command
@@ -352,12 +371,147 @@ export class SignalCli extends EventEmitter {
         // Test connection by sending a simple request
         try {
             await this.httpRequest({ jsonrpc: '2.0', method: 'version', params: {}, id: uuidv4() });
+            await this.connectHttpEvents();
             this.logger.debug('HTTP connection verified');
         } catch (error) {
+            this.closeHttpEvents();
             throw new ConnectionError(
                 `Failed to connect to HTTP endpoint: ${error instanceof Error ? error.message : String(error)}`,
             );
         }
+    }
+
+    /**
+     * Opens signal-cli's Server-Sent Events stream for incoming notifications.
+     * The HTTP daemon exposes RPC requests and incoming events on separate endpoints.
+     */
+    private async connectHttpEvents(): Promise<void> {
+        const transport = await import(this.config.httpBaseUrl?.startsWith('https:') ? 'https' : 'http');
+        const baseUrl = this.config.httpBaseUrl || 'http://localhost:8080';
+        const url = new URL('/api/v1/events', baseUrl);
+
+        this.closeHttpEvents();
+        this.httpEventBuffer = '';
+
+        await new Promise<void>((resolve, reject) => {
+            let settled = false;
+            const req = transport.request(
+                url,
+                {
+                    method: 'GET',
+                    headers: {
+                        Accept: 'text/event-stream',
+                    },
+                },
+                (res: http.IncomingMessage) => {
+                    let streamEnded = false;
+                    this.httpEventResponse = res;
+                    const statusCode = res.statusCode;
+                    if (statusCode !== undefined && (statusCode < 200 || statusCode >= 300)) {
+                        const error = new ConnectionError(`HTTP events endpoint returned status ${statusCode}`);
+                        res.resume();
+                        this.httpEventResponse = null;
+                        if (!settled) {
+                            settled = true;
+                            reject(error);
+                        }
+                        return;
+                    }
+
+                    res.on('data', (chunk: Buffer | string) => this.handleSseData(chunk.toString()));
+                    res.on('end', () => {
+                        if (this.httpEventResponse !== res) return;
+                        if (streamEnded) return;
+                        streamEnded = true;
+                        this.httpEventResponse = null;
+                        if (!this.isIntentionalShutdown) {
+                            this.emit('close', 0);
+                            this.scheduleReconnect('HTTP event stream ended');
+                        }
+                    });
+                    res.on('close', () => {
+                        if (this.httpEventResponse !== res) return;
+                        if (streamEnded) return;
+                        streamEnded = true;
+                        this.httpEventResponse = null;
+                        if (!this.isIntentionalShutdown) {
+                            this.emit('close', 0);
+                            this.scheduleReconnect('HTTP event stream closed');
+                        }
+                    });
+                    res.on('error', (error) => {
+                        if (this.httpEventResponse !== res) return;
+                        if (!this.isIntentionalShutdown) {
+                            this.emit('error', error);
+                            this.scheduleReconnect('HTTP event stream failed');
+                        }
+                    });
+
+                    if (!settled) {
+                        settled = true;
+                        resolve();
+                    }
+                },
+            );
+
+            this.httpEventRequest = req;
+            req.on('error', (error: Error) => {
+                if (this.httpEventRequest !== req) return;
+                if (!settled) {
+                    settled = true;
+                    reject(new ConnectionError(`HTTP events request failed: ${error.message}`));
+                } else if (!this.isIntentionalShutdown) {
+                    this.emit('error', error);
+                    this.scheduleReconnect('HTTP event request failed');
+                }
+            });
+            req.setTimeout(this.config.requestTimeout, () => {
+                req.destroy();
+                if (!settled) {
+                    settled = true;
+                    reject(new ConnectionError('HTTP events request timeout'));
+                }
+            });
+            req.end();
+        });
+    }
+
+    private handleSseData(data: string): void {
+        this.httpEventBuffer += data;
+        const lines = this.httpEventBuffer.split(/\r?\n/);
+        this.httpEventBuffer = lines.pop() || '';
+
+        let eventData: string[] = [];
+        for (const line of lines) {
+            if (line === '') {
+                this.processSseEvent(eventData);
+                eventData = [];
+                continue;
+            }
+            if (line.startsWith('data:')) {
+                eventData.push(line.slice(5).trimStart());
+            }
+        }
+        this.processSseEvent(eventData);
+    }
+
+    private processSseEvent(eventData: string[]): void {
+        if (eventData.length === 0) return;
+        this.handleRpcResponse(eventData.join('\n'));
+    }
+
+    private closeHttpEvents(): void {
+        if (this.httpEventRequest) {
+            const request = this.httpEventRequest;
+            this.httpEventRequest = null;
+            request.destroy();
+        }
+        if (this.httpEventResponse) {
+            const response = this.httpEventResponse;
+            this.httpEventResponse = null;
+            response.destroy();
+        }
+        this.httpEventBuffer = '';
     }
 
     private async httpRequest(request: JsonRpcRequest): Promise<unknown> {
@@ -424,6 +578,10 @@ export class SignalCli extends EventEmitter {
             this.cliProcess = null;
         }
 
+        if (daemonMode === 'http') {
+            this.closeHttpEvents();
+        }
+
         this.emit('disconnected');
 
         // Reject any in-flight requests so callers do not hang forever
@@ -439,6 +597,13 @@ export class SignalCli extends EventEmitter {
         this.rejectPendingRequests('Shutting down signal-cli connection');
         return new Promise((resolve) => {
             if (!this.cliProcess) {
+                if (this.socket && !this.socket.destroyed) {
+                    this.socket.destroy();
+                    this.socket = undefined;
+                }
+                if (this.config.daemonMode === 'http') {
+                    this.closeHttpEvents();
+                }
                 this.emit('disconnected');
                 resolve();
                 return;
@@ -542,6 +707,19 @@ export class SignalCli extends EventEmitter {
         const source = (envelope.source as string | undefined) || (envelope.sourceNumber as string | undefined);
         const timestamp = envelope.timestamp as number | undefined;
         const dataMessage = envelope.dataMessage as Record<string, unknown> | undefined;
+
+        const groupInfo = dataMessage?.groupInfo as Record<string, unknown> | undefined;
+        if (groupInfo?.groupId) {
+            const groupUpdate: GroupUpdateEvent = {
+                groupId: String(groupInfo.groupId),
+                groupName: typeof groupInfo.groupName === 'string' ? groupInfo.groupName : undefined,
+                revision: typeof groupInfo.revision === 'number' ? groupInfo.revision : undefined,
+                type: typeof groupInfo.type === 'string' ? groupInfo.type : undefined,
+                sender: source,
+                timestamp,
+            };
+            this.emit('groupUpdate', groupUpdate);
+        }
 
         // 1. Reaction
         const reaction = dataMessage?.reaction as Record<string, unknown> | undefined;
@@ -647,7 +825,15 @@ export class SignalCli extends EventEmitter {
             return;
         }
 
+        this.scheduleReconnect(`signal-cli process closed (code ${code})`);
+    }
+
+    private scheduleReconnect(reason: string): void {
         // Auto-reconnect logic if not explicitly disconnected
+        if (this.isIntentionalShutdown || this.config.autoReconnect === false) {
+            return;
+        }
+
         if (this.reconnectTimer) {
             this.logger.debug('Reconnection already scheduled, skipping duplicate.');
             return;
@@ -659,7 +845,7 @@ export class SignalCli extends EventEmitter {
             // Exponential backoff: 1s, 2s, 4s, 8s, 16s...
             const delay = Math.pow(2, this.reconnectAttempts - 1) * 1000;
             this.logger.warn(
-                `signal-cli process closed (code ${code}). Reconnecting in ${delay}ms... (Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
+                `${reason}. Reconnecting in ${delay}ms... (Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
             );
 
             this.reconnectTimer = setTimeout(() => {
@@ -672,6 +858,7 @@ export class SignalCli extends EventEmitter {
                         this.logger.info('Reconnected to signal-cli successfully');
                     } catch (error) {
                         this.logger.error('Reconnection attempt failed:', error);
+                        this.scheduleReconnect('Reconnection attempt failed');
                     }
                 })();
             }, delay);
@@ -922,14 +1109,60 @@ export class SignalCli extends EventEmitter {
         }
     }
 
+    private async executeCliCommand(args: string[]): Promise<string> {
+        const fullArgs = this.config.dataPath ? ['--config', this.config.dataPath, ...args] : args;
+
+        return new Promise((resolve, reject) => {
+            const child = process.platform === 'win32'
+                ? spawn('cmd.exe', ['/c', this.signalCliPath, ...fullArgs], { stdio: ['ignore', 'pipe', 'pipe'] })
+                : spawn(this.signalCliPath, fullArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
+            let stdout = '';
+            let stderr = '';
+            let settled = false;
+            const timeout = setTimeout(() => {
+                if (!settled) {
+                    settled = true;
+                    child.kill();
+                    reject(new ConnectionError(`signal-cli command timed out after ${this.config.requestTimeout}ms`));
+                }
+            }, this.config.requestTimeout);
+
+            child.stdout?.on('data', (data) => {
+                stdout += data.toString();
+            });
+            child.stderr?.on('data', (data) => {
+                stderr += data.toString();
+            });
+            child.once('error', (error) => {
+                if (!settled) {
+                    settled = true;
+                    clearTimeout(timeout);
+                    reject(error);
+                }
+            });
+            child.once('close', (code) => {
+                if (!settled) {
+                    settled = true;
+                    clearTimeout(timeout);
+                    if (code === 0) {
+                        resolve(stdout);
+                    } else {
+                        const details = stderr.trim() || stdout.trim();
+                        reject(new Error(`signal-cli exited with code ${code}${details ? `: ${details}` : ''}`));
+                    }
+                }
+            });
+        });
+    }
+
     // ############# Refactored Methods #############
 
     async register(number: string, voice?: boolean, captcha?: string, reregister?: boolean): Promise<void> {
         return this.accounts.register(number, voice, captcha, reregister);
     }
 
-    async verify(number: string, token: string, pin?: string): Promise<void> {
-        return this.accounts.verify(number, token, pin);
+    async verify(number: string, verificationCode: string, pin?: string): Promise<void> {
+        return this.accounts.verify(number, verificationCode, pin);
     }
 
     async sendMessage(
@@ -1082,8 +1315,30 @@ export class SignalCli extends EventEmitter {
     }
 
     async link(deviceName?: string): Promise<string> {
-        const result = (await this.sendJsonRpcRequest('link', { deviceName })) as { uri: string };
-        return result.uri;
+        const result = await this.devices.deviceLink({ name: deviceName });
+        if (!result.qrCode?.uri) {
+            throw new Error(result.error || 'signal-cli did not return a device link URI');
+        }
+        return result.qrCode.uri;
+    }
+
+    /** Start JSON-RPC provisioning in multi-account mode. */
+    async startLink(): Promise<string> {
+        const result = (await this.sendJsonRpcRequest('startLink')) as { deviceLinkUri?: string };
+        if (!result.deviceLinkUri) {
+            throw new Error('signal-cli did not return a deviceLinkUri');
+        }
+        return result.deviceLinkUri;
+    }
+
+    /** Finish JSON-RPC provisioning started with startLink(). */
+    async finishLink(deviceLinkUri: string, deviceName?: string): Promise<{ number?: string | null; aci?: string }> {
+        if (!deviceLinkUri || deviceLinkUri.trim().length === 0) {
+            throw new Error('deviceLinkUri is required');
+        }
+        const params: Record<string, unknown> = { deviceLinkUri };
+        if (deviceName) params.deviceName = deviceName;
+        return (await this.sendJsonRpcRequest('finishLink', params)) as { number?: string | null; aci?: string };
     }
 
     async deviceLink(options: LinkingOptions = {}): Promise<LinkingResult> {
@@ -1178,13 +1433,7 @@ export class SignalCli extends EventEmitter {
         console.warn(
             "receiveMessages is deprecated and will be removed in a future version. Use connect() and listen for 'message' events instead.",
         );
-
-        // Return empty array but log helpful migration info
-        console.info('Migration guide: Replace receiveMessages() with:');
-        console.info('  await signalCli.connect();');
-        console.info("  signalCli.on('message', (msg) => { /* handle message */ });");
-
-        return Promise.resolve([]);
+        return this.receive();
     }
 
     /**
@@ -1316,7 +1565,7 @@ export class SignalCli extends EventEmitter {
         return this.groups.listGroupsDetailed(options);
     }
 
-    async listAccountsDetailed(): Promise<Array<{ number: string; name?: string; uuid?: string }>> {
+    async listAccountsDetailed(): Promise<Array<{ number: string | null; name?: string; uuid?: string; aci?: string }>> {
         return this.accounts.listAccountsDetailed();
     }
 
@@ -1586,6 +1835,23 @@ export class SignalCli extends EventEmitter {
             account: this.account,
             callId: options.callId,
             candidates: options.candidates,
+        });
+    }
+
+    /** List active calls using signal-cli's JSON-RPC command. */
+    async listCalls(): Promise<ActiveCall[]> {
+        const result = await this.sendJsonRpcRequest('listCalls', { account: this.account });
+        return Array.isArray(result) ? (result as ActiveCall[]) : [];
+    }
+
+    /** Reject an incoming call by its signal-cli call ID. */
+    async rejectCall(callId: number): Promise<void> {
+        if (!Number.isInteger(callId) || callId < 0) {
+            throw new Error('callId must be a non-negative integer');
+        }
+        await this.sendJsonRpcRequest('rejectCall', {
+            account: this.account,
+            callId,
         });
     }
 }

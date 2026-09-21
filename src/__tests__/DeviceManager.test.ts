@@ -40,7 +40,7 @@ describe('DeviceManager', () => {
         mockSendRequest.mockResolvedValue(mockDevices);
 
         const result = await deviceManager.listDevices();
-        expect(result).toBe(mockDevices);
+        expect(result).toEqual([{ id: 1, name: 'Device 1', created: 0, lastSeen: 0 }]);
         expect(mockSendRequest).toHaveBeenCalledWith('listDevices', { account: '+1234567890' });
     });
 

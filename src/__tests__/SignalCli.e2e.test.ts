@@ -1,12 +1,12 @@
 /**
- * End-to-end integration tests for complete workflows (Phase 6)
- * Tests realistic scenarios combining multiple operations
+ * Workflow tests for complete SDK scenarios.
+ * The transport is mocked; live-account checks belong to a separate manual test.
  */
 
 import { SignalCli } from '../SignalCli';
 import { Contact, GroupInfo, SendResponse } from '../interfaces';
 
-describe('SignalCli - E2E Workflow Tests (Phase 6)', () => {
+describe('SignalCli - workflow tests', () => {
     let signal: SignalCli;
     const mockSendResponse: SendResponse = {
         timestamp: Date.now(),

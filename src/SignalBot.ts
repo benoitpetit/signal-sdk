@@ -1,15 +1,7 @@
 import { EventEmitter } from 'events';
 import { SignalCli } from './SignalCli';
-import { BotConfig, BotCommand, ParsedMessage, BotStats } from './interfaces';
-import { validatePublicHttpUrl } from './validators';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import * as https from 'https';
-import * as http from 'http';
-
-/** Maximum allowed size for downloaded images (25 MB) */
-const MAX_DOWNLOAD_BYTES = 25 * 1024 * 1024;
+import { BotConfig, BotCommand, GroupUpdateEvent, ParsedMessage, BotStats } from './interfaces';
+import { MediaManager } from './bot/MediaManager';
 
 function getErrorMessage(error: unknown): string {
     if (error instanceof Error) return error.message;
@@ -43,7 +35,6 @@ export class SignalBot extends EventEmitter {
             commandPrefix: string;
             autoReact: boolean;
             logMessages: boolean;
-            welcomeNewMembers: boolean;
             cooldownSeconds: number;
             maxMessageLength: number;
         };
@@ -55,9 +46,37 @@ export class SignalBot extends EventEmitter {
     private userCooldowns = new Map<string, number>();
     private actionQueue: BotAction[] = [];
     private isProcessingQueue = false;
-
+    private queueProcessingPromise: Promise<void> | null = null;
     private activeTimers: NodeJS.Timeout[] = [];
-    private tempFiles: Set<string> = new Set();
+    private eventHandlersAttached = false;
+
+    private readonly signalMessageHandler = (messageData: Record<string, unknown>): void => {
+        void this.handleMessage(messageData);
+    };
+
+    private readonly signalCloseHandler = (code: number | null): void => {
+        if (code === 0) {
+            this.log('Signal daemon closed gracefully', 'INFO');
+        } else {
+            this.log(`Signal daemon closed with error code ${code}`, 'ERROR');
+        }
+        this.emit('daemon-closed', code);
+    };
+
+    private readonly signalErrorHandler = (error: Error): void => {
+        this.log(`Daemon error: ${error.message}`, 'ERROR');
+        this.emit('error', error);
+    };
+
+    private readonly signalLogHandler = (logData: { level: string; message: string }): void => {
+        this.log(`[signal-cli ${logData.level.toUpperCase()}] ${logData.message}`, 'DEBUG');
+    };
+
+    private readonly signalGroupUpdateHandler = (groupUpdate: GroupUpdateEvent): void => {
+        this.emit('groupUpdate', groupUpdate);
+    };
+
+    private readonly media = new MediaManager((message, level = 'INFO') => this.log(message, level));
 
     constructor(config: BotConfig, signalCliPath?: string) {
         super();
@@ -69,7 +88,6 @@ export class SignalBot extends EventEmitter {
                 commandPrefix: config.settings?.commandPrefix || '/',
                 autoReact: config.settings?.autoReact ?? false,
                 logMessages: config.settings?.logMessages ?? true,
-                welcomeNewMembers: config.settings?.welcomeNewMembers ?? true,
                 cooldownSeconds: config.settings?.cooldownSeconds || 2,
                 maxMessageLength: config.settings?.maxMessageLength || 1000,
             },
@@ -99,119 +117,13 @@ export class SignalBot extends EventEmitter {
     }
 
     /**
-     * Downloads an image from URL to a temporary file
-     * @param imageUrl URL of the image to download
-     * @returns Path to the temporary file
-     */
-    private async downloadImage(imageUrl: string): Promise<string> {
-        return this.downloadImageFromUrl(imageUrl, 'bot_avatar');
-    }
-
-    /**
      * Downloads an image from URL for commands (like NASA images)
      * @param imageUrl URL of the image to download
      * @param prefix Optional prefix for the temp file name
      * @returns Path to the temporary file
      */
     async downloadImageFromUrl(imageUrl: string, prefix: string = 'bot_image'): Promise<string> {
-        validatePublicHttpUrl(imageUrl, 'imageUrl');
-
-        return new Promise((resolve, reject) => {
-            const downloadWithRedirect = (url: string, maxRedirects: number = 5): void => {
-                const client = url.startsWith('https:') ? https : http;
-
-                client
-                    .get(url, (response) => {
-                        // Handle redirections (3xx status codes)
-                        if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400) {
-                            if (maxRedirects <= 0) {
-                                reject(new Error(`Too many redirects for image: ${url}`));
-                                return;
-                            }
-
-                            const redirectUrl = response.headers.location;
-                            if (!redirectUrl) {
-                                reject(new Error(`Redirect without location header: ${response.statusCode}`));
-                                return;
-                            }
-
-                            // Resolve relative URLs
-                            const finalUrl = new URL(redirectUrl, url).href;
-
-                            try {
-                                validatePublicHttpUrl(finalUrl, 'redirectUrl');
-                            } catch (validationError) {
-                                reject(validationError);
-                                return;
-                            }
-
-                            this.log(`🔄 Following redirect to: ${finalUrl}`, 'DEBUG');
-                            response.resume(); // Drain the redirect response
-
-                            downloadWithRedirect(finalUrl, maxRedirects - 1);
-                            return;
-                        }
-
-                        // Handle non-success status codes
-                        if (response.statusCode !== 200) {
-                            response.resume();
-                            reject(new Error(`Failed to download image: ${response.statusCode}`));
-                            return;
-                        }
-
-                        // Enforce a size limit to protect disk and memory
-                        const contentLength = Number(response.headers['content-length'] || 0);
-                        if (contentLength > MAX_DOWNLOAD_BYTES) {
-                            response.resume();
-                            reject(
-                                new Error(`Image too large: ${contentLength} bytes (max ${MAX_DOWNLOAD_BYTES} bytes)`),
-                            );
-                            return;
-                        }
-
-                        // Success - create file and pipe response
-                        const urlObj = new URL(url);
-                        const extension = path.extname(urlObj.pathname) || '.jpg';
-                        const tempFileName = `${prefix}_${Date.now()}${extension}`;
-                        const tempFilePath = path.join(os.tmpdir(), tempFileName);
-                        const file = fs.createWriteStream(tempFilePath);
-
-                        let downloadedBytes = 0;
-                        let sizeLimitExceeded = false;
-                        response.on('data', (chunk: Buffer) => {
-                            downloadedBytes += chunk.length;
-                            if (!sizeLimitExceeded && downloadedBytes > MAX_DOWNLOAD_BYTES) {
-                                sizeLimitExceeded = true;
-                                response.destroy();
-                                file.destroy();
-                                fs.unlink(tempFilePath, () => {});
-                                reject(new Error(`Image too large: exceeds ${MAX_DOWNLOAD_BYTES} bytes`));
-                            }
-                        });
-
-                        response.pipe(file);
-
-                        file.on('finish', () => {
-                            file.close();
-                            this.tempFiles.add(tempFilePath);
-                            resolve(tempFilePath);
-                        });
-
-                        file.on('error', (err) => {
-                            fs.unlink(tempFilePath, () => {}); // Clean up on error
-                            if (!sizeLimitExceeded) {
-                                reject(err);
-                            }
-                        });
-                    })
-                    .on('error', (err) => {
-                        reject(err);
-                    });
-            };
-
-            // Start the download with redirect handling
-            downloadWithRedirect(imageUrl);
-        });
+        return this.media.downloadImageFromUrl(imageUrl, prefix);
     }
 
     /**
@@ -246,89 +158,14 @@ export class SignalBot extends EventEmitter {
         } catch (error: unknown) {
             this.log(`ERROR: Failed to download and send image: ${getErrorMessage(error)}`, 'ERROR');
             // Clean up on download error
-            if (tempFilePath) {
-                await this.cleanupTempFile(tempFilePath);
-            }
+            if (tempFilePath) await this.media.cleanupTempFile(tempFilePath);
             // Fallback to text message with URL
             await this.sendMessage(recipient, `${message}\n\n- Image: ${imageUrl}`);
         }
     }
 
-    /**
-     * Cleans up a temporary file
-     * @param filePath Path to the file to delete
-     */
-    private async cleanupTempFile(filePath: string): Promise<void> {
-        try {
-            if (fs.existsSync(filePath)) {
-                await fs.promises.unlink(filePath);
-                this.log(`- Cleaned up temporary file: ${filePath}`, 'DEBUG');
-            }
-        } catch (error: unknown) {
-            this.log(`WARNING: Could not cleanup temp file ${filePath}: ${getErrorMessage(error)}`, 'DEBUG');
-        } finally {
-            this.tempFiles.delete(filePath);
-        }
-    }
-
-    /**
-     * Cleans up all tracked temporary files (called on stop/shutdown)
-     */
-    private async cleanupAllTempFiles(): Promise<void> {
-        const files = Array.from(this.tempFiles);
-        for (const filePath of files) {
-            await this.cleanupTempFile(filePath);
-        }
-    }
-
-    /**
-     * Processes group avatar configuration
-     * @param avatar Avatar configuration (URL, file path, or base64)
-     * @returns Path to the avatar file or null if no avatar
-     */
     private async processGroupAvatar(avatar: string): Promise<string | null> {
-        if (!avatar) {
-            return null;
-        }
-
-        // Check if it's a URL
-        if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
-            try {
-                this.log(`- Downloading group avatar from URL...`, 'INFO');
-                const tempPath = await this.downloadImage(avatar);
-                this.log(`- Avatar downloaded to: ${tempPath}`, 'DEBUG');
-                return tempPath;
-            } catch (error: unknown) {
-                this.log(`ERROR: Failed to download avatar: ${getErrorMessage(error)}`, 'ERROR');
-                return null;
-            }
-        }
-
-        // Check if it's a file path
-        if (fs.existsSync(avatar)) {
-            this.log(`- Using local avatar file: ${avatar}`, 'INFO');
-            return avatar;
-        }
-
-        // If it's base64 or other format, save it as a temporary file
-        if (avatar.startsWith('data:image/')) {
-            try {
-                const base64Data = avatar.split(',')[1];
-                const tempFileName = `bot_avatar_${Date.now()}.jpg`;
-                const tempFilePath = path.join(os.tmpdir(), tempFileName);
-
-                await fs.promises.writeFile(tempFilePath, base64Data, 'base64');
-                this.tempFiles.add(tempFilePath);
-                this.log(`- Saved base64 avatar to: ${tempFilePath}`, 'DEBUG');
-                return tempFilePath;
-            } catch (error: unknown) {
-                this.log(`ERROR: Failed to process base64 avatar: ${getErrorMessage(error)}`, 'ERROR');
-                return null;
-            }
-        }
-
-        this.log(`WARNING: Unsupported avatar format: ${avatar.substring(0, 50)}...`, 'WARN');
-        return null;
+        return this.media.processAvatar(avatar);
     }
 
     /**
@@ -356,6 +193,10 @@ export class SignalBot extends EventEmitter {
      * Starts the bot
      */
     async start(): Promise<void> {
+        if (this.isRunning) {
+            return;
+        }
+
         try {
             this.log('- Starting Signal Bot...', 'INFO');
 
@@ -401,8 +242,9 @@ export class SignalBot extends EventEmitter {
         this.activeTimers = [];
 
         // Clean up any leftover temporary files
-        await this.cleanupAllTempFiles();
+        await this.media.cleanupAll();
 
+        this.detachEventHandlers();
         this.signalCli.disconnect();
         this.emit('stopped');
         this.log('- Bot stopped');
@@ -417,9 +259,10 @@ export class SignalBot extends EventEmitter {
         this.activeTimers = [];
 
         // Clean up any leftover temporary files
-        await this.cleanupAllTempFiles();
+        await this.media.cleanupAll();
 
         try {
+            this.detachEventHandlers();
             await this.signalCli.gracefulShutdown();
             this.log('- Signal Bot shutdown completed gracefully');
         } catch (error: unknown) {
@@ -712,38 +555,35 @@ export class SignalBot extends EventEmitter {
             }
         } catch (error: unknown) {
             this.log(`ERROR: Error configuring group: ${getErrorMessage(error) || error}`, 'ERROR');
+            throw error;
         } finally {
             // Clean up temporary avatar file if it was downloaded/created
             if (avatarPath && isTemporaryAvatar) {
-                await this.cleanupTempFile(avatarPath);
+                await this.media.cleanupTempFile(avatarPath);
             }
         }
     }
 
     private setupEventHandlers(): void {
-        this.signalCli.on('message', (messageData) => {
-            this.handleMessage(messageData);
-        });
+        if (this.eventHandlersAttached) return;
 
-        this.signalCli.on('close', (code) => {
-            // Only log as warning if exit code indicates an error
-            if (code === 0) {
-                this.log(`Signal daemon closed gracefully`, 'INFO');
-            } else {
-                this.log(`Signal daemon closed with error code ${code}`, 'ERROR');
-            }
-            this.emit('daemon-closed', code);
-        });
+        this.signalCli.on('message', this.signalMessageHandler);
+        this.signalCli.on('close', this.signalCloseHandler);
+        this.signalCli.on('error', this.signalErrorHandler);
+        this.signalCli.on('log', this.signalLogHandler);
+        this.signalCli.on('groupUpdate', this.signalGroupUpdateHandler);
+        this.eventHandlersAttached = true;
+    }
 
-        this.signalCli.on('error', (error: Error) => {
-            this.log(`Daemon error: ${error.message}`, 'ERROR');
-            this.emit('error', error);
-        });
+    private detachEventHandlers(): void {
+        if (!this.eventHandlersAttached) return;
 
-        this.signalCli.on('log', (logData) => {
-            // Handle non-error stderr messages from signal-cli
-            this.log(`[signal-cli ${logData.level.toUpperCase()}] ${logData.message}`, 'DEBUG');
-        });
+        this.signalCli.removeListener('message', this.signalMessageHandler);
+        this.signalCli.removeListener('close', this.signalCloseHandler);
+        this.signalCli.removeListener('error', this.signalErrorHandler);
+        this.signalCli.removeListener('log', this.signalLogHandler);
+        this.signalCli.removeListener('groupUpdate', this.signalGroupUpdateHandler);
+        this.eventHandlersAttached = false;
     }
 
     private async handleMessage(messageData: Record<string, unknown>): Promise<void> {
@@ -759,7 +599,7 @@ export class SignalBot extends EventEmitter {
                 source: (envelope?.sourceNumber as string | undefined) || (envelope?.source as string | undefined) || '',
                 text: (dataMessage.message as string | undefined) || '',
                 timestamp: (envelope?.timestamp as number | undefined) || 0,
-                groupInfo: dataMessage.groupInfo as { id: string; name?: string; groupId?: string } | undefined,
+                groupInfo: dataMessage.groupInfo as ParsedMessage['groupInfo'],
                 isFromAdmin: this.isAdmin((envelope?.sourceNumber as string | undefined) || (envelope?.source as string | undefined) || ''),
             };
 
@@ -797,10 +637,26 @@ export class SignalBot extends EventEmitter {
             this.stats.messagesReceived++;
             this.stats.lastActivity = Date.now();
 
-            this.log(`Message from ${parsedMessage.source}: ${parsedMessage.text.substring(0, 50)}...`);
+            if (this.config.settings.logMessages) {
+                this.log(`Message from ${parsedMessage.source}: ${parsedMessage.text.substring(0, 50)}...`);
+            }
 
             // Emit message event
             this.emit('message', parsedMessage);
+
+            if (this.config.settings.autoReact) {
+                const reactionRecipient = parsedMessage.groupInfo?.id || parsedMessage.groupInfo?.groupId || parsedMessage.source;
+                try {
+                    await this.signalCli.sendReaction(
+                        reactionRecipient,
+                        parsedMessage.source,
+                        parsedMessage.timestamp,
+                        '👍',
+                    );
+                } catch (error: unknown) {
+                    this.log(`ERROR: Error sending automatic reaction: ${getErrorMessage(error)}`, 'DEBUG');
+                }
+            }
 
             // Send read receipt automatically
             try {
@@ -877,6 +733,28 @@ export class SignalBot extends EventEmitter {
     }
 
     private async processActionQueue(): Promise<void> {
+        if (this.queueProcessingPromise) {
+            await this.queueProcessingPromise;
+            return;
+        }
+
+        if (this.actionQueue.length === 0) {
+            return;
+        }
+
+        const processingPromise = this.runActionQueue();
+        this.queueProcessingPromise = processingPromise;
+
+        try {
+            await processingPromise;
+        } finally {
+            if (this.queueProcessingPromise === processingPromise) {
+                this.queueProcessingPromise = null;
+            }
+        }
+    }
+
+    private async runActionQueue(): Promise<void> {
         if (this.isProcessingQueue || this.actionQueue.length === 0) {
             return;
         }
@@ -907,7 +785,7 @@ export class SignalBot extends EventEmitter {
                             if (action.cleanup && action.cleanup.length > 0) {
                                 const cleanupTimer = setTimeout(async () => {
                                     for (const filePath of action.cleanup!) {
-                                        await this.cleanupTempFile(filePath);
+                                        await this.media.cleanupTempFile(filePath);
                                     }
                                     // Remove timer from active list
                                     const index = this.activeTimers.indexOf(cleanupTimer);
@@ -940,7 +818,7 @@ export class SignalBot extends EventEmitter {
                     // Clean up temporary files even on error
                     if (action.type === 'sendMessageWithAttachment' && action.cleanup && action.cleanup.length > 0) {
                         for (const filePath of action.cleanup) {
-                            await this.cleanupTempFile(filePath);
+                            await this.media.cleanupTempFile(filePath);
                         }
                     }
                 }
@@ -994,9 +872,5 @@ export class SignalBot extends EventEmitter {
 
         console.log(logMessage);
 
-        if (this.config.settings.logMessages) {
-            // In production, you might want to write to a file
-            // fs.appendFileSync('bot.log', logMessage + '\n');
-        }
     }
 }

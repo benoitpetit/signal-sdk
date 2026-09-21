@@ -77,9 +77,8 @@ const bot = new SignalBot({
     // Bot settings
     settings: {
         commandPrefix: '/', // Default command prefix
-        autoReact: false, // Automatically react to messages
+        autoReact: false, // React to accepted messages with 👍
         logMessages: true, // Log incoming messages
-        welcomeNewMembers: true, // Welcome message for new members
         cooldownSeconds: 2, // Per-user command cooldown
         maxMessageLength: 1000, // Maximum message length
     },
@@ -190,13 +189,23 @@ If `group.createIfNotExists` is `true`, the bot will:
 2.  If not, create it and invite all `admins`.
 3.  Set the group description and avatar.
 
-### Welcoming New Members
+### Group update events
+
+`SignalBot` forwards the `groupUpdate` event emitted by `SignalCli`. The event
+contains the group ID and revision, but signal-cli does not provide a member
+join/leave diff in this notification. Refresh the group with `listGroups()` when
+the current membership is needed.
 
 ```javascript
-bot.on('groupMemberJoined', (event) => {
-    bot.sendMessage(event.groupId, `Welcome to the group, ${event.member.number}! Please read the rules.`);
+bot.on('groupUpdate', async (update) => {
+    const groups = await bot.getSignalCli().listGroups();
+    const group = groups.find((item) => item.groupId === update.groupId);
+    console.log('Current members:', group?.members ?? []);
 });
 ```
+
+The bot's built-in welcome message is sent when a group is created or when
+missing administrators are added.
 
 ### Group Admin Commands
 

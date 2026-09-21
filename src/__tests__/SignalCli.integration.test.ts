@@ -1,6 +1,6 @@
 /**
- * Integration tests for SignalCli
- * Tests complex scenarios and edge cases
+ * Transport and lifecycle tests for SignalCli.
+ * The signal-cli process is mocked to keep the suite deterministic.
  */
 
 import { SignalCli } from '../SignalCli';
@@ -215,6 +215,7 @@ describe('SignalCli Integration Tests', () => {
     describe('Deprecated Methods', () => {
         it('should warn about deprecated receiveMessages', async () => {
             const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+            jest.spyOn(signalCli, 'receive').mockResolvedValue([]);
 
             await signalCli.receiveMessages();
 

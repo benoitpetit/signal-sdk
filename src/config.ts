@@ -6,6 +6,8 @@
 export interface SignalCliConfig {
     /** Path to signal-cli binary */
     signalCliPath?: string;
+    /** signal-cli data directory, passed as the global --config option */
+    dataPath?: string;
     /** Signal account phone number */
     account?: string;
     /** Connection timeout in milliseconds */
@@ -49,14 +51,16 @@ export interface SignalCliConfig {
 }
 
 export const DEFAULT_CONFIG: Required<
-    Omit<SignalCliConfig, 'socketPath' | 'tcpHost' | 'tcpPort' | 'httpBaseUrl'> & {
+    Omit<SignalCliConfig, 'socketPath' | 'tcpHost' | 'tcpPort' | 'httpBaseUrl' | 'dataPath'> & {
         socketPath: string;
         tcpHost: string;
         tcpPort: number;
         httpBaseUrl: string;
+        dataPath: string;
     }
 > = {
     signalCliPath: '',
+    dataPath: '',
     account: '',
     connectionTimeout: 30000,
     requestTimeout: 60000,
@@ -87,37 +91,58 @@ export const DEFAULT_CONFIG: Required<
 export function validateConfig(userConfig: SignalCliConfig = {}): Required<SignalCliConfig> {
     const config = { ...DEFAULT_CONFIG, ...userConfig };
 
-    // Validate numeric values
-    if (config.connectionTimeout < 0) {
-        throw new Error('connectionTimeout must be non-negative');
+    const nonNegativeFields = [
+        'connectionTimeout',
+        'requestTimeout',
+        'maxRetries',
+        'retryDelay',
+        'minRequestInterval',
+        'circuitBreakerResetTimeout',
+    ] as const;
+
+    for (const field of nonNegativeFields) {
+        const value = config[field];
+        if (!Number.isFinite(value)) {
+            throw new Error(`${field} must be a finite number`);
+        }
+        if (value < 0) {
+            throw new Error(`${field} must be non-negative`);
+        }
     }
 
-    if (config.requestTimeout < 0) {
-        throw new Error('requestTimeout must be non-negative');
+    if (!Number.isInteger(config.maxRetries)) {
+        throw new Error('maxRetries must be an integer');
     }
 
-    if (config.maxRetries < 0) {
-        throw new Error('maxRetries must be non-negative');
-    }
-
-    if (config.retryDelay < 0) {
-        throw new Error('retryDelay must be non-negative');
-    }
-
-    if (config.maxConcurrentRequests < 1) {
+    if (!Number.isFinite(config.maxConcurrentRequests) || config.maxConcurrentRequests < 1) {
         throw new Error('maxConcurrentRequests must be at least 1');
     }
 
-    if (config.minRequestInterval < 0) {
-        throw new Error('minRequestInterval must be non-negative');
+    if (!Number.isInteger(config.maxConcurrentRequests)) {
+        throw new Error('maxConcurrentRequests must be an integer');
     }
 
-    if (config.circuitBreakerFailureThreshold < 1) {
+    if (!Number.isFinite(config.circuitBreakerFailureThreshold) || config.circuitBreakerFailureThreshold < 1) {
         throw new Error('circuitBreakerFailureThreshold must be at least 1');
     }
 
-    if (config.circuitBreakerResetTimeout < 0) {
-        throw new Error('circuitBreakerResetTimeout must be non-negative');
+    if (!Number.isInteger(config.circuitBreakerFailureThreshold)) {
+        throw new Error('circuitBreakerFailureThreshold must be an integer');
+    }
+
+    if (!Number.isInteger(config.tcpPort) || config.tcpPort < 1 || config.tcpPort > 65535) {
+        throw new Error('tcpPort must be an integer between 1 and 65535');
+    }
+
+    if (config.daemonMode === 'http') {
+        try {
+            const url = new URL(config.httpBaseUrl);
+            if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+                throw new Error('invalid protocol');
+            }
+        } catch {
+            throw new Error('httpBaseUrl must be a valid HTTP(S) URL');
+        }
     }
 
     return config;

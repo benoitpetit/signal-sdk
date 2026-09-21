@@ -1,0 +1,19 @@
+[
+  {
+    "id": "group-1",
+    "name": "Friends",
+    "members": [
+      {
+        "number": "+33987654321"
+      }
+    ],
+    "admins": [
+      {
+        "uuid": "uuid-admin"
+      }
+    ],
+    "pendingMembers": [],
+    "requestingMembers": [],
+    "banned": []
+  }
+]

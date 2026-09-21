@@ -76,6 +76,7 @@ export interface AccountStatus {
 export class MultiAccountManager extends EventEmitter {
     private accounts: Map<string, ManagedAccount> = new Map();
     private reconnectTimers: Map<string, NodeJS.Timeout> = new Map();
+    private intentionalDisconnects: Set<string> = new Set();
     private options: MultiAccountOptions;
     private logger: Logger;
 
@@ -106,6 +107,7 @@ export class MultiAccountManager extends EventEmitter {
         // Create SignalCli instance with merged config
         const signalConfig: SignalCliConfig = {
             signalCliPath: this.options.signalCliPath,
+            dataPath: this.options.dataPath,
             verbose: this.options.verbose,
             ...config,
         };
@@ -145,7 +147,12 @@ export class MultiAccountManager extends EventEmitter {
 
         // Disconnect if connected
         if (managedAccount.connected) {
-            await managedAccount.instance.disconnect();
+            this.intentionalDisconnects.add(account);
+            try {
+                await managedAccount.instance.disconnect();
+            } finally {
+                this.intentionalDisconnects.delete(account);
+            }
         }
 
         // Cancel any pending reconnect for this account
@@ -280,9 +287,14 @@ export class MultiAccountManager extends EventEmitter {
 
         this.logger.info(`Disconnecting account: ${account}`);
 
-        await managedAccount.instance.disconnect();
-        managedAccount.connected = false;
-        this.emit('accountDisconnected', account);
+        this.intentionalDisconnects.add(account);
+        try {
+            await managedAccount.instance.disconnect();
+            managedAccount.connected = false;
+            this.emit('accountDisconnected', account);
+        } finally {
+            this.intentionalDisconnects.delete(account);
+        }
 
         this.logger.info(`Account ${account} disconnected`);
     }
@@ -391,7 +403,24 @@ export class MultiAccountManager extends EventEmitter {
      */
     private setupEventForwarding(account: string, instance: SignalCli): void {
         // Forward all events with account prefix
-        const events = ['message', 'receipt', 'typing', 'reaction', 'error', 'connected', 'disconnected'];
+        const events = [
+            'message',
+            'receipt',
+            'typing',
+            'reaction',
+            'story',
+            'pin',
+            'groupUpdate',
+            'call',
+            'callConnected',
+            'callEnded',
+            'notification',
+            'log',
+            'close',
+            'error',
+            'connected',
+            'disconnected',
+        ];
 
         events.forEach((event) => {
             instance.on(event, (...args: unknown[]) => {
@@ -409,6 +438,11 @@ export class MultiAccountManager extends EventEmitter {
                 const managedAccount = this.accounts.get(account);
                 if (managedAccount) {
                     managedAccount.lastActivity = Date.now();
+                    if (event === 'connected') {
+                        managedAccount.connected = true;
+                    } else if (event === 'disconnected') {
+                        managedAccount.connected = false;
+                    }
                 }
             });
         });
@@ -420,8 +454,13 @@ export class MultiAccountManager extends EventEmitter {
                 managedAccount.connected = false;
             }
 
+            // A manual disconnect must not be turned into an automatic reconnect.
+            if (this.intentionalDisconnects.delete(account)) {
+                return;
+            }
+
             // Auto-reconnect if enabled
-            if (this.options.autoReconnect) {
+            if (this.options.autoReconnect && this.accounts.has(account)) {
                 this.logger.info(`Auto-reconnecting account ${account}`);
                 this.scheduleReconnect(account);
             }

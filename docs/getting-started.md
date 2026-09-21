@@ -311,8 +311,8 @@ const bot = new SignalBot({
     settings: {
         // Optional
         commandPrefix: '!',
+        autoReact: false,
         logMessages: true,
-        welcomeNewMembers: true,
         cooldownSeconds: 2,
     },
 });

@@ -12,6 +12,7 @@ describe('SignalCli Methods Tests', () => {
     let signalCli: SignalCli;
     let mockProcess: any;
     let sendJsonRpcRequestSpy: jest.SpyInstance;
+    let executeCliCommandSpy: jest.SpyInstance;
 
     beforeEach(() => {
         mockProcess = {
@@ -35,6 +36,7 @@ describe('SignalCli Methods Tests', () => {
         spawnMock.mockReturnValue(mockProcess);
 
         signalCli = new SignalCli('signal-cli', '+1234567890');
+        executeCliCommandSpy = jest.spyOn(signalCli as any, 'executeCliCommand').mockResolvedValue('');
 
         // Mock sendJsonRpcRequest to avoid needing actual connection
         sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest').mockResolvedValue({});
@@ -193,14 +195,13 @@ describe('SignalCli Methods Tests', () => {
         });
 
         it('should update contact with options', async () => {
-            await signalCli.updateContact('+1234567890', 'John Doe', { color: 'blue', muted: true });
+            await signalCli.updateContact('+1234567890', 'John Doe', { note: 'Important contact' });
 
             expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith(
                 'updateContact',
                 expect.objectContaining({
                     name: 'John Doe',
-                    color: 'blue',
-                    muted: true,
+                    note: 'Important contact',
                 }),
             );
         });
@@ -348,48 +349,32 @@ describe('SignalCli Methods Tests', () => {
         it('should register account', async () => {
             await signalCli.register('+1234567890');
 
-            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith(
-                'register',
-                expect.objectContaining({
-                    account: '+1234567890',
-                }),
-            );
+            expect(executeCliCommandSpy).toHaveBeenCalledWith(['-a', '+1234567890', 'register']);
         });
 
         it('should register with voice and captcha', async () => {
             await signalCli.register('+1234567890', true, 'captcha123');
 
-            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith(
+            expect(executeCliCommandSpy).toHaveBeenCalledWith([
+                '-a',
+                '+1234567890',
                 'register',
-                expect.objectContaining({
-                    account: '+1234567890',
-                    voice: true,
-                    captcha: 'captcha123',
-                }),
-            );
+                '--voice',
+                '--captcha',
+                'captcha123',
+            ]);
         });
 
         it('should verify account', async () => {
             await signalCli.verify('+1234567890', 'token123');
 
-            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith(
-                'verify',
-                expect.objectContaining({
-                    account: '+1234567890',
-                    token: 'token123',
-                }),
-            );
+            expect(executeCliCommandSpy).toHaveBeenCalledWith(['-a', '+1234567890', 'verify', 'token123']);
         });
 
         it('should verify with PIN', async () => {
             await signalCli.verify('+1234567890', 'token123', '1234');
 
-            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith(
-                'verify',
-                expect.objectContaining({
-                    pin: '1234',
-                }),
-            );
+            expect(executeCliCommandSpy).toHaveBeenCalledWith(['-a', '+1234567890', 'verify', 'token123', '--pin', '1234']);
         });
 
         it('should unregister account', async () => {
@@ -508,23 +493,45 @@ describe('SignalCli Methods Tests', () => {
 
     describe('Link Methods', () => {
         it('should initiate device link', async () => {
-            sendJsonRpcRequestSpy.mockResolvedValue({ uri: 'sgnl://link?...' });
+            const deviceLinkSpy = jest.spyOn(signalCli.devices, 'deviceLink').mockResolvedValue({
+                success: true,
+                isLinked: false,
+                deviceName: 'MyDevice',
+                qrCode: { uri: 'sgnl://link?...' },
+            });
 
             const uri = await signalCli.link('MyDevice');
 
             expect(uri).toBe('sgnl://link?...');
-            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('link', {
-                deviceName: 'MyDevice',
-            });
+            expect(deviceLinkSpy).toHaveBeenCalledWith({ name: 'MyDevice' });
         });
 
         it('should link without device name', async () => {
-            sendJsonRpcRequestSpy.mockResolvedValue({ uri: 'sgnl://link?...' });
+            const deviceLinkSpy = jest.spyOn(signalCli.devices, 'deviceLink').mockResolvedValue({
+                success: true,
+                isLinked: false,
+                deviceName: 'Signal SDK Device',
+                qrCode: { uri: 'sgnl://link?...' },
+            });
 
             await signalCli.link();
 
-            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('link', {
-                deviceName: undefined,
+            expect(deviceLinkSpy).toHaveBeenCalledWith({ name: undefined });
+        });
+
+        it('should support JSON-RPC multi-account linking', async () => {
+            sendJsonRpcRequestSpy.mockResolvedValueOnce({ deviceLinkUri: 'sgnl://rpc-link' });
+            await expect(signalCli.startLink()).resolves.toBe('sgnl://rpc-link');
+            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('startLink');
+
+            sendJsonRpcRequestSpy.mockResolvedValueOnce({ number: null, aci: 'aci-1' });
+            await expect(signalCli.finishLink('sgnl://rpc-link', 'Desktop')).resolves.toEqual({
+                number: null,
+                aci: 'aci-1',
+            });
+            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('finishLink', {
+                deviceLinkUri: 'sgnl://rpc-link',
+                deviceName: 'Desktop',
             });
         });
     });
@@ -638,7 +645,7 @@ describe('SignalCli Methods Tests', () => {
             expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('listDevices', {
                 account: '+1234567890',
             });
-            expect(result).toEqual(mockDevices);
+            expect(result).toEqual(mockDevices.map((device) => ({ ...device, created: 0 })));
         });
 
         it('should update device name', async () => {

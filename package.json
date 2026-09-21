@@ -11,15 +11,20 @@
         "dist/*.js",
         "dist/*.d.ts",
         "dist/managers/",
+        "dist/bot/",
         "scripts/",
+        "docs/",
         "README.md",
         "LICENSE",
         "logo.png"
     ],
     "scripts": {
         "build": "tsc",
-        "prepublishOnly": "npm run build",
+        "prepublishOnly": "npm run release:check",
         "test": "jest",
+        "test:coverage": "jest --coverage --runInBand",
+        "test:ci": "jest --ci --coverage --runInBand",
+        "release:check": "bash scripts/release-check.sh",
         "postinstall": "node scripts/install.js",
         "connect": "node scripts/connect.js",
         "signal:connect": "node examples/sdk/00-device-linking.js",
@@ -31,7 +36,8 @@
         "example:minimal-bot": "node examples/bot/01-minimal-bot.js",
         "example:advanced-bot": "node examples/bot/02-advanced-bot.js",
         "example:advanced-bot-2": "node examples/bot/03-advanced-bot.js",
-        "lint": "eslint 'src/**/*.{ts,js}'",
+        "lint": "eslint 'src/**/*.ts'",
+        "check": "npm run lint && npm run build && npm run test:ci",
         "format": "prettier --write 'src/**/*.{ts,js}'"
     },
     "keywords": [

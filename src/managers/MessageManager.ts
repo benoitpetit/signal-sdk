@@ -13,7 +13,7 @@ import {
     UploadProgress,
 } from '../interfaces';
 // v0.14.0 — no additional imports needed, flags are part of existing interfaces
-import { validateRecipient, validateMessage, validateTimestamp, validateGroupId } from '../validators';
+import { validateAttachments, validateRecipient, validateMessage, validateTimestamp, validateGroupId } from '../validators';
 import { MessageError } from '../errors';
 import { withRetry } from '../retry';
 
@@ -46,6 +46,11 @@ export class MessageManager extends BaseManager {
     ): Promise<SendResponse> {
         return withRetry(
             async () => {
+                validateMessage(message);
+                if (options.attachments) {
+                    validateAttachments(options.attachments);
+                }
+
                 const params: Record<string, unknown> = {
                     message,
                     account: this.account,
@@ -62,7 +67,7 @@ export class MessageManager extends BaseManager {
                 if (options.attachments && options.attachments.length > 0) {
                     params.attachments = options.attachments;
                 }
-                if (options.expiresInSeconds) {
+                if (options.expiresInSeconds !== undefined) {
                     params.expiresInSeconds = options.expiresInSeconds;
                 }
                 if (options.isViewOnce) {
@@ -452,6 +457,7 @@ export class MessageManager extends BaseManager {
                     total: 100,
                     uploaded: i,
                     percentage: i,
+                    simulated: true,
                 });
                 await new Promise((resolve) => setTimeout(resolve, 50));
             }

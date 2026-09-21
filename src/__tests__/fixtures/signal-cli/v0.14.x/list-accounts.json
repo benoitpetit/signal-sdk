@@ -1,0 +1,10 @@
+[
+  {
+    "number": "+33123456789",
+    "aci": "aci-1"
+  },
+  {
+    "number": null,
+    "aci": "aci-numberless"
+  }
+]

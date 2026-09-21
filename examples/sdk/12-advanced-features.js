@@ -1,8 +1,7 @@
 /**
- * Exemples d'Utilisation - Nouvelles Fonctionnalités Avancées
+ * Usage Examples - Advanced Features
  * 
- * Ce fichier démontre l'utilisation de toutes les fonctionnalités avancées
- * ajoutées dans la mise à jour v0.1.0 du Signal SDK.
+ * This file demonstrates the advanced features introduced in Signal SDK v0.1.0.
  */
 
 const { SignalCli } = require('../dist/SignalCli');
@@ -11,16 +10,16 @@ async function demonstrateAdvancedFeatures() {
     const signal = new SignalCli(process.env.SIGNAL_NUMBER);
 
     console.log('═══════════════════════════════════════════════════════');
-    console.log('🚀 Signal SDK - Fonctionnalités Avancées');
+    console.log('🚀 Signal SDK - Advanced Features');
     console.log('═══════════════════════════════════════════════════════\n');
 
     // ═══════════════════════════════════════════════════════════════
-    // 1. OPTIONS AVANCÉES DE SENDMESSAGE
+    // 1. ADVANCED SENDMESSAGE OPTIONS
     // ═══════════════════════════════════════════════════════════════
 
-    console.log('1️⃣  Options Avancées de sendMessage()\n');
+    console.log('1️⃣  Advanced sendMessage() options\n');
 
-    // 1.1 Formatage de texte
+    // 1.1 Text formatting
     console.log('   📝 Formatage de texte:');
     try {
         await signal.sendMessage('+33123456789', 'Message avec *gras* et _italique_', {
@@ -29,25 +28,25 @@ async function demonstrateAdvancedFeatures() {
                 { start: 22, length: 9, style: 'ITALIC' }     // _italique_
             ]
         });
-        console.log('      ✅ Message avec formatage envoyé\n');
+        console.log('      ✅ Formatted message sent\n');
     } catch (error) {
-        console.log(`      ❌ Erreur: ${error.message}\n`);
+        console.log(`      ❌ Error: ${error.message}\n`);
     }
 
-    // 1.2 Mentions d'utilisateurs
+    // 1.2 User mentions
     console.log('   👥 Mentions:');
     try {
-        await signal.sendMessage('+33123456789', 'Salut @John, comment ça va ?', {
+        await signal.sendMessage('+33123456789', 'Hello @John, how are you?', {
             mentions: [
                 { start: 6, length: 5, number: '+33111111111' }  // @John
             ]
         });
-        console.log('      ✅ Message avec mention envoyé\n');
+        console.log('      ✅ Mentioned message sent\n');
     } catch (error) {
-        console.log(`      ❌ Erreur: ${error.message}\n`);
+        console.log(`      ❌ Error: ${error.message}\n`);
     }
 
-    // 1.3 Citation avancée
+    // 1.3 Advanced quote
     console.log('   💬 Citation avec formatage:');
     try {
         await signal.sendMessage('+33123456789', 'Je suis d\'accord !', {
@@ -60,54 +59,54 @@ async function demonstrateAdvancedFeatures() {
                 ]
             }
         });
-        console.log('      ✅ Réponse avec citation envoyée\n');
+        console.log('      ✅ Quoted reply sent\n');
     } catch (error) {
-        console.log(`      ❌ Erreur: ${error.message}\n`);
+        console.log(`      ❌ Error: ${error.message}\n`);
     }
 
-    // 1.4 Édition de message
-    console.log('   ✏️  Édition de message:');
+    // 1.4 Message editing
+    console.log('   ✏️  Message editing:');
     try {
         const originalMsg = await signal.sendMessage('+33123456789', 'Message original');
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        await signal.sendMessage('+33123456789', 'Message corrigé', {
+        await signal.sendMessage('+33123456789', 'Corrected message', {
             editTimestamp: originalMsg.timestamp
         });
-        console.log('      ✅ Message édité\n');
+        console.log('      ✅ Message edited\n');
     } catch (error) {
-        console.log(`      ❌ Erreur: ${error.message}\n`);
+        console.log(`      ❌ Error: ${error.message}\n`);
     }
 
-    // 1.5 Réponse à une story
-    console.log('   📖 Réponse à une story:');
+    // 1.5 Story reply
+    console.log('   📖 Story reply:');
     try {
         await signal.sendMessage('+33123456789', 'Belle photo ! 📸', {
             storyTimestamp: Date.now() - 3600000,
             storyAuthor: '+33111111111'
         });
-        console.log('      ✅ Réponse à la story envoyée\n');
+        console.log('      ✅ Story reply sent\n');
     } catch (error) {
-        console.log(`      ❌ Erreur: ${error.message}\n`);
+        console.log(`      ❌ Error: ${error.message}\n`);
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // 2. NOUVELLE MÉTHODE RECEIVE()
+    // 2. RECEIVE() METHOD
     // ═══════════════════════════════════════════════════════════════
 
-    console.log('\n2️⃣  Réception de Messages avec receive()\n');
+    console.log('\n2️⃣  Receiving messages with receive()\n');
 
-    // 2.1 Réception basique
-    console.log('   📥 Réception avec timeout:');
+    // 2.1 Basic receiving
+    console.log('   📥 Receiving with a timeout:');
     try {
         const messages = await signal.receive({ timeout: 5 });
-        console.log(`      ✅ ${messages.length} message(s) reçu(s)\n`);
+        console.log(`      ✅ Received ${messages.length} message(s)\n`);
     } catch (error) {
-        console.log(`      ❌ Erreur: ${error.message}\n`);
+        console.log(`      ❌ Error: ${error.message}\n`);
     }
 
-    // 2.2 Réception avec options avancées
-    console.log('   ⚙️  Réception avec options:');
+    // 2.2 Receiving with advanced options
+    console.log('   ⚙️  Receiving with options:');
     try {
         const messages = await signal.receive({
             timeout: 10,
@@ -115,121 +114,121 @@ async function demonstrateAdvancedFeatures() {
             ignoreAttachments: true,
             sendReadReceipts: true
         });
-        console.log(`      ✅ ${messages.length} message(s) reçu(s) avec options\n`);
+        console.log(`      ✅ Received ${messages.length} message(s) with options\n`);
     } catch (error) {
-        console.log(`      ❌ Erreur: ${error.message}\n`);
+        console.log(`      ❌ Error: ${error.message}\n`);
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // 3. GESTION DES USERNAMES
+    // 3. USERNAME MANAGEMENT
     // ═══════════════════════════════════════════════════════════════
 
-    console.log('\n3️⃣  Gestion des Usernames\n');
+    console.log('\n3️⃣  Username management\n');
 
-    // 3.1 Définir un username
-    console.log('   ✏️  Définir un username:');
+    // 3.1 Set a username
+    console.log('   ✏️  Set a username:');
     try {
         const result = await signal.setUsername('myawesomebot');
-        console.log(`      ✅ Username défini: ${result.username}`);
-        console.log(`      🔗 Lien: ${result.usernameLink}\n`);
+        console.log(`      ✅ Username set: ${result.username}`);
+        console.log(`      🔗 Link: ${result.usernameLink}\n`);
     } catch (error) {
-        console.log(`      ❌ Erreur: ${error.message}\n`);
+        console.log(`      ❌ Error: ${error.message}\n`);
     }
 
-    // 3.2 Supprimer le username
-    console.log('   🗑️  Supprimer le username:');
+    // 3.2 Delete the username
+    console.log('   🗑️  Delete the username:');
     try {
         const result = await signal.deleteUsername();
         if (result.success) {
-            console.log('      ✅ Username supprimé\n');
+            console.log('      ✅ Username deleted\n');
         }
     } catch (error) {
-        console.log(`      ❌ Erreur: ${error.message}\n`);
+        console.log(`      ❌ Error: ${error.message}\n`);
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // 4. GESTION AVANCÉE DES IDENTITÉS
+    // 4. ADVANCED IDENTITY MANAGEMENT
     // ═══════════════════════════════════════════════════════════════
 
-    console.log('\n4️⃣  Gestion Avancée des Identités\n');
+    console.log('\n4️⃣  Advanced identity management\n');
 
-    // 4.1 Obtenir le safety number
-    console.log('   🔐 Obtenir safety number:');
+    // 4.1 Get a safety number
+    console.log('   🔐 Get a safety number:');
     try {
         const safetyNumber = await signal.getSafetyNumber('+33123456789');
         if (safetyNumber) {
             console.log(`      ✅ Safety number: ${safetyNumber}\n`);
         } else {
-            console.log('      ⚠️  Aucun safety number trouvé\n');
+            console.log('      ⚠️  No safety number found\n');
         }
     } catch (error) {
-        console.log(`      ❌ Erreur: ${error.message}\n`);
+        console.log(`      ❌ Error: ${error.message}\n`);
     }
 
-    // 4.2 Vérifier un safety number
-    console.log('   ✅ Vérifier safety number:');
+    // 4.2 Verify a safety number
+    console.log('   ✅ Verify a safety number:');
     try {
         const verified = await signal.verifySafetyNumber(
             '+33123456789',
             '12345 67890 12345 67890 12345 67890'
         );
         if (verified) {
-            console.log('      ✅ Safety number vérifié avec succès\n');
+            console.log('      ✅ Safety number verified successfully\n');
         } else {
-            console.log('      ❌ Safety number incorrect\n');
+            console.log('      ❌ Incorrect safety number\n');
         }
     } catch (error) {
-        console.log(`      ❌ Erreur: ${error.message}\n`);
+        console.log(`      ❌ Error: ${error.message}\n`);
     }
 
-    // 4.3 Lister les identités non vérifiées
-    console.log('   📋 Lister identités non vérifiées:');
+    // 4.3 List untrusted identities
+    console.log('   📋 List untrusted identities:');
     try {
         const untrusted = await signal.listUntrustedIdentities();
-        console.log(`      ℹ️  ${untrusted.length} identité(s) non vérifiée(s):`);
+        console.log(`      ℹ️  ${untrusted.length} untrusted identity/identities:`);
         untrusted.slice(0, 3).forEach(identity => {
             console.log(`         - ${identity.number} (${identity.trustLevel || 'UNKNOWN'})`);
         });
         console.log();
     } catch (error) {
-        console.log(`      ❌ Erreur: ${error.message}\n`);
+        console.log(`      ❌ Error: ${error.message}\n`);
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // 5. GESTION AVANCÉE DES GROUPES
+    // 5. ADVANCED GROUP MANAGEMENT
     // ═══════════════════════════════════════════════════════════════
 
-    console.log('\n5️⃣  Gestion Avancée des Groupes\n');
+    console.log('\n5️⃣  Advanced group management\n');
 
-    // 5.1 Envoyer le lien d'invitation
+    // 5.1 Send the invitation link
     console.log('   🔗 Envoyer lien d\'invitation:');
     try {
         await signal.sendGroupInviteLink('groupId123==', '+33123456789');
-        console.log('      ✅ Lien d\'invitation envoyé\n');
+        console.log('      ✅ Invitation link sent\n');
     } catch (error) {
-        console.log(`      ❌ Erreur: ${error.message}\n`);
+        console.log(`      ❌ Error: ${error.message}\n`);
     }
 
-    // 5.2 Bannir des membres
+    // 5.2 Ban members
     console.log('   🚫 Bannir des membres:');
     try {
         await signal.setBannedMembers('groupId123==', ['+33111111111']);
         console.log('      ✅ Membre(s) banni(s)\n');
     } catch (error) {
-        console.log(`      ❌ Erreur: ${error.message}\n`);
+        console.log(`      ❌ Error: ${error.message}\n`);
     }
 
-    // 5.3 Réinitialiser le lien d'invitation
-    console.log('   🔄 Réinitialiser lien d\'invitation:');
+    // 5.3 Reset the invitation link
+    console.log('   🔄 Reset invitation link:');
     try {
         await signal.resetGroupLink('groupId123==');
-        console.log('      ✅ Lien d\'invitation réinitialisé\n');
+        console.log('      ✅ Invitation link reset\n');
     } catch (error) {
-        console.log(`      ❌ Erreur: ${error.message}\n`);
+        console.log(`      ❌ Error: ${error.message}\n`);
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // 6. EXEMPLE COMPLET - MESSAGE COMPLEXE
+    // 6. COMPLETE EXAMPLE - COMPLEX MESSAGE
     // ═══════════════════════════════════════════════════════════════
 
     console.log('\n6️⃣  Exemple Complet - Message avec Tout\n');
@@ -248,43 +247,43 @@ async function demonstrateAdvancedFeatures() {
                 quote: {
                     timestamp: Date.now() - 120000,
                     author: '+33111111111',
-                    text: 'Message précédent'
+                    text: 'Previous message'
                 },
                 previewUrl: 'https://example.com',
                 expiresInSeconds: 3600
             }
         );
-        console.log('      ✅ Message complexe envoyé avec succès\n');
+        console.log('      ✅ Complex message sent successfully\n');
     } catch (error) {
-        console.log(`      ❌ Erreur: ${error.message}\n`);
+        console.log(`      ❌ Error: ${error.message}\n`);
     }
 
     console.log('═══════════════════════════════════════════════════════');
-    console.log('✨ Démonstration terminée !');
+    console.log('✨ Demonstration completed!');
     console.log('═══════════════════════════════════════════════════════\n');
 }
 
 // ═══════════════════════════════════════════════════════════════
-// INFORMATIONS IMPORTANTES
+// IMPORTANT INFORMATION
 // ═══════════════════════════════════════════════════════════════
 
 console.log('\n📚 INFORMATIONS IMPORTANTES:\n');
-console.log('1. Assurez-vous que signal-cli est installé et configuré');
-console.log('2. Définissez SIGNAL_NUMBER dans votre .env');
-console.log('3. Ces fonctionnalités nécessitent signal-cli >= 0.13.0');
-console.log('4. Certaines opérations peuvent nécessiter des permissions');
-console.log('5. Les tests unitaires couvrent tous ces cas d\'usage\n');
+console.log('1. Make sure signal-cli is installed and configured');
+console.log('2. Set SIGNAL_NUMBER in your .env file');
+console.log('3. These features require signal-cli >= 0.13.0');
+console.log('4. Some operations may require additional permissions');
+console.log('5. Unit tests cover these usage scenarios\n');
 
 console.log('📖 DOCUMENTATION:\n');
-console.log('- README.md : Guide de démarrage');
-console.log('- docs/api-reference.md : Référence complète de l\'API');
-console.log('- IMPLEMENTATION_SUMMARY.md : Détails techniques');
+console.log('- README.md: Getting started guide');
+console.log('- docs/api-reference.md: Complete API reference');
+console.log('- IMPLEMENTATION_SUMMARY.md: Technical details');
 console.log('- update_coverage_todo.md : Roadmap et statut\n');
 
-// Exécuter la démonstration si le fichier est exécuté directement
+// Run the demonstration when this file is executed directly
 if (require.main === module) {
     demonstrateAdvancedFeatures().catch(error => {
-        console.error('\n❌ Erreur fatale:', error);
+        console.error('\n❌ Fatal error:', error);
         process.exit(1);
     });
 }

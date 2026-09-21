@@ -1,11 +1,7 @@
 /**
  * Tests for signal-cli v0.14.2 new features
  *
- * Covers:
- *  - voiceNote flag on send command (FEAT-14)
- *  - Voice calling support: startCall, acceptCall, hangUpCall, sendCallRelayCandidates (FEAT-15)
- *  - Poll option length validation 1-100 chars (FEAT-13)
- *  - Call events emission
+ * Covers voice notes, voice calling, polls and call events.
  */
 
 import { SignalCli } from '../SignalCli';
@@ -61,7 +57,7 @@ describe('SignalCli — v0.14.2 new features', () => {
     });
 
     // =========================================================================
-    // FEAT-13: Poll option length validation (1-100 characters)
+    // Poll option length validation (1-100 characters)
     // =========================================================================
     describe('sendPollCreate — option length validation', () => {
         it('should throw error when option is empty (0 characters)', async () => {
@@ -127,7 +123,7 @@ describe('SignalCli — v0.14.2 new features', () => {
     });
 
     // =========================================================================
-    // FEAT-14: voiceNote flag on send command
+    // voiceNote flag on send command
     // =========================================================================
     describe('sendMessage — voiceNote flag', () => {
         it('should NOT include voiceNote by default', async () => {
@@ -182,7 +178,7 @@ describe('SignalCli — v0.14.2 new features', () => {
     });
 
     // =========================================================================
-    // FEAT-15: Voice calling support
+    // Voice calling support
     // =========================================================================
     describe('startCall — voice/video calling', () => {
         it('should start a voice call with recipient', async () => {
@@ -229,6 +225,43 @@ describe('SignalCli — v0.14.2 new features', () => {
 
             const params = rpcSpy.mock.calls[0][1];
             expect(params.video).toBeUndefined();
+        });
+    });
+
+    describe('Active call management', () => {
+        it('should list active calls with signal-cli response fields', async () => {
+            rpcSpy.mockResolvedValue([
+                {
+                    callId: 42,
+                    state: 'RINGING',
+                    number: '+33123456789',
+                    uuid: null,
+                    isOutgoing: false,
+                    inputDeviceName: null,
+                    outputDeviceName: 'Default output',
+                },
+            ]);
+
+            await expect(signalCli.listCalls()).resolves.toEqual([
+                expect.objectContaining({ callId: 42, state: 'RINGING', isOutgoing: false }),
+            ]);
+            expect(rpcSpy).toHaveBeenCalledWith('listCalls', { account: '+1234567890' });
+        });
+
+        it('should reject an active call', async () => {
+            rpcSpy.mockResolvedValue(undefined);
+
+            await signalCli.rejectCall(42);
+
+            expect(rpcSpy).toHaveBeenCalledWith('rejectCall', {
+                account: '+1234567890',
+                callId: 42,
+            });
+        });
+
+        it('should reject invalid call IDs before sending RPC', async () => {
+            await expect(signalCli.rejectCall(-1)).rejects.toThrow('callId');
+            expect(rpcSpy).not.toHaveBeenCalled();
         });
     });
 

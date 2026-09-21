@@ -173,6 +173,36 @@ describe('SignalBot Coverage', () => {
             expect(bot.getStats().messagesReceived).toBe(1);
         });
 
+        it('should send a thumbs-up reaction when autoReact is enabled', async () => {
+            (bot as any).config.settings.autoReact = true;
+            mockSignalCli.sendReaction.mockResolvedValue({ timestamp: Date.now(), results: [] });
+
+            await (bot as any).handleMessage({
+                envelope: {
+                    sourceNumber: '+someone',
+                    dataMessage: { message: 'hello' },
+                    timestamp: 123,
+                },
+            });
+
+            expect(mockSignalCli.sendReaction).toHaveBeenCalledWith('+someone', '+someone', 123, '👍');
+        });
+
+        it('should wait for an already running action queue before resolving concurrent sends', async () => {
+            jest.useFakeTimers();
+
+            const first = bot.sendMessage('+one', 'first');
+            const second = bot.sendMessage('+two', 'second');
+
+            await Promise.resolve();
+            await jest.advanceTimersByTimeAsync(500);
+            await Promise.all([first, second]);
+
+            expect(mockSignalCli.sendMessage).toHaveBeenNthCalledWith(1, '+one', 'first');
+            expect(mockSignalCli.sendMessage).toHaveBeenNthCalledWith(2, '+two', 'second');
+            jest.useRealTimers();
+        });
+
         it('should ignore unauthorized group messages', async () => {
             (bot as any).botGroupId = 'authorized-group';
             const groupMessage = {
@@ -275,14 +305,30 @@ describe('SignalBot Coverage', () => {
 
         it('should handle daemon events', () => {
             const logSpy = jest.spyOn(console, 'log').mockImplementation();
+            const groupUpdateSpy = jest.fn();
+            bot.on('groupUpdate', groupUpdateSpy);
             (bot as any).setupEventHandlers();
+            (bot as any).setupEventHandlers();
+
+            expect(mockSignalCli.listenerCount('message')).toBe(1);
             
             mockSignalCli.emit('log', { level: 'info', message: 'test log' });
             expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('test log'));
             
             mockSignalCli.emit('close', 1);
             expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('error code 1'));
+            mockSignalCli.emit('groupUpdate', { groupId: 'group-1', type: 'UPDATE' });
+            expect(groupUpdateSpy).toHaveBeenCalledWith({ groupId: 'group-1', type: 'UPDATE' });
             logSpy.mockRestore();
+        });
+
+        it('should detach signal handlers when stopped', async () => {
+            (bot as any).setupEventHandlers();
+            expect(mockSignalCli.listenerCount('message')).toBe(1);
+
+            await bot.stop();
+
+            expect(mockSignalCli.listenerCount('message')).toBe(0);
         });
     });
 
@@ -303,9 +349,38 @@ describe('SignalBot Coverage', () => {
             await expect(bot.start()).rejects.toThrow('link the bot first');
         });
 
+        it('should fail startup when the configured group cannot be prepared', async () => {
+            bot = new SignalBot({
+                phoneNumber: '+1234567890',
+                admins: ['+admin'],
+                group: {
+                    name: 'Required Group',
+                    createIfNotExists: true,
+                },
+            });
+            mockSignalCli.connect.mockResolvedValue(undefined);
+            mockSignalCli.listDevices.mockResolvedValue([{ id: 1 } as any]);
+            mockSignalCli.listGroups.mockResolvedValue([]);
+            mockSignalCli.createGroup.mockRejectedValue(new Error('group setup failed'));
+
+            await expect(bot.start()).rejects.toThrow('group setup failed');
+            expect(bot.getStats()).toBeDefined();
+            expect(mockSignalCli.listenerCount('message')).toBe(0);
+        });
+
         it('should shutdown gracefully', async () => {
             await bot.gracefulShutdown();
             expect(mockSignalCli.gracefulShutdown).toHaveBeenCalled();
+        });
+
+        it('should complete graceful shutdown when the underlying client fails', async () => {
+            const logSpy = jest.spyOn(console, 'log').mockImplementation();
+            mockSignalCli.gracefulShutdown.mockRejectedValue(new Error('shutdown failed'));
+
+            await expect(bot.gracefulShutdown()).resolves.toBeUndefined();
+
+            expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('shutdown failed'));
+            logSpy.mockRestore();
         });
 
         it('should stop bot and clear timers', async () => {
@@ -346,6 +421,15 @@ describe('SignalBot Coverage', () => {
             }));
         });
 
+        it('should skip group setup when no group is configured', async () => {
+            const noGroupBot = new SignalBot({
+                phoneNumber: '+1234567890',
+                admins: ['+admin'],
+            });
+
+            await expect((noGroupBot as any).setupBotGroup()).resolves.toBeUndefined();
+        });
+
         it('should create group if it does not exist', async () => {
             mockSignalCli.listGroups.mockResolvedValue([]);
             mockSignalCli.createGroup.mockResolvedValue({
@@ -355,6 +439,15 @@ describe('SignalBot Coverage', () => {
             await (bot as any).setupBotGroup();
             expect((bot as any).botGroupId).toBe('new-group-id');
             expect(mockSignalCli.createGroup).toHaveBeenCalled();
+        });
+
+        it('should surface unsupported group creation instead of starting without a group', async () => {
+            mockSignalCli.listGroups.mockResolvedValue([]);
+            mockSignalCli.createGroup.mockRejectedValue(new Error('Method not implemented'));
+
+            await expect((bot as any).setupBotGroup()).rejects.toThrow(
+                'cannot be created automatically',
+            );
         });
     });
 
@@ -415,6 +508,44 @@ describe('SignalBot Coverage', () => {
             };
             await (bot as any).handleMessage(msg);
             expect(bot.getStats().messagesReceived).toBe(0);
+        });
+    });
+
+    describe('Default command behavior', () => {
+        it('should execute help, stats, ping and info commands', async () => {
+            const sendMessageSpy = jest.spyOn(bot, 'sendMessage').mockResolvedValue();
+            const baseMessage = {
+                id: '1',
+                source: '+admin',
+                timestamp: Date.now(),
+                groupInfo: undefined,
+                isFromAdmin: true,
+            };
+
+            await (bot as any).handleCommand({ ...baseMessage, text: '/help' });
+            await (bot as any).handleCommand({ ...baseMessage, source: '+stats', text: '/stats' });
+            await (bot as any).handleCommand({ ...baseMessage, source: '+ping', text: '/ping' });
+            await (bot as any).handleCommand({ ...baseMessage, source: '+info', text: '/info' });
+
+            expect(sendMessageSpy).toHaveBeenCalledTimes(4);
+            expect(sendMessageSpy.mock.calls[0][1]).toContain('Signal Bot Commands');
+            expect(sendMessageSpy.mock.calls[1][1]).toContain('Bot Statistics');
+            expect(sendMessageSpy.mock.calls[2][1]).toContain('Pong!');
+            expect(sendMessageSpy.mock.calls[3][1]).toContain('Bot Information');
+        });
+
+        it('should reject non-admin access to admin commands', async () => {
+            const sendMessageSpy = jest.spyOn(bot, 'sendMessage').mockResolvedValue();
+
+            await (bot as any).handleCommand({
+                id: '1',
+                source: '+user',
+                text: '/info',
+                timestamp: Date.now(),
+                isFromAdmin: false,
+            });
+
+            expect(sendMessageSpy).toHaveBeenCalledWith('+user', expect.stringContaining('admin privileges'));
         });
     });
 

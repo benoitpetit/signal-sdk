@@ -259,6 +259,7 @@ describe('MultiAccountManager', () => {
 
             expect(status.connectedAccounts).toBe(1);
         });
+
     });
 
     describe('Shutdown', () => {

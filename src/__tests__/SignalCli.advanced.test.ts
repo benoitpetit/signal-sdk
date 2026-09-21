@@ -408,7 +408,7 @@ describe('SignalCli Advanced Features', () => {
                 'updateGroup',
                 expect.objectContaining({
                     groupId: 'group123==',
-                    resetInviteLink: true,
+                    resetLink: true,
                 }),
             );
         });

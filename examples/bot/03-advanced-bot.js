@@ -232,7 +232,9 @@ class AdvancedSignalBot extends SignalBot {
             this.log(`Message from ${message.source}: ${message.text?.substring(0, 50)}...`);
         });
 
-        // Note: SignalBot does not emit a 'groupMemberJoined' event.
+        this.on('groupUpdate', (update) => {
+            this.log(`Group updated: ${update.groupId} (revision ${update.revision ?? 'unknown'})`);
+        });
     }
 
     async handleRateLimit(error) {
@@ -321,7 +323,6 @@ const botConfig = {
     settings: {
         commandPrefix: '/',
         logMessages: true,
-        welcomeNewMembers: true,
         cooldownSeconds: 1 // Reduced for demo
     }
 };

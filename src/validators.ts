@@ -27,6 +27,23 @@ export function validatePhoneNumber(phoneNumber: string): void {
 }
 
 /**
+ * Returns true when a value can identify a local signal-cli account.
+ * Account identifiers are E.164 phone numbers or Signal UUIDs.
+ */
+export function isAccountIdentifier(value: string): boolean {
+    return /^\+[1-9]\d{0,14}$/.test(value) || /^(PNI:)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+/**
+ * Validates a signal-cli account identifier.
+ */
+export function validateAccountIdentifier(account: string): void {
+    if (!account || typeof account !== 'string' || !isAccountIdentifier(account)) {
+        throw new ValidationError('Account must be an E.164 phone number or Signal UUID', 'account');
+    }
+}
+
+/**
  * Validates a group ID format
  * @param groupId Group ID to validate
  * @throws ValidationError if invalid

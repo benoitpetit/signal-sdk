@@ -1,6 +1,5 @@
 /**
- * Additional tests to improve code coverage
- * Targets: SignalBot, GroupManager, ContactManager, SignalCli, MessageManager
+ * Cross-module regression tests for manager and bot edge cases.
  */
 
 import { SignalBot } from '../SignalBot';
@@ -29,7 +28,7 @@ import { Logger } from '../config';
 jest.mock('qrcode-terminal');
 jest.mock('uuid', () => ({ v4: () => 'mock-uuid' }));
 
-describe('Coverage Improvement Tests', () => {
+describe('Manager and bot regression tests', () => {
     let mockSendRequest: jest.Mock;
     let mockLogger: Logger;
     let mockConfig: any;
@@ -297,8 +296,8 @@ describe('Coverage Improvement Tests', () => {
                 setPermissionEditDetails: 'only-admins',
                 setPermissionSendMessages: 'only-admins',
                 expiration: 3600,
-                resetInviteLink: true,
-                link: 'enabled-with-approval',
+                resetLink: true,
+                link: 'enabledWithApproval',
                 memberLabelEmoji: '🏆',
                 memberLabel: 'VIP Members',
             }));
@@ -468,12 +467,6 @@ describe('Coverage Improvement Tests', () => {
                 nickFamilyName: 'D',
                 note: 'Best friend',
                 expiration: 3600,
-                color: 'blue',
-                block: true,
-                archived: true,
-                muted: true,
-                mutedUntil: Date.now() + 3600000,
-                hideStory: true,
             });
 
             expect(mockSendRequest).toHaveBeenCalledWith('updateContact', {
@@ -486,12 +479,6 @@ describe('Coverage Improvement Tests', () => {
                 nickFamilyName: 'D',
                 note: 'Best friend',
                 expiration: 3600,
-                color: 'blue',
-                block: true,
-                archived: true,
-                muted: true,
-                mutedUntil: expect.any(Number),
-                hideStory: true,
             });
         });
 
@@ -778,6 +765,30 @@ describe('Coverage Improvement Tests', () => {
                 groupId: 'group123==',
                 message: 'Hello group',
             }));
+        });
+
+        it('should mark simulated attachment progress explicitly', async () => {
+            jest.useFakeTimers();
+            mockSendRequest.mockResolvedValue({ timestamp: Date.now(), results: [] });
+            const progress: Array<{ percentage: number; simulated?: boolean }> = [];
+
+            const sendPromise = messageManager.sendMessageWithProgress('+1111111111', 'Hello', {
+                attachments: ['/path/to/file.jpg'],
+                onProgress: (update) => progress.push(update),
+            });
+
+            await jest.runAllTimersAsync();
+            await sendPromise;
+            jest.useRealTimers();
+
+            expect(progress).toHaveLength(11);
+            expect(progress[0]).toEqual({ total: 100, uploaded: 0, percentage: 0, simulated: true });
+            expect(progress[progress.length - 1]).toEqual({
+                total: 100,
+                uploaded: 100,
+                percentage: 100,
+                simulated: true,
+            });
         });
 
         it('should send reaction', async () => {
@@ -1079,7 +1090,7 @@ describe('Coverage Improvement Tests', () => {
 
             expect(mockSendRequest).toHaveBeenCalledWith('verify', {
                 account: '+1111111111',
-                token: '123-456',
+                verificationCode: '123-456',
                 pin: '1234',
             });
         });

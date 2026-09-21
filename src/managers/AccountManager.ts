@@ -10,16 +10,42 @@ import {
 import { validatePhoneNumber, validateRecipient } from '../validators';
 
 export class AccountManager extends BaseManager {
+    constructor(
+        sendRequest: <T = unknown>(method: string, params?: unknown) => Promise<T>,
+        account: string | undefined,
+        logger: import('../config').Logger,
+        config: Required<import('../config').SignalCliConfig>,
+        private readonly runCliCommand?: (args: string[]) => Promise<string>,
+    ) {
+        super(sendRequest, account, logger, config);
+    }
+
     async register(number: string, voice?: boolean, captcha?: string, reregister?: boolean): Promise<void> {
         validatePhoneNumber(number);
+        if (this.runCliCommand) {
+            const args = ['-a', number, 'register'];
+            if (voice) args.push('--voice');
+            if (captcha) args.push('--captcha', captcha);
+            if (reregister) args.push('--reregister');
+            await this.runCliCommand(args);
+            return;
+        }
+
         const params: Record<string, unknown> = { account: number, voice, captcha };
         if (reregister) params.reregister = true;
         await this.sendRequest('register', params);
     }
 
-    async verify(number: string, token: string, pin?: string): Promise<void> {
+    async verify(number: string, verificationCode: string, pin?: string): Promise<void> {
         validatePhoneNumber(number);
-        await this.sendRequest('verify', { account: number, token, pin });
+        if (this.runCliCommand) {
+            const args = ['-a', number, 'verify', verificationCode];
+            if (pin) args.push('--pin', pin);
+            await this.runCliCommand(args);
+            return;
+        }
+
+        await this.sendRequest('verify', { account: number, verificationCode, pin });
     }
 
     async updateProfile(
@@ -61,14 +87,20 @@ export class AccountManager extends BaseManager {
     }
 
     async listAccounts(): Promise<string[]> {
-        const result = await this.sendRequest<{ accounts: Array<{ number: string }> }>('listAccounts');
-        return result.accounts.map((acc) => acc.number);
+        const result = await this.sendRequest<
+            Array<{ number: string | null; aci?: string }> | { accounts: Array<{ number: string | null; aci?: string }> }
+        >('listAccounts');
+        const accounts = Array.isArray(result) ? result : result.accounts;
+        return accounts.map((acc) => acc.number || acc.aci || '');
     }
 
-    async listAccountsDetailed(): Promise<Array<{ number: string; name?: string; uuid?: string }>> {
+    async listAccountsDetailed(): Promise<Array<{ number: string | null; name?: string; uuid?: string; aci?: string }>> {
         this.logger.debug('Listing all accounts');
-        const result = await this.sendRequest<{ accounts: Array<{ number: string; name?: string; uuid?: string }> }>('listAccounts');
-        return result.accounts || [];
+        const result = await this.sendRequest<
+            Array<{ number: string | null; name?: string; uuid?: string; aci?: string }> |
+                { accounts: Array<{ number: string | null; name?: string; uuid?: string; aci?: string }> }
+        >('listAccounts');
+        return Array.isArray(result) ? result : result.accounts || [];
     }
 
     async updateAccount(options: UpdateAccountOptions): Promise<AccountUpdateResult> {
@@ -112,19 +144,17 @@ export class AccountManager extends BaseManager {
         if (!paymentData.receipt || paymentData.receipt.trim().length === 0) {
             throw new Error('Payment receipt is required');
         }
+        if (this.isGroupId(recipient)) {
+            throw new Error('Payment notifications require a phone number recipient');
+        }
 
         const params: Record<string, unknown> = {
+            recipient,
             receipt: paymentData.receipt,
             account: this.account,
         };
 
         if (paymentData.note) params.note = paymentData.note;
-
-        if (this.isGroupId(recipient)) {
-            params.groupId = recipient;
-        } else {
-            params.recipient = recipient;
-        }
 
         return this.sendRequest('sendPaymentNotification', params);
     }

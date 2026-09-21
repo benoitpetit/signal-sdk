@@ -39,4 +39,28 @@ describe('MultiAccountManager Coverage', () => {
         mockSignalCli.emit('disconnected');
         expect(discSpy).toHaveBeenCalledWith('+1234567890');
     });
+
+    it('should forward group and call events with account context', async () => {
+        await manager.addAccount('+1234567890');
+        const groupSpy = jest.fn();
+        const callSpy = jest.fn();
+        manager.on('groupUpdate', groupSpy);
+        manager.on('callEnded', callSpy);
+
+        mockSignalCli.emit('groupUpdate', { groupId: 'group-1', type: 'UPDATE' });
+        mockSignalCli.emit('callEnded', { callId: 42 });
+
+        expect(groupSpy).toHaveBeenCalledWith('+1234567890', { groupId: 'group-1', type: 'UPDATE' });
+        expect(callSpy).toHaveBeenCalledWith('+1234567890', { callId: 42 });
+    });
+
+    it('should track connected state from forwarded lifecycle events', async () => {
+        await manager.addAccount('+1234567890');
+
+        mockSignalCli.emit('connected');
+        expect((manager.getStatus('+1234567890') as { connected: boolean }).connected).toBe(true);
+
+        mockSignalCli.emit('disconnected');
+        expect((manager.getStatus('+1234567890') as { connected: boolean }).connected).toBe(false);
+    });
 });

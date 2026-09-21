@@ -6,7 +6,7 @@ import { withRetry } from '../retry';
 export class GroupManager extends BaseManager {
     async createGroup(name: string, members: string[]): Promise<GroupInfo> {
         return withRetry(
-            () => this.sendRequest('updateGroup', { account: this.account, name, members }),
+            async () => this.normalizeGroup(await this.sendRequest('updateGroup', { account: this.account, name, members })),
             { maxAttempts: this.config.maxRetries, initialDelay: this.config.retryDelay, enabled: this.config.enableRetry }
         );
     }
@@ -24,8 +24,11 @@ export class GroupManager extends BaseManager {
             if (options.demoteAdmins) params.removeAdmin = options.demoteAdmins;
             if (options.banMembers) params.ban = options.banMembers;
             if (options.unbanMembers) params.unban = options.unbanMembers;
-            if (options.resetInviteLink) params.resetInviteLink = true;
-            if (options.linkState) params.link = options.linkState;
+            // signal-cli's JSON-RPC name follows the CLI flag --reset-link.
+            if (options.resetInviteLink) params.resetLink = true;
+            if (options.linkState) {
+                params.link = options.linkState === 'enabled-with-approval' ? 'enabledWithApproval' : options.linkState;
+            }
             if (options.memberLabelEmoji) params.memberLabelEmoji = options.memberLabelEmoji;
             if (options.memberLabel) params.memberLabel = options.memberLabel;
             if (options.permissionAddMember) params.setPermissionAddMember = this.toSignalPermission(options.permissionAddMember);
@@ -39,7 +42,7 @@ export class GroupManager extends BaseManager {
 
     async listGroups(): Promise<GroupInfo[]> {
         return withRetry(
-            () => this.sendRequest('listGroups', { account: this.account }),
+            async () => this.normalizeGroups(await this.sendRequest('listGroups', { account: this.account })),
             { maxAttempts: this.config.maxRetries, initialDelay: this.config.retryDelay, enabled: this.config.enableRetry }
         );
     }
@@ -73,10 +76,12 @@ export class GroupManager extends BaseManager {
             params.groupIds = options.groupIds;
         }
 
-        return this.sendRequest('listGroups', params);
+        const result = await this.sendRequest('listGroups', params);
+        return this.normalizeGroups(result);
     }
 
     parseGroupDetails(group: GroupInfo): GroupInfo {
+        group = this.normalizeGroup(group);
         return {
             ...group,
             inviteLink: group.groupInviteLink || group.inviteLink,
@@ -96,5 +101,45 @@ export class GroupManager extends BaseManager {
 
     private toSignalPermission(permission: 'EVERY_MEMBER' | 'ONLY_ADMINS'): 'every-member' | 'only-admins' {
         return permission === 'ONLY_ADMINS' ? 'only-admins' : 'every-member';
+    }
+
+    private normalizeGroups(result: unknown): GroupInfo[] {
+        const groups = Array.isArray(result) ? result : (result as { groups?: unknown[] } | undefined)?.groups || [];
+        return groups.map((group) => this.normalizeGroup(group));
+    }
+
+    private normalizeGroup(value: unknown): GroupInfo {
+        const group = (value || {}) as Partial<GroupInfo> & {
+            id?: string;
+            groupId?: string;
+            members?: unknown[];
+            pendingMembers?: unknown[];
+            requestingMembers?: unknown[];
+            admins?: unknown[];
+            banned?: unknown[];
+        };
+        const memberId = (member: unknown): string => {
+            if (typeof member === 'string') return member;
+            const item = (member || {}) as { number?: string; uuid?: string; id?: string };
+            return item.number || item.uuid || item.id || '';
+        };
+        const members = (items?: unknown[]) => (items || []).map(memberId).filter(Boolean);
+
+        return {
+            ...group,
+            groupId: group.groupId || group.id || '',
+            name: group.name || '',
+            isMember: group.isMember ?? true,
+            isBlocked: group.isBlocked ?? false,
+            messageExpirationTime: group.messageExpirationTime ?? 0,
+            members: members(group.members),
+            pendingMembers: members(group.pendingMembers),
+            requestingMembers: members(group.requestingMembers),
+            admins: members(group.admins),
+            banned: members(group.banned),
+            permissionAddMember: group.permissionAddMember || '',
+            permissionEditDetails: group.permissionEditDetails || '',
+            permissionSendMessage: group.permissionSendMessage || '',
+        } as GroupInfo;
     }
 }

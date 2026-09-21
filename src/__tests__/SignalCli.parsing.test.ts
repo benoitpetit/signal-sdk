@@ -1,12 +1,11 @@
 /**
- * Tests for enhanced parsing functionality (Phase 5)
- * Tests profile and group data parsing methods
+ * Tests profile and group data parsing methods.
  */
 
 import { SignalCli } from '../SignalCli';
 import { Contact, GroupInfo } from '../interfaces';
 
-describe('SignalCli - Enhanced Parsing (Phase 5)', () => {
+describe('SignalCli - parsing', () => {
     let signal: SignalCli;
 
     beforeEach(() => {

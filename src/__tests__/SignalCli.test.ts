@@ -34,6 +34,22 @@ describe('SignalCli', () => {
         expect(SignalCli).toBeDefined();
     });
 
+    it('should honor signalCliPath and account from configuration', () => {
+        const configured = new SignalCli(undefined, undefined, {
+            signalCliPath: 'configured-signal-cli',
+            account: '+1987654321',
+        });
+
+        expect((configured as any).signalCliPath).toBe('configured-signal-cli');
+        expect((configured as any).account).toBe('+1987654321');
+    });
+
+    it('should support an omitted path with a second positional account', () => {
+        const configured = new SignalCli(undefined, '+1987654321');
+
+        expect((configured as any).account).toBe('+1987654321');
+    });
+
     it('should connect to JSON-RPC mode', async () => {
         // Mock the stdout data event to resolve connect
         mockProcess.stdout.once.mockImplementation((event: string, callback: () => void) => {
@@ -552,7 +568,7 @@ describe('SignalCli', () => {
             expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith('listDevices', {
                 account: '+1234567890',
             });
-            expect(result).toEqual(mockDevices);
+            expect(result).toEqual(mockDevices.map((device) => ({ ...device, created: 0, lastSeen: 0 })));
         });
 
         it('should update device name', async () => {
@@ -635,7 +651,22 @@ describe('SignalCli', () => {
                 account: '+1234567890',
                 detailed: true,
             });
-            expect(result).toEqual(mockGroups);
+            expect(result).toEqual([
+                expect.objectContaining({
+                    groupId: 'group-1',
+                    name: 'Test Group 1',
+                    members: ['+1111111111', '+2222222222'],
+                    isMember: true,
+                    isBlocked: false,
+                }),
+                expect.objectContaining({
+                    groupId: 'group-2',
+                    name: 'Test Group 2',
+                    members: ['+3333333333'],
+                    isMember: true,
+                    isBlocked: false,
+                }),
+            ]);
         });
 
         it('should filter groups by ID', async () => {
@@ -660,7 +691,15 @@ describe('SignalCli', () => {
                 detailed: true,
                 groupIds: ['group-1'],
             });
-            expect(result).toEqual(mockGroups);
+            expect(result).toEqual([
+                expect.objectContaining({
+                    groupId: 'group-1',
+                    name: 'Specific Group',
+                    members: ['+1111111111'],
+                    isMember: true,
+                    isBlocked: false,
+                }),
+            ]);
         });
     });
 });

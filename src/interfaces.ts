@@ -635,13 +635,6 @@ export interface ContactUpdateOptions {
     nickGivenName?: string;
     nickFamilyName?: string;
     note?: string;
-    color?: string;
-    block?: boolean;
-    unblock?: boolean;
-    archived?: boolean;
-    muted?: boolean;
-    mutedUntil?: number;
-    hideStory?: boolean;
     expiration?: number;
 }
 
@@ -914,6 +907,7 @@ export interface BotConfig {
         commandPrefix?: string;
         autoReact?: boolean;
         logMessages?: boolean;
+        /** @deprecated signal-cli does not provide member join/leave diffs. */
         welcomeNewMembers?: boolean;
         cooldownSeconds?: number;
         maxMessageLength?: number;
@@ -939,7 +933,7 @@ export interface ParsedMessage {
     text: string;
     timestamp: number;
     groupInfo?: {
-        id: string;
+        id?: string;
         name?: string;
         groupId?: string;
     };
@@ -1017,9 +1011,7 @@ export interface PaymentNotificationData {
  */
 export interface JsonRpcSendPaymentNotificationParams {
     /** Recipient phone number */
-    recipient?: string;
-    /** Group ID for group payments */
-    groupId?: string;
+    recipient: string;
     /** Base64 encoded receipt blob */
     receipt: string;
     /** Optional note for the payment notification */
@@ -1138,6 +1130,8 @@ export interface UploadProgress {
     speed?: number;
     /** Estimated time remaining in seconds */
     timeRemaining?: number;
+    /** Whether the values are simulated because signal-cli exposes no upload progress */
+    simulated?: boolean;
 }
 
 // ===== POLLS =====
@@ -1457,6 +1451,19 @@ export interface CallInfo {
 }
 
 /**
+ * Active call information returned by the signal-cli listCalls command.
+ */
+export interface ActiveCall {
+    callId: number;
+    state: string;
+    number?: string | null;
+    uuid?: string | null;
+    isOutgoing: boolean;
+    inputDeviceName?: string | null;
+    outputDeviceName?: string | null;
+}
+
+/**
  * Event emitted when a call is received or changes state.
  */
 export interface CallEvent {
@@ -1464,4 +1471,17 @@ export interface CallEvent {
     call: CallInfo;
     /** Additional event-specific data */
     data?: unknown;
+}
+
+/**
+ * Group context attached to a received data message by signal-cli.
+ * A context with type UPDATE indicates a group update message.
+ */
+export interface GroupUpdateEvent {
+    groupId: string;
+    groupName?: string;
+    revision?: number;
+    type?: 'UPDATE' | 'DELIVER' | string;
+    sender?: string;
+    timestamp?: number;
 }

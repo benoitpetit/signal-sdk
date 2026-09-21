@@ -75,7 +75,6 @@ async function startAdvancedBot() {
             commandPrefix: '/',
             autoReact: true,
             logMessages: true,
-            welcomeNewMembers: true,
             cooldownSeconds: 2,
             maxMessageLength: 2000
         }
@@ -456,4 +455,4 @@ process.on('SIGTERM', async () => {
 startAdvancedBot().catch(error => {
     console.error('ERROR: Fatal error:', error);
     process.exit(1);
-}); 
+});

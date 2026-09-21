@@ -4,6 +4,8 @@
 
 import {
     validatePhoneNumber,
+    isAccountIdentifier,
+    validateAccountIdentifier,
     validateGroupId,
     validateRecipient,
     validateMessage,
@@ -17,6 +19,19 @@ import {
 import { ValidationError } from '../errors';
 
 describe('Validators', () => {
+    describe('account identifiers', () => {
+        it('accepts phone numbers and Signal UUIDs', () => {
+            expect(isAccountIdentifier('+33123456789')).toBe(true);
+            expect(isAccountIdentifier('11111111-1111-4111-8111-111111111111')).toBe(true);
+            expect(isAccountIdentifier('PNI:11111111-1111-4111-8111-111111111111')).toBe(true);
+        });
+
+        it('rejects paths and unsupported account values', () => {
+            expect(isAccountIdentifier('/tmp/signal-cli')).toBe(false);
+            expect(() => validateAccountIdentifier('signal-cli')).toThrow(ValidationError);
+        });
+    });
+
     describe('validatePhoneNumber', () => {
         it('should accept valid E.164 phone numbers', () => {
             expect(() => validatePhoneNumber('+33123456789')).not.toThrow();

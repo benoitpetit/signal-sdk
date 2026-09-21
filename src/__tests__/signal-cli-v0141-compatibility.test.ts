@@ -1,6 +1,5 @@
 /**
- * Tests for signal-sdk updates and bug fixes
- * Covers: BUG-01, BUG-02, BUG-03, PROB-04, PROB-06, PROB-07, FEAT-09, FEAT-10, FEAT-11, FEAT-12
+ * Contract tests for signal-cli v0.14.1 compatibility.
  */
 
 import { SignalCli } from '../SignalCli';
@@ -13,17 +12,19 @@ jest.mock('uuid', () => ({ v4: () => 'mock-uuid' }));
 describe('Signal SDK Updates Tests', () => {
     let signalCli: SignalCli;
     let sendJsonRpcRequestSpy: jest.SpyInstance;
+    let executeCliCommandSpy: jest.SpyInstance;
 
     beforeEach(() => {
         signalCli = new SignalCli('+1234567890');
         sendJsonRpcRequestSpy = jest.spyOn(signalCli as any, 'sendJsonRpcRequest');
+        executeCliCommandSpy = jest.spyOn(signalCli as any, 'executeCliCommand').mockResolvedValue('');
     });
 
     afterEach(() => {
         jest.clearAllMocks();
     });
 
-    describe('BUG-01: updateProfile() Parameter Fix', () => {
+    describe('updateProfile() parameters', () => {
         it('should use givenName instead of name', async () => {
             sendJsonRpcRequestSpy.mockResolvedValue(undefined);
 
@@ -59,7 +60,7 @@ describe('Signal SDK Updates Tests', () => {
         });
     });
 
-    describe('PROB-04: trustIdentity() Parameter Fix', () => {
+    describe('trustIdentity() parameters', () => {
         it('should use verifiedSafetyNumber instead of safetyNumber + verified', async () => {
             sendJsonRpcRequestSpy.mockResolvedValue(undefined);
 
@@ -84,7 +85,7 @@ describe('Signal SDK Updates Tests', () => {
         });
     });
 
-    describe('PROB-06: listContacts() with Options', () => {
+    describe('listContacts() options', () => {
         it('should call listContacts with detailed option', async () => {
             sendJsonRpcRequestSpy.mockResolvedValue([]);
 
@@ -174,7 +175,7 @@ describe('Signal SDK Updates Tests', () => {
         });
     });
 
-    describe('PROB-07: parseEnvelope() with textAttachment', () => {
+    describe('parseEnvelope() with textAttachment', () => {
         it('should parse text from textAttachment when message/body are empty', () => {
             // Access private method via type assertion
             const messageManager = (signalCli as any).messages;
@@ -216,7 +217,7 @@ describe('Signal SDK Updates Tests', () => {
         });
     });
 
-    describe('FEAT-09: isArchived Field', () => {
+    describe('isArchived field', () => {
         it('should have isArchived in GroupInfo interface', () => {
             const group: GroupInfo = {
                 groupId: 'test-group-id==',
@@ -250,7 +251,7 @@ describe('Signal SDK Updates Tests', () => {
         });
     });
 
-    describe('FEAT-10: quitGroup() with delete option', () => {
+    describe('quitGroup() with delete option', () => {
         it('should call quitGroup without delete option by default', async () => {
             sendJsonRpcRequestSpy.mockResolvedValue(undefined);
 
@@ -285,7 +286,7 @@ describe('Signal SDK Updates Tests', () => {
         });
     });
 
-    describe('FEAT-11: Pin Events', () => {
+    describe('pin events', () => {
         it('should emit pin event when pinnedMessageTimestamps is present', () => {
             const emitSpy = jest.spyOn(signalCli, 'emit');
 
@@ -334,24 +335,13 @@ describe('Signal SDK Updates Tests', () => {
         });
     });
 
-    describe('FEAT-12: register() with reregister option', () => {
+    describe('register() with reregister option', () => {
         it('should call register without reregister by default', async () => {
             sendJsonRpcRequestSpy.mockResolvedValue(undefined);
 
             await signalCli.register('+33123456789');
 
-            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith(
-                'register',
-                expect.objectContaining({
-                    account: '+33123456789',
-                    voice: undefined,
-                    captcha: undefined,
-                }),
-            );
-            expect(sendJsonRpcRequestSpy).not.toHaveBeenCalledWith(
-                'register',
-                expect.objectContaining({ reregister: expect.anything() }),
-            );
+            expect(executeCliCommandSpy).toHaveBeenCalledWith(['-a', '+33123456789', 'register']);
         });
 
         it('should call register with reregister when specified', async () => {
@@ -359,13 +349,12 @@ describe('Signal SDK Updates Tests', () => {
 
             await signalCli.register('+33123456789', false, undefined, true);
 
-            expect(sendJsonRpcRequestSpy).toHaveBeenCalledWith(
+            expect(executeCliCommandSpy).toHaveBeenCalledWith([
+                '-a',
+                '+33123456789',
                 'register',
-                expect.objectContaining({
-                    account: '+33123456789',
-                    reregister: true,
-                }),
-            );
+                '--reregister',
+            ]);
         });
     });
 
@@ -394,7 +383,7 @@ describe('Signal SDK Updates Tests', () => {
         });
     });
 
-    describe('PROB-08: AccountConfiguration cleanup', () => {
+    describe('account configuration', () => {
         it('should only support signal-cli compatible fields', () => {
             // Valid configuration (should compile)
             const validConfig = {
@@ -463,7 +452,7 @@ describe('Signal SDK Updates Tests', () => {
                 expect.objectContaining({
                     account: '+1234567890',
                     groupId: 'group123==',
-                    link: 'enabled-with-approval',
+                    link: 'enabledWithApproval',
                 }),
             );
         });
@@ -489,7 +478,7 @@ describe('Signal SDK Updates Tests', () => {
     });
 });
 
-describe('BUG-03: Reconnection Options Preservation', () => {
+describe('reconnection options preservation', () => {
     it('should preserve jsonRpcStartOptions during reconnection', async () => {
         const signal = new SignalCli('+1234567890');
         

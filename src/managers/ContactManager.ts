@@ -22,13 +22,6 @@ export class ContactManager extends BaseManager {
         if (options.nickFamilyName) params.nickFamilyName = options.nickFamilyName;
         if (options.note) params.note = options.note;
         if (options.expiration !== undefined) params.expiration = options.expiration;
-        if (options.color) params.color = options.color;
-        if (options.block !== undefined) params.block = options.block;
-        if (options.unblock !== undefined) params.unblock = options.unblock;
-        if (options.archived !== undefined) params.archived = options.archived;
-        if (options.muted !== undefined) params.muted = options.muted;
-        if (options.mutedUntil !== undefined) params.mutedUntil = options.mutedUntil;
-        if (options.hideStory !== undefined) params.hideStory = options.hideStory;
 
         await this.sendRequest('updateContact', params);
     }
@@ -76,27 +69,38 @@ export class ContactManager extends BaseManager {
             if (numbers.length > 0) params.recipients = numbers;
             if (usernames.length > 0) params.usernames = usernames;
 
-            const result = await this.sendRequest<{ recipients?: Array<{ number: string; isRegistered?: boolean; uuid?: string; username?: string }> }>('getUserStatus', params);
+            const result = await this.sendRequest<
+                Array<{ number?: string; recipient?: string; username?: string; isRegistered?: boolean; uuid?: string }> |
+                    { recipients?: Array<{ number?: string; recipient?: string; username?: string; isRegistered?: boolean; uuid?: string }> }
+            >('getUserStatus', params);
 
             const statusResults: UserStatusResult[] = [];
+            const recipients = Array.isArray(result) ? result : result.recipients || [];
 
-            if (result.recipients) {
-                result.recipients.forEach((recipient: { number: string; isRegistered?: boolean; uuid?: string; username?: string }) => {
-                    statusResults.push({
-                        number: recipient.number,
-                        isRegistered: recipient.isRegistered || false,
-                        uuid: recipient.uuid,
-                        username: recipient.username,
-                    });
+            recipients.forEach((recipient) => {
+                statusResults.push({
+                    number: recipient.number || recipient.recipient || recipient.username || '',
+                    isRegistered: recipient.isRegistered === true,
+                    uuid: recipient.uuid,
+                    username: recipient.username,
                 });
-            }
+            });
 
             return statusResults;
         }, { maxAttempts: this.config.maxRetries, initialDelay: this.config.retryDelay, enabled: this.config.enableRetry });
     }
 
     async listIdentities(number?: string): Promise<IdentityKey[]> {
-        return this.sendRequest('listIdentities', { account: this.account, number });
+        const result = await this.sendRequest<
+            Array<Partial<IdentityKey> & { fingerprint?: string; addedTimestamp?: number }> | { identities?: Array<Partial<IdentityKey> & { fingerprint?: string; addedTimestamp?: number }> }
+        >('listIdentities', { account: this.account, number });
+        const identities = Array.isArray(result) ? result : result.identities || [];
+        return identities.map((identity) => ({
+            ...identity,
+            number: identity.number || '',
+            identityKey: identity.identityKey || identity.fingerprint || '',
+            addedDate: identity.addedDate ?? identity.addedTimestamp,
+        })) as IdentityKey[];
     }
 
     async trustIdentity(number: string, verifiedSafetyNumber: string): Promise<void> {

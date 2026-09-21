@@ -13,7 +13,7 @@ providing JSON-RPC communication and a powerful bot framework.
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
-[![Tests](https://img.shields.io/badge/tests-571%20passing-brightgreen.svg)](./src/__tests__)
+[![Tests](https://img.shields.io/badge/tests-automated-brightgreen.svg)](./src/__tests__)
 [![Donate on Liberapay](https://img.shields.io/badge/Liberapay-Donate-yellow.svg)](https://liberapay.com/devbyben/donate)
 
 </div>
@@ -110,7 +110,7 @@ providing JSON-RPC communication and a powerful bot framework.
 - Role-based access — admin-only commands
 - Built-in `/help` and `/ping` commands
 - Group auto-creation and member management
-- Welcome messages for new members
+- Welcome messages during bot and group setup
 - Command cooldown system
 
 ---
@@ -557,7 +557,7 @@ const bot = new SignalBot({
     settings: {
         commandPrefix: '/', // default: "/"
         logMessages: true,
-        welcomeNewMembers: true,
+        autoReact: false, // React to accepted messages with 👍
         cooldownSeconds: 2,
     },
 });
@@ -569,7 +569,6 @@ const bot = new SignalBot({
 bot.on('ready', () => {});
 bot.on('message', (message) => {});
 bot.on('command', ({ command, user, args }) => {});
-bot.on('groupMemberJoined', ({ groupId, member }) => {});
 bot.on('error', (error) => {});
 ```
 
@@ -650,10 +649,12 @@ The bot includes built-in `/help` and `/ping` commands automatically.
 |                   | `updateDevice(options)`                                                | Rename a linked device                              |
 |                   | `addDevice(uri, name?)`                                                | Link a new device by URI                            |
 |                   | `deviceLink(options?)`                                                 | Start device linking and show QR code               |
+|                   | `startLink()` / `finishLink(uri, name?)`                               | JSON-RPC linking in multi-account mode             |
 | **Voice Calling** | `startCall(options)`                                                   | Start a voice or video call (v0.14.2)               |
 |                   | `acceptCall(options)`                                                  | Accept an incoming call (v0.14.2)                   |
 |                   | `hangUpCall(options)`                                                  | Hang up a call (v0.14.2)                            |
 |                   | `sendCallRelayCandidates(options)`                                     | Send ICE relay candidates (v0.14.2)                 |
+|                   | `listCalls()` / `rejectCall(callId)`                                    | List or reject active calls                         |
 | **Stickers**      | `listStickerPacks()`                                                   | List installed sticker packs                        |
 |                   | `addStickerPack(packId, packKey)`                                      | Install a sticker pack                              |
 |                   | `uploadStickerPack(manifest)`                                          | Upload a custom sticker pack                        |
@@ -791,6 +792,7 @@ The constructor uses smart parameter detection:
 | ----------------------- | ------------------------- | --------------------------------------------------------- |
 | `maxRetries`            | `3`                       | Number of retry attempts on failure                       |
 | `retryDelay`            | `1000`                    | Initial retry delay in milliseconds                       |
+| `dataPath`              | `''`                      | signal-cli data directory (`--config`)                   |
 | `maxConcurrentRequests` | `5`                       | Maximum parallel JSON-RPC requests                        |
 | `minRequestInterval`    | `100`                     | Minimum delay between requests in milliseconds            |
 | `requestTimeout`        | `60000`                   | Per-request timeout in milliseconds                       |
@@ -816,7 +818,10 @@ npm test
 npm test -- --testPathPattern="SignalCli.methods"
 
 # Run with coverage report
-npm test -- --coverage
+npm run test:coverage
+
+# Run the complete local quality gate
+npm run check
 
 # Run in watch mode
 npm test -- --watch
@@ -824,7 +829,7 @@ npm test -- --watch
 
 ### Test reporting
 
-Run `npm test -- --coverage` to generate the current suite and coverage report. The report is deliberately not copied into this README, so release documentation cannot drift from the checked revision.
+Run `npm run test:coverage` to generate the current suite and coverage report. The repository enforces minimum global thresholds so a new feature cannot silently lower coverage.
 
 ### Test suites
 
@@ -844,7 +849,7 @@ Run `npm test -- --coverage` to generate the current suite and coverage report. 
 | `SignalCli.parsing.test.ts`             | Envelope parsing and event emission                                                                             |
 | `SignalCli.events.test.ts`              | Reaction, receipt, typing events                                                                                |
 | `SignalCli.connections.test.ts`         | Unix socket, TCP, HTTP daemon modes                                                                             |
-| `SignalCli.e2e.test.ts`                 | End-to-end multi-step workflows                                                                                 |
+| `SignalCli.e2e.test.ts`                 | Multi-step workflow tests with mocked transport                                                               |
 | `SignalCli.v0140.test.ts`               | sendPinMessage, sendUnpinMessage, sendAdminDelete, noUrgent, ignoreAvatars, ignoreStickers, JsonRpcStartOptions |
 | `SignalCli.v0142.test.ts`               | signal-cli v0.14.2 compatibility                                                                                |
 | `DeviceManager.test.ts`                 | Device listing, linking, renaming                                                                               |
@@ -859,8 +864,8 @@ Run `npm test -- --coverage` to generate the current suite and coverage report. 
 | `retry.test.ts`                         | Retry policy and rate-limit behavior                                                                            |
 | `security.test.ts`                      | Sensitive-data and input-security safeguards                                                                    |
 | `validators.test.ts`                    | Public validation helpers                                                                                       |
-| `coverage-improvement.test.ts`          | Additional coverage tests for managers                                                                          |
-| `calibration.test.ts`                   | Test-environment calibration                                                                                    |
+| `coverage-improvement.test.ts`          | Cross-module manager and bot regression tests                                                                    |
+| `calibration.test.ts`                   | Resilience, validation and runtime-safety tests                                                                  |
 
 ---
 

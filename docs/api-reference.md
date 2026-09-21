@@ -62,15 +62,15 @@ const signal = new SignalCli('+15551234567', undefined, {
 | Option                  | Type                                             | Default                   | Description                                |
 | ----------------------- | ------------------------------------------------ | ------------------------- | ------------------------------------------ |
 | `signalCliPath`         | `string`                                         | auto-detected             | Path to signal-cli binary                  |
+| `dataPath`              | `string`                                         | `''`                      | signal-cli data directory (`--config`)    |
 | `maxRetries`            | `number`                                         | `3`                       | Number of retry attempts on failure        |
 | `retryDelay`            | `number`                                         | `1000`                    | Initial retry delay in milliseconds        |
-| `maxConcurrentRequests` | `number`                                         | `10`                      | Maximum parallel JSON-RPC requests         |
+| `maxConcurrentRequests` | `number`                                         | `5`                       | Maximum parallel JSON-RPC requests         |
 | `minRequestInterval`    | `number`                                         | `100`                     | Minimum delay between requests in ms       |
 | `requestTimeout`        | `number`                                         | `60000`                   | Per-request timeout in milliseconds        |
 | `connectionTimeout`     | `number`                                         | `30000`                   | Connection attempt timeout in milliseconds |
 | `autoReconnect`         | `boolean`                                        | `true`                    | Automatically reconnect on disconnect      |
 | `verbose`               | `boolean`                                        | `false`                   | Enable debug logging                       |
-| `logFile`               | `string`                                         | `undefined`               | Write logs to a file path                  |
 | `daemonMode`            | `'json-rpc' \| 'unix-socket' \| 'tcp' \| 'http'` | `'json-rpc'`              | Connection mode                            |
 | `socketPath`            | `string`                                         | `'/tmp/signal-cli.sock'`  | Unix socket path (unix-socket mode)        |
 | `tcpHost`               | `string`                                         | `'localhost'`             | TCP host (tcp mode)                        |
@@ -117,6 +117,9 @@ Gracefully closes the connection, waiting for pending operations to complete.
 
 Registers a new Signal account.
 
+This method invokes the signal-cli command directly because the upstream
+JSON-RPC interface does not expose `register`.
+
 **Parameters:**
 
 - `number`: Phone number to register (E.164 format)
@@ -124,19 +127,32 @@ Registers a new Signal account.
 - `captcha`: Captcha token (required if registration fails with captcha required)
 - `reregister`: If true, register even if account is already registered
 
-#### `verify(number: string, token: string, pin?: string): Promise<void>`
+#### `verify(number: string, verificationCode: string, pin?: string): Promise<void>`
 
 Verifies a new account with the code received via SMS/voice.
+
+This method invokes the signal-cli command directly because the upstream
+JSON-RPC interface does not expose `verify`.
 
 #### `deviceLink(options?: LinkingOptions): Promise<LinkingResult>`
 
 Links a new device to an existing Signal account with QR code support.
+
+This method invokes the signal-cli `link` command directly.
 
 **Parameters:**
 
 - `options.name`: Device name
 - `options.qrCodeOutput`: 'console', 'file', or 'base64'
 - `options.qrCodePath`: Path to save QR code (when qrCodeOutput is 'file')
+
+#### `startLink(): Promise<string>`
+
+Starts JSON-RPC provisioning in multi-account mode and returns the device-link URI.
+
+#### `finishLink(deviceLinkUri: string, deviceName?: string): Promise<{ number?: string | null; aci?: string }>`
+
+Completes JSON-RPC provisioning started with `startLink()`.
 
 #### `listDevices(): Promise<Device[]>`
 
@@ -389,7 +405,9 @@ Sends a message to your own "Note to Self" conversation.
 
 Sends a message with progress tracking for large attachments.
 
-**Note:** The progress callback currently provides simulated progress for UX purposes, as JSON-RPC does not provide real-time upload progress feedback.
+**Note:** The progress callback currently provides simulated progress for UX
+purposes, as JSON-RPC does not provide real-time upload progress feedback. Each
+callback includes `simulated: true` so consumers can label it correctly.
 
 ### Stories
 
@@ -545,7 +563,6 @@ Updates a contact's information.
 - `nickGivenName`: Nickname (first name)
 - `nickFamilyName`: Nickname (last name)
 - `note`: Contact note
-- `color`: Contact color
 - `expiration`: Message expiration timer
 
 #### `removeContact(number: string, options?: RemoveContactOptions): Promise<void>`
@@ -690,11 +707,12 @@ Deletes the Signal username.
 
 #### `listAccounts(): Promise<string[]>`
 
-Lists all local account phone numbers.
+Lists all local account identifiers. Numberless accounts are returned by ACI.
 
-#### `listAccountsDetailed(): Promise<Array<{ number: string; name?: string; uuid?: string }>>`
+#### `listAccountsDetailed(): Promise<Array<{ number: string | null; name?: string; uuid?: string; aci?: string }>>`
 
-Lists accounts with name and UUID.
+Lists accounts with name, UUID and ACI when available. Numberless accounts have
+`number: null`.
 
 #### `startChangeNumber(newNumber: string, voice?: boolean, captcha?: string): Promise<void>`
 
@@ -804,6 +822,18 @@ Retrieves the version of the underlying `signal-cli`.
 
 Helper method to check if a phone number is registered on Signal.
 
+### Voice Calling
+
+#### `listCalls(): Promise<ActiveCall[]>`
+
+Lists active calls. The returned objects use signal-cli's JSON-RPC fields:
+`callId`, `state`, `number`, `uuid`, `isOutgoing`, `inputDeviceName` and
+`outputDeviceName`.
+
+#### `rejectCall(callId: number): Promise<void>`
+
+Rejects an incoming call by its signal-cli call ID.
+
 ### Events
 
 The `SignalCli` class extends EventEmitter and emits the following events:
@@ -850,6 +880,23 @@ Emitted when a typing indicator is received.
 signal.on('typing', (typing) => {
     console.log('Typing from:', typing.sender);
     console.log('Action:', typing.action); // 'start' or 'stop'
+});
+```
+
+#### `groupUpdate`
+
+Emitted when signal-cli receives a group context marked as `UPDATE`. The event
+contains the group ID, group revision and sender when those fields are present.
+signal-cli does not include the complete member diff in this notification, so
+applications that need the current membership should call `listGroups()` after
+receiving the event.
+
+```typescript
+signal.on('groupUpdate', async (update) => {
+    console.log('Group changed:', update.groupId, update.revision);
+    const groups = await signal.listGroups();
+    const group = groups.find((item) => item.groupId === update.groupId);
+    console.log('Current members:', group?.members ?? []);
 });
 ```
 
@@ -937,7 +984,6 @@ new SignalBot(config: BotConfig, signalCliPath?: string)
 | `settings.commandPrefix`     | `string`   | No             | Command prefix (default: "/")         |
 | `settings.autoReact`         | `boolean`  | No             | Auto-react to messages                |
 | `settings.logMessages`       | `boolean`  | No             | Log incoming messages                 |
-| `settings.welcomeNewMembers` | `boolean`  | No             | Welcome new group members             |
 | `settings.cooldownSeconds`   | `number`   | No             | Command cooldown per user             |
 | `settings.maxMessageLength`  | `number`   | No             | Maximum message length                |
 
@@ -1051,6 +1097,8 @@ The `SignalBot` class emits several events:
 - `command`: Emitted when a command is executed.
 - `error`: Emitted when an error occurs.
 - `daemon-closed`: Emitted when the Signal daemon closes.
+- `groupUpdate`: Forwarded from `SignalCli` when signal-cli reports a group
+  context update. The event does not identify a specific member join or leave.
 
 ---
 
@@ -1136,6 +1184,15 @@ The `MultiAccountManager` extends EventEmitter and forwards all Signal events wi
 - `receipt`: `(account: string, receipt: any) => void`
 - `typing`: `(account: string, typing: any) => void`
 - `reaction`: `(account: string, reaction: any) => void`
+- `story`: `(account: string, story: any) => void`
+- `pin`: `(account: string, pin: any) => void`
+- `groupUpdate`: `(account: string, update: GroupUpdateEvent) => void`
+- `call`: `(account: string, call: any) => void`
+- `callConnected`: `(account: string, call: any) => void`
+- `callEnded`: `(account: string, call: any) => void`
+- `notification`: `(account: string, notification: JsonRpcNotification) => void`
+- `log`: `(account: string, log: any) => void`
+- `close`: `(account: string, code: number | null) => void`
 - `error`: `(account: string, error: any) => void`
 - `accountAdded`: `(account: string) => void`
 - `accountRemoved`: `(account: string) => void`

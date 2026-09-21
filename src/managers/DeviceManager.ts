@@ -16,7 +16,14 @@ export class DeviceManager extends BaseManager {
     }
 
     async listDevices(): Promise<Device[]> {
-        return this.sendRequest('listDevices', { account: this.account });
+        const result = await this.sendRequest<Array<Partial<Device> & { createdTimestamp?: number; lastSeenTimestamp?: number }>>('listDevices', { account: this.account });
+        return result.map((device) => ({
+            ...device,
+            id: device.id || 0,
+            name: device.name || '',
+            created: device.created ?? device.createdTimestamp ?? 0,
+            lastSeen: device.lastSeen ?? device.lastSeenTimestamp ?? 0,
+        })) as Device[];
     }
 
     async addDevice(uri: string, deviceName?: string): Promise<void> {
@@ -46,12 +53,19 @@ export class DeviceManager extends BaseManager {
             validateSanitizedString(deviceName, 'deviceName');
 
             let linkProcess;
+            const linkArgs = [
+                ...(this.config.dataPath ? ['--config', this.config.dataPath] : []),
+                'link',
+                '--name',
+                deviceName,
+            ];
+
             if (process.platform === 'win32') {
-                linkProcess = spawn('cmd.exe', ['/c', this.signalCliPath, 'link', '--name', deviceName], {
+                linkProcess = spawn('cmd.exe', ['/c', this.signalCliPath, ...linkArgs], {
                     stdio: ['pipe', 'pipe', 'pipe'],
                 });
             } else {
-                linkProcess = spawn(this.signalCliPath, ['link', '--name', deviceName], {
+                linkProcess = spawn(this.signalCliPath, linkArgs, {
                     stdio: ['pipe', 'pipe', 'pipe'],
                 });
             }

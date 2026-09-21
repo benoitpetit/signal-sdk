@@ -980,12 +980,9 @@ const { SignalCli } = require('signal-sdk');
 
 const signal = new SignalCli('+1234567890', undefined, {
     verbose: true,
-    logFile: './signal-sdk.log',
 });
 
-// Automatic structured logging
-// [2024-01-21T10:30:45.123Z] [INFO] - Connecting to signal-cli daemon
-// [2024-01-21T10:30:45.456Z] [INFO] - Connected successfully
+// Logging is written to the console. Redirect stdout/stderr if a file is needed.
 ```
 
 For complete infrastructure documentation, see [Robust Infrastructure Guide](./robust-infrastructure.md).
@@ -1184,7 +1181,11 @@ interface RateLimitChallengeResult {
 
 Track upload progress for large attachments.
 
-**Note:** The progress callback currently provides simulated progress (0-100 in steps of 10) for attachment uploads. This is not the actual upload progress from signal-cli, as JSON-RPC does not provide real-time upload progress feedback. The simulation occurs before the actual send operation and is for UX purposes only.
+**Note:** The progress callback currently provides simulated progress (0-100 in
+steps of 10) for attachment uploads. This is not the actual upload progress
+from signal-cli, as JSON-RPC does not provide real-time upload progress
+feedback. The simulation occurs before the actual send operation and each
+callback includes `simulated: true`.
 
 ```javascript
 await signal.sendMessageWithProgress('+1234567890', 'Sending large file...', {

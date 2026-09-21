@@ -13,7 +13,7 @@ jest.mock('../config', () => ({
     validateConfig: jest.fn().mockImplementation((config) => ({
         verbose: false,
         requestTimeout: config.requestTimeout || 1000,
-        maxConcurrentRequests: 10,
+        maxConcurrentRequests: 5,
         minRequestInterval: 100,
     })),
 }));

@@ -66,6 +66,9 @@ npm test -- --testNamePattern="SignalCli"
 
 # Run with coverage
 npm run test:coverage
+
+# Run lint, build, and CI-style tests together
+npm run check
 ```
 
 ## Documentation
@@ -114,4 +117,4 @@ If you have any questions about contributing, please:
 
 ## License
 
-By contributing to Signal SDK, you agree that your contributions will be licensed under the project's [MIT License](./LICENSE). 
+By contributing to Signal SDK, you agree that your contributions will be licensed under the project's [MIT License](./LICENSE).
