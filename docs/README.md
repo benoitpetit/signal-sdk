@@ -27,6 +27,11 @@ Welcome to the complete documentation for the Signal SDK - a comprehensive TypeS
 - [Troubleshooting](./troubleshooting.md) - Common issues and solutions
 - [FAQ](./faq.md) - Frequently asked questions
 
+### Developer workflow
+
+- [Test organization](../src/tests/README.md) - Focused test commands and naming rules
+- [Maintenance Guide](./maintenance.md) - Architecture, coverage and safe change workflow
+
 ---
 
 ## What's in This Documentation
@@ -205,6 +210,8 @@ The documentation is organized into the following sections:
     - **`troubleshooting.md`**: Solutions to common problems.
     - **`faq.md`**: Frequently asked questions.
     - **`README.md`**: This file, the main entry point.
+
+- **`src/tests/`**: Deterministic unit, transport, compatibility and regression tests.
 
 - **`examples/`**: Contains ready-to-run examples.
     - **`sdk/`**: Core SDK examples.

@@ -1,6 +1,6 @@
 /**
  * Tests for SignalCli methods
- * Covers additional methods not tested in SignalCli.test.ts
+ * Covers additional methods not tested in SignalCli.core.test.ts
  */
 
 import { SignalCli } from '../SignalCli';

@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const tar = require('tar');
@@ -72,6 +73,22 @@ function copyDir(srcDir, destDir) {
     }
 }
 
+function getInstalledVersion(executable) {
+    try {
+        const command = platform === 'win32' ? 'cmd.exe' : executable;
+        const args = platform === 'win32' ? ['/c', executable, '--version'] : ['--version'];
+        const output = execFileSync(command, args, {
+            encoding: 'utf8',
+            stdio: ['ignore', 'pipe', 'ignore'],
+            timeout: 10_000,
+        });
+        const match = output.match(/signal-cli\s+(\d+\.\d+\.\d+)/i);
+        return match ? match[1] : null;
+    } catch {
+        return null;
+    }
+}
+
 async function install() {
     // -------------------------------------------------------------------------
     // 0. Early-exit guards
@@ -85,12 +102,19 @@ async function install() {
         return;
     }
 
-    // Idempotence: if the binary is already present and executable, skip the
-    // download to avoid re-fetching ~92 MB on every `npm install` / `npm ci`.
+    // Idempotence: skip only when the installed binary is the requested
+    // version. A stale binary must be replaced after an SDK upgrade.
     if (fs.existsSync(localExecutable)) {
-        console.log(`signal-cli v${VERSION} is already installed at: ${localExecutable}`);
-        console.log('To force re-installation, delete the file and run npm install again.');
-        return;
+        const installedVersion = getInstalledVersion(localExecutable);
+        if (installedVersion === VERSION) {
+            console.log(`signal-cli v${VERSION} is already installed at: ${localExecutable}`);
+            return;
+        }
+
+        console.log(
+            `signal-cli ${installedVersion ? `v${installedVersion}` : 'with an unknown version'} was found at ${localExecutable}.`,
+        );
+        console.log(`Updating it to signal-cli v${VERSION}.`);
     }
 
     // -------------------------------------------------------------------------

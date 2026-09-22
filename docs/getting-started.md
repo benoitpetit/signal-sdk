@@ -158,18 +158,19 @@ const messages = await signal.receive({
 });
 
 messages.forEach((msg) => {
-    if (msg.dataMessage) {
-        console.log(`From ${msg.source}: ${msg.dataMessage.message}`);
-    }
+    console.log(`From ${msg.source}: ${msg.text ?? '[non-text message]'}`);
 });
 
 // Or listen for incoming messages with events
 signal.on('message', (message) => {
-    console.log(`New message from ${message.source}: ${message.body}`);
+    const envelope = message.envelope;
+    const source = envelope?.source ?? envelope?.sourceNumber;
+    const text = envelope?.dataMessage?.message;
+    console.log(`New message from ${source}: ${text ?? '[non-text message]'}`);
 
     // Auto-reply
-    if (message.body.toLowerCase() === 'ping') {
-        signal.sendMessage(message.source, 'pong');
+    if (source && text?.toLowerCase() === 'ping') {
+        signal.sendMessage(source, 'pong');
     }
 });
 

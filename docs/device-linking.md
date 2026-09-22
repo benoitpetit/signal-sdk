@@ -89,6 +89,11 @@ async function linkDevice() {
 linkDevice();
 ```
 
+If linking fails, the result includes the original `signal-cli` diagnostic and
+exit code. For native failures such as `Disk quota exceeded`, check temporary
+storage before retrying. The SDK installer also refreshes a bundled signal-cli
+binary when its version is older than the version required by the package.
+
 ## QR Code Display Options
 
 The SDK supports multiple ways to display the QR code:

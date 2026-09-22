@@ -72,7 +72,7 @@ export class DeviceManager extends BaseManager {
 
             let qrCodeData: QRCodeData | undefined;
             let linkingComplete = false;
-            let hasError = false;
+            const errorOutput: string[] = [];
 
             // Since signal-cli v0.14.0, signal-cli displays its own QR code in the terminal.
             // We detect this to avoid displaying a duplicate QR code.
@@ -113,7 +113,7 @@ export class DeviceManager extends BaseManager {
             linkProcess.stderr.on('data', (data) => {
                 const error = data.toString('utf8').trim();
                 if (!error.includes('INFO') && !error.includes('DEBUG') && error.length > 0) {
-                    hasError = true;
+                    errorOutput.push(error);
                 }
             });
 
@@ -133,9 +133,12 @@ export class DeviceManager extends BaseManager {
                         qrCode: qrCodeData,
                     });
                 } else {
+                    const diagnostic = errorOutput.join('\n').trim();
+                    const detail = diagnostic ? `: ${diagnostic.slice(-2000)}` : '';
                     resolve({
                         success: false,
-                        error: hasError ? 'Device linking failed' : `signal-cli exited with code ${code}`,
+                        error: `Device linking failed${detail || ` (signal-cli exited with code ${code})`}`,
+                        exitCode: code,
                         qrCode: qrCodeData,
                     });
                 }

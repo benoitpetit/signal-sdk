@@ -44,6 +44,21 @@ describe('SignalCli', () => {
         expect((configured as any).account).toBe('+1987654321');
     });
 
+    it('should support an object-only configuration without changing positional forms', () => {
+        const configured = new SignalCli({
+            signalCliPath: 'configured-signal-cli',
+            account: '+1987654321',
+            daemonMode: 'tcp',
+            tcpHost: 'signal.example.test',
+            tcpPort: 7583,
+        });
+
+        expect((configured as any).signalCliPath).toBe('configured-signal-cli');
+        expect((configured as any).account).toBe('+1987654321');
+        expect((configured as any).config.daemonMode).toBe('tcp');
+        expect((configured as any).config.tcpHost).toBe('signal.example.test');
+    });
+
     it('should support an omitted path with a second positional account', () => {
         const configured = new SignalCli(undefined, '+1987654321');
 

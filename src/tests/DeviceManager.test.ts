@@ -115,6 +115,21 @@ describe('DeviceManager', () => {
             const result = await linkPromise;
             expect(result.success).toBe(false);
             expect(result.error).toBeDefined();
+            expect(result.exitCode).toBe(1);
+        });
+
+        it('should preserve actionable stderr diagnostics from signal-cli', async () => {
+            const linkPromise = deviceManager.deviceLink({ name: 'Diagnostic' });
+
+            mockProcess.stderr.emit('data', Buffer.from('java.io.IOException: Disk quota exceeded\n'));
+
+            const closeHandler = (mockProcess.on as jest.Mock).mock.calls.find(call => call[0] === 'close')[1];
+            closeHandler(2);
+
+            const result = await linkPromise;
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Disk quota exceeded');
+            expect(result.exitCode).toBe(2);
         });
     });
 });

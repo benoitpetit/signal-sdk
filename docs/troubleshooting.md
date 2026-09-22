@@ -13,6 +13,10 @@ node --version
 # Check Java 25+ installation (required by signal-cli on macOS and Windows)
 java --version
 
+# Check user and temporary-directory quotas before device linking
+quota -s
+df -h /tmp
+
 # Check if device is linked
 node -e "
 const { SignalCli } = require('./dist');
@@ -25,6 +29,31 @@ signal.connect().then(() => signal.listDevices()).then(devices => {
     process.exit(1);
 });
 "
+```
+
+### Disk Quota Exceeded During Device Linking
+
+`signal-cli` loads native libraries into a temporary directory during startup.
+The SDK preserves this diagnostic in `result.error` and reports the process
+exit code, so an error such as `Disk quota exceeded` can be distinguished from
+a Signal account or network problem.
+
+Check both the filesystem and the current user's quota:
+
+```bash
+quota -s
+df -h /tmp
+du -xhd1 /tmp | sort -h | tail -n 20
+```
+
+A filesystem can still show free space while the current user has reached a
+separate quota. Remove only temporary files that belong to your own completed
+processes, or ask the system administrator to raise the quota. Then verify the
+bundled binary and retry:
+
+```bash
+bin/signal-cli --version
+node scripts/connect.js
 ```
 
 ---
@@ -78,6 +107,13 @@ QR code characters appear as boxes or question marks
     console.log('Scan this:', result.qrCode.uri);
     // Copy URI and create QR code with online tool
     ```
+
+If `deviceLink()` fails, inspect `result.error` and `result.exitCode`. The SDK
+keeps the diagnostic emitted by `signal-cli`; for example, `Disk quota
+exceeded` means that the temporary filesystem used to load signal-cli's native
+libraries must be cleaned up or given more space before retrying. The bundled
+binary should also match the version required by the SDK; run `npm install` to
+refresh an older bundled version.
 
 ### Java Not Found
 
@@ -388,6 +424,10 @@ You can test signal-cli directly to isolate problems.
     # Example: send a message
     /path/to/signal-cli -a +XXXXXXXXXXX send +YYYYYYYYYYY "Test"
     ```
+
+    Note: signal-cli v0.14.8 has a known native Linux regression affecting
+    `listDevices`. If it triggers a libsignal JNI panic, use a request timeout
+    in the SDK and follow the upstream fix before retrying device enumeration.
 
 3. **Test JSON-RPC mode**:
 

@@ -13,7 +13,7 @@ providing JSON-RPC communication and a powerful bot framework.
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
-[![Tests](https://img.shields.io/badge/tests-automated-brightgreen.svg)](./src/__tests__)
+[![Tests](https://img.shields.io/badge/tests-automated-brightgreen.svg)](./src/tests)
 [![Donate on Liberapay](https://img.shields.io/badge/Liberapay-Donate-yellow.svg)](https://liberapay.com/devbyben/donate)
 
 </div>
@@ -204,6 +204,14 @@ const signal = new SignalCli('+33111111111', undefined, {
     connectionTimeout: 30000,
     autoReconnect: true,
     verbose: false,
+});
+
+// Equivalent object-only form for applications with several options
+const configuredSignal = new SignalCli({
+    account: '+33111111111',
+    maxRetries: 3,
+    requestTimeout: 60000,
+    autoReconnect: true,
 });
 
 await signal.connect();
@@ -815,7 +823,7 @@ The constructor uses smart parameter detection:
 npm test
 
 # Run a specific suite
-npm test -- --testPathPattern="SignalCli.methods"
+npm test -- --testPathPatterns="SignalCli.api"
 
 # Run with coverage report
 npm run test:coverage
@@ -824,7 +832,12 @@ npm run test:coverage
 npm run check
 
 # Run in watch mode
-npm test -- --watch
+npm run test:watch
+
+# Run focused areas
+npm run test:signal-cli
+npm run test:bot
+npm run test:managers
 ```
 
 ### Test reporting
@@ -833,39 +846,40 @@ Run `npm run test:coverage` to generate the current suite and coverage report. T
 
 ### Test suites
 
-| Suite                                   | Focus                                                                                                           |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `errors.test.ts`                        | Error class hierarchy and serialization                                                                         |
-| `validators.test.ts`                    | Phone number, UUID, and input validation                                                                        |
-| `config.test.ts`                        | Configuration validation and defaults                                                                           |
-| `retry.test.ts`                         | Retry logic and exponential backoff                                                                             |
-| `security.test.ts`                      | Input sanitization and injection prevention                                                                     |
-| `robustness.test.ts`                    | Edge cases and failure scenarios                                                                                |
-| `SignalCli.test.ts`                     | Core connection and messaging                                                                                   |
-| `SignalCli.methods.test.ts`             | Full API method coverage                                                                                        |
-| `SignalCli.advanced.test.ts`            | Advanced send options, receive, identity                                                                        |
-| `SignalCli.integration.test.ts`         | Connection lifecycle and JSON-RPC parsing                                                                       |
-| `SignalCli.simple.test.ts`              | isRegistered, sendNoteToSelf                                                                                    |
-| `SignalCli.parsing.test.ts`             | Envelope parsing and event emission                                                                             |
-| `SignalCli.events.test.ts`              | Reaction, receipt, typing events                                                                                |
-| `SignalCli.connections.test.ts`         | Unix socket, TCP, HTTP daemon modes                                                                             |
-| `SignalCli.e2e.test.ts`                 | Multi-step workflow tests with mocked transport                                                               |
-| `SignalCli.v0140.test.ts`               | sendPinMessage, sendUnpinMessage, sendAdminDelete, noUrgent, ignoreAvatars, ignoreStickers, JsonRpcStartOptions |
-| `SignalCli.v0142.test.ts`               | signal-cli v0.14.2 compatibility                                                                                |
-| `DeviceManager.test.ts`                 | Device listing, linking, renaming                                                                               |
-| `MultiAccountManager.test.ts`           | Multi-account management                                                                                        |
-| `MultiAccountManager.coverage.test.ts`  | Edge cases for multi-account                                                                                    |
-| `SignalBot.test.ts`                     | Bot startup, commands, events                                                                                   |
-| `SignalBot.additional.test.ts`          | Extended bot features                                                                                           |
-| `SignalBot.coverage.test.ts`            | Bot edge cases and error handling                                                                               |
-| `SignalCli.v0148.test.ts`               | signal-cli v0.14.8 compatibility tests                                                                          |
-| `MultiAccountManager.reconnect.test.ts` | Reconnection cancellation and lifecycle behavior                                                                |
-| `config.test.ts`                        | Configuration parsing and validation                                                                            |
-| `retry.test.ts`                         | Retry policy and rate-limit behavior                                                                            |
-| `security.test.ts`                      | Sensitive-data and input-security safeguards                                                                    |
-| `validators.test.ts`                    | Public validation helpers                                                                                       |
-| `coverage-improvement.test.ts`          | Cross-module manager and bot regression tests                                                                    |
-| `calibration.test.ts`                   | Resilience, validation and runtime-safety tests                                                                  |
+| Suite                                  | Focus                                                                                                           |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `errors.test.ts`                       | Error class hierarchy and serialization                                                                         |
+| `validators.test.ts`                   | Phone number, UUID, URL and input validation                                                                     |
+| `config.test.ts`                       | Configuration validation, defaults and logging                                                                    |
+| `retry.test.ts`                        | Retry, rate limiting and backoff                                                                                |
+| `security.test.ts`                     | Input sanitization and injection prevention                                                                       |
+| `robustness.test.ts`                   | RPC timeout and failure scenarios                                                                                |
+| `resilience.test.ts`                   | Circuit breaker, metrics and runtime safety                                                                       |
+| `SignalCli.core.test.ts`               | Core connection, messaging and public facade behavior                                                             |
+| `SignalCli.basic.test.ts`              | Basic convenience methods                                                                                         |
+| `SignalCli.api.test.ts`                | Public API method coverage                                                                                         |
+| `SignalCli.advanced.test.ts`           | Advanced send options, receive and identity                                                                        |
+| `SignalCli.transport.test.ts`          | Process lifecycle and JSON-RPC parsing                                                                             |
+| `SignalCli.connections.test.ts`        | Unix socket, TCP and HTTP/SSE transports                                                                          |
+| `SignalCli.parsing.test.ts`            | Contact/group parsing and normalized responses                                                                     |
+| `SignalCli.events.test.ts`             | Reaction, receipt, typing and group events                                                                         |
+| `SignalCli.workflows.test.ts`          | Multi-step workflows with mocked transport                                                                         |
+| `SignalCli.cli-commands.test.ts`       | Direct CLI command execution and timeout behavior                                                                  |
+| `SignalCli.v0140.test.ts`              | signal-cli v0.14.0 compatibility                                                                                    |
+| `SignalCli.v0142.test.ts`              | signal-cli v0.14.2 compatibility                                                                                    |
+| `SignalCli.v0148.test.ts`              | signal-cli v0.14.8 compatibility                                                                                    |
+| `signal-cli-upstream-contracts.test.ts` | Current upstream response contracts                                                                                |
+| `signal-cli-v0141-compatibility.test.ts` | signal-cli v0.14.1 compatibility and regressions                                                                    |
+| `DeviceManager.test.ts`                | Device listing, linking and renaming                                                                                |
+| `MultiAccountManager.test.ts`          | Multi-account management                                                                                            |
+| `MultiAccountManager.events.test.ts`   | Event forwarding and account context                                                                                |
+| `MultiAccountManager.lifecycle.test.ts` | Reconnection cancellation and lifecycle behavior                                                                   |
+| `SignalBot.test.ts`                    | Bot startup, commands and events                                                                                    |
+| `SignalBot.features.test.ts`           | Extended bot features                                                                                              |
+| `SignalBot.lifecycle.test.ts`          | Bot lifecycle, edge cases and error handling                                                                        |
+| `MediaManager.test.ts`                 | Secure downloads, avatars and temporary-file cleanup                                                                |
+| `manager-regressions.test.ts`          | Cross-manager regression coverage                                                                                   |
+| `index.test.ts`                        | Public package exports                                                                                              |
 
 ---
 

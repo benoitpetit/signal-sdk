@@ -106,8 +106,18 @@ export class SignalCli extends EventEmitter {
     public readonly accounts: AccountManager;
     public readonly stickers: StickerManager;
 
-    constructor(accountOrPath?: string, account?: string, config: SignalCliConfig = {}) {
+    constructor(config?: SignalCliConfig);
+    constructor(accountOrPath?: string, account?: string, config?: SignalCliConfig);
+    constructor(accountOrPath?: string | SignalCliConfig, account?: string, config: SignalCliConfig = {}) {
         super();
+
+        // Support an object-only configuration while preserving the legacy
+        // positional constructor forms.
+        if (typeof accountOrPath === 'object' && accountOrPath !== null) {
+            config = accountOrPath;
+            accountOrPath = undefined;
+            account = undefined;
+        }
 
         // Validate and merge configuration
         this.config = validateConfig(config);

@@ -64,10 +64,19 @@ async function connectDevice() {
             }
         } else {
             console.error('Device linking failed');
+            const linkingError = linkingResult.error || '';
             if (linkingResult.error) {
-                console.error(`   Error: ${linkingResult.error}`);
+                console.error(`   Error: ${linkingError}`);
+            }
+            if (linkingResult.exitCode !== undefined) {
+                console.error(`   Exit code: ${linkingResult.exitCode}`);
             }
             console.error('\nTroubleshooting:');
+            if (/disk quota|quota exceeded|no space left|out of space/i.test(linkingError)) {
+                console.error('   • signal-cli cannot write to its temporary directory');
+                console.error('   • Check the user quota with: quota -s');
+                console.error('   • Check temporary storage with: df -h /tmp');
+            }
             console.error('   • Make sure signal-cli is properly installed');
             console.error('   • Check your internet connection');
             console.error('   • Ensure your Signal app is up to date');

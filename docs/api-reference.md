@@ -33,12 +33,13 @@ The core class for Signal messaging operations using JSON-RPC with `signal-cli`.
 ### Constructor
 
 ```typescript
+new SignalCli(config?: SignalCliConfig)
 new SignalCli(accountOrPath?: string, account?: string, config?: SignalCliConfig)
 ```
 
+- **`config`** (optional): Configuration object. The object-only form is the recommended option for applications with more than one setting.
 - **`accountOrPath`** (optional): Phone number (e.g., `"+15551234567"`) OR path to the `signal-cli` binary. The constructor uses smart detection - if it starts with `+`, it's treated as a phone number.
 - **`account`** (optional): Phone number when the first argument is a path to the binary.
-- **`config`** (optional): Advanced configuration object (see [SignalCliConfig](#signalcliconfig))
 
 #### Examples
 
@@ -51,6 +52,14 @@ const signal = new SignalCli('/path/to/signal-cli', '+15551234567');
 
 // With configuration
 const signal = new SignalCli('+15551234567', undefined, {
+    maxRetries: 5,
+    retryDelay: 1000,
+    verbose: true,
+});
+
+// Recommended for a complete configuration
+const configuredSignal = new SignalCli({
+    account: '+15551234567',
     maxRetries: 5,
     retryDelay: 1000,
     verbose: true,
@@ -146,6 +155,10 @@ This method invokes the signal-cli `link` command directly.
 - `options.qrCodeOutput`: 'console', 'file', or 'base64'
 - `options.qrCodePath`: Path to save QR code (when qrCodeOutput is 'file')
 
+The result contains `success`, an optional `qrCode`, and an `error` when
+linking fails. Failed links also expose `exitCode` and preserve the diagnostic
+reported by `signal-cli`, which makes environment issues easier to troubleshoot.
+
 #### `startLink(): Promise<string>`
 
 Starts JSON-RPC provisioning in multi-account mode and returns the device-link URI.
@@ -157,6 +170,10 @@ Completes JSON-RPC provisioning started with `startLink()`.
 #### `listDevices(): Promise<Device[]>`
 
 Lists all linked devices for the account.
+
+On some native Linux builds, signal-cli v0.14.8 has an upstream JNI regression
+that can make this operation fail or hang. Configure `requestTimeout` to bound
+the wait while the upstream fix is pending.
 
 #### `updateDevice(options: UpdateDeviceOptions): Promise<void>`
 

@@ -16,7 +16,7 @@ JSON-RPC methods exposed by signal-cli. The reference is the upstream
 | Contacts, registration status, blocking, removal and identities | `listContacts`, `updateContact`, `getUserStatus`, `block`, `unblock`, `listIdentities`, `trustIdentity` | Covered |
 | Profiles and avatars | `updateProfile`, `getAvatar`, profile helpers | Covered |
 | Accounts, registration, verification, PIN, number changes and configuration | `register`, `verify`, `setPin`, `removePin`, `startChangeNumber`, `finishChangeNumber` | Covered |
-| Linked devices and QR-code linking | `listDevices`, `addDevice`, `removeDevice`, `updateDevice`, `deviceLink`, `link`, `startLink`, `finishLink` | Covered |
+| Linked devices and QR-code linking | `listDevices`, `addDevice`, `removeDevice`, `updateDevice`, `deviceLink`, `link`, `startLink`, `finishLink` | Covered; `listDevices` has an upstream v0.14.8 regression |
 | Sticker packs and media downloads | `listStickerPacks`, `addStickerPack`, `uploadStickerPack`, `getSticker`, `getAttachment` | Covered |
 | Synchronization and message requests | `sendSyncRequest`, `sendContacts`, `sendMessageRequestResponse` | Covered |
 | Payments and rate-limit challenges | `sendPaymentNotification`, `submitRateLimitChallenge` | Covered for individual recipients |
@@ -48,6 +48,10 @@ multi-account JSON-RPC flow.
   therefore rejects group identifiers explicitly.
 - `receiveMessages()` and `startDaemon()` remain deprecated aliases, but they
   delegate to the modern path instead of returning an empty result.
+- `signal-cli` v0.14.8 can panic inside libsignal while handling `listDevices`
+  on native Linux builds. The SDK cannot work around that upstream failure, but
+  its configurable RPC timeout prevents the request from waiting forever. See
+  [upstream issue #2119](https://github.com/AsamK/signal-cli/issues/2119).
 
 ## D-Bus decision
 

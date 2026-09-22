@@ -11,6 +11,7 @@ src/index.ts
   ├─ SignalBot              commands, message routing and bot lifecycle
   │  └─ bot/MediaManager    downloads, avatars and temporary-file cleanup
   ├─ MultiAccountManager    account collection and event routing
+  ├─ tests/                 focused unit, transport and compatibility suites
   ├─ managers/              domain operations built on one RPC callback
   ├─ validators.ts          input and security validation
   ├─ retry.ts               retry, circuit breaker and rate limiting
@@ -53,11 +54,20 @@ gate and validates the package contents with `npm pack --dry-run`.
 For faster iteration, use `npm run build`, `npm run lint`, or
 `npm run test:coverage` separately.
 
-The latest local coverage run validated 664 tests across 32 suites:
+Focused test commands are available when working on one area:
+
+```bash
+npm run test:signal-cli
+npm run test:bot
+npm run test:managers
+npm run test:watch
+```
+
+The latest local coverage run validated 666 tests across 32 suites:
 
 | Scope | Statements | Branches | Functions | Lines |
 | --- | ---: | ---: | ---: | ---: |
-| All files | 90.92% | 79.23% | 91.43% | 91.42% |
+| All files | 90.95% | 79.25% | 91.43% | 91.44% |
 | `SignalBot.ts` | 87.21% | 63.44% | 92.30% | 87.68% |
 | `bot/MediaManager.ts` | 97.05% | 90.47% | 100.00% | 96.96% |
 
@@ -81,6 +91,9 @@ These figures are a snapshot, not a second source of truth: rerun
   member join/leave diff in the notification. The old `welcomeNewMembers` option
   is retained only for source compatibility and has no effect.
 - HTTP mode reconnects its SSE event stream when `autoReconnect` is enabled.
+- `signal-cli` v0.14.8 has an upstream `listDevices` JNI regression on some
+  native Linux builds. The SDK request timeout prevents an indefinite wait;
+  track the upstream fix before relying on linked-device enumeration.
 - Image downloads reject private literal addresses and enforce a 25 MB limit,
   but production deployments should still apply network egress controls for DNS
   rebinding protection.

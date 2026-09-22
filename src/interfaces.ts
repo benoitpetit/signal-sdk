@@ -803,6 +803,8 @@ export interface LinkingResult {
     qrCode?: QRCodeData;
     isLinked?: boolean;
     error?: string;
+    /** Process exit code when signal-cli could not complete the link. */
+    exitCode?: number | null;
 }
 
 // ===== CONTACT SYNCHRONIZATION =====
