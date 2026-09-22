@@ -25,6 +25,7 @@ yarn-error.log*
 .vscode/
 .idea/
 .claude/
+.codegraph/
 
 # Ignore OS files
 .DS_Store

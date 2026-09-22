@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.7] - 2026-09-22
+
+### Added
+
+- Added an object-based `SignalCli` constructor configuration while preserving
+  all existing positional constructor forms.
+- Added actionable `signal-cli` diagnostics and process exit codes to device
+  linking failures.
+- Added focused test commands and reorganized the test suite under `src/tests/`.
+
+### Changed
+
+- Updated the installer to refresh a stale bundled signal-cli binary instead
+  of skipping installation whenever a binary already exists.
+- Updated the README, API reference, troubleshooting guide and maintenance
+  documentation with current coverage and upstream compatibility notes.
+
+### Fixed
+
+- Preserved the original stderr diagnostic for native startup failures such as
+  temporary-directory quota exhaustion.
+- Documented the known signal-cli v0.14.8 `listDevices` JNI regression and the
+  SDK request-timeout behavior around it.
+
 ## [0.2.6] - 2026-09-14
 
 ### Added - signal-cli v0.14.8 Compatibility
