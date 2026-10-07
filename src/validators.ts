@@ -151,6 +151,125 @@ export function validateAttachments(attachments: string[]): void {
 }
 
 /**
+ * Base64url variant used by BlurHash, as accepted by signal-cli v0.14.9.
+ */
+const BLURHASH_DIGITS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%*+,-.:;=?@[]^_{|}~';
+
+/** signal-cli's own dimension syntax: 'WIDTHxHEIGHT', both strictly positive. */
+const ATTACHMENT_DIMENSION_PATTERN = /^([1-9]\d*)x([1-9]\d*)$/;
+
+/**
+ * Validates per-attachment dimensions (signal-cli v0.14.9).
+ *
+ * The array is positional against the attachment list: an empty string skips that
+ * attachment and leaves its dimensions to signal-cli's automatic detection.
+ *
+ * @param dimensions Array of 'WIDTHxHEIGHT' strings, with '' to skip one
+ * @param attachmentCount Number of attachments the array applies to
+ * @throws ValidationError if invalid
+ */
+export function validateAttachmentDimensions(dimensions: string[], attachmentCount: number): void {
+    if (!Array.isArray(dimensions)) {
+        throw new ValidationError('Attachment dimensions must be an array', 'attachmentDimensions');
+    }
+
+    if (dimensions.length > attachmentCount) {
+        throw new ValidationError(
+            `Attachment dimensions must not be longer than the attachment list (${dimensions.length} > ${attachmentCount})`,
+            'attachmentDimensions',
+        );
+    }
+
+    for (const dimension of dimensions) {
+        if (typeof dimension !== 'string') {
+            throw new ValidationError('Each attachment dimension must be a string', 'attachmentDimensions');
+        }
+
+        if (dimension.length > 0 && !ATTACHMENT_DIMENSION_PATTERN.test(dimension)) {
+            throw new ValidationError(
+                `Invalid attachment dimensions syntax (${dimension}) expected 'WIDTHxHEIGHT'`,
+                'attachmentDimensions',
+            );
+        }
+    }
+}
+
+/**
+ * Validates per-attachment BlurHashes (signal-cli v0.14.9).
+ *
+ * The array is positional against the attachment list: an empty string skips that
+ * attachment. Mirrors signal-cli's own check, where the first character fixes the
+ * expected length: 4 + 2 * (sizeFlag % 9 + 1) * (sizeFlag / 9 + 1).
+ *
+ * @param blurHashes Array of BlurHash strings, with '' to skip one
+ * @param attachmentCount Number of attachments the array applies to
+ * @throws ValidationError if invalid
+ */
+export function validateAttachmentBlurhash(blurHashes: string[], attachmentCount: number): void {
+    if (!Array.isArray(blurHashes)) {
+        throw new ValidationError('Attachment BlurHashes must be an array', 'attachmentBlurhash');
+    }
+
+    if (blurHashes.length > attachmentCount) {
+        throw new ValidationError(
+            `Attachment BlurHashes must not be longer than the attachment list (${blurHashes.length} > ${attachmentCount})`,
+            'attachmentBlurhash',
+        );
+    }
+
+    for (const blurHash of blurHashes) {
+        if (typeof blurHash !== 'string') {
+            throw new ValidationError('Each attachment BlurHash must be a string', 'attachmentBlurhash');
+        }
+
+        if (blurHash.length === 0) {
+            continue;
+        }
+
+        if (!isValidBlurhash(blurHash)) {
+            throw new ValidationError(`Invalid attachment BlurHash (${blurHash})`, 'attachmentBlurhash');
+        }
+    }
+}
+
+/**
+ * Returns true when a string is a structurally valid BlurHash.
+ * The first character encodes the component count, which fixes the total length.
+ */
+function isValidBlurhash(blurHash: string): boolean {
+    if (blurHash.length < 6) {
+        return false;
+    }
+
+    const sizeFlag = BLURHASH_DIGITS.indexOf(blurHash.charAt(0));
+    if (sizeFlag < 0) {
+        return false;
+    }
+
+    return blurHash.length === 4 + 2 * ((sizeFlag % 9) + 1) * (Math.floor(sizeFlag / 9) + 1);
+}
+
+/**
+ * Validates a Recovery Key (signal-cli v0.14.9): the 64-character key shown by Signal Android.
+ * @throws ValidationError if invalid
+ */
+export function validateRecoveryKey(recoveryKey: string): void {
+    if (typeof recoveryKey !== 'string' || !/^[0-9a-fA-F]{64}$/.test(recoveryKey)) {
+        throw new ValidationError('Recovery key must be 64 hexadecimal characters', 'recoveryKey');
+    }
+}
+
+/**
+ * Validates a TOTP token (signal-cli v0.14.9): six digits.
+ * @throws ValidationError if invalid
+ */
+export function validateTotpToken(totp: string): void {
+    if (typeof totp !== 'string' || !/^\d{6}$/.test(totp)) {
+        throw new ValidationError('TOTP token must be six digits', 'totp');
+    }
+}
+
+/**
  * Validates a timestamp
  * @param timestamp Timestamp to validate
  * @throws ValidationError if invalid

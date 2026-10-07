@@ -138,6 +138,16 @@ export interface JsonRpcSendParams {
      * Without this flag, sending to self only sends a sync message to linked devices.
      */
     notifySelf?: boolean;
+    /**
+     * v0.14.9 — Displayed dimensions (after rotation) of each attachment, positional
+     * against `attachments`. Use `'WIDTHxHEIGHT'`, or `''` to let signal-cli detect them.
+     */
+    attachmentDimensions?: string[];
+    /**
+     * v0.14.9 — BlurHash (https://blurha.sh) of each attachment, positional against
+     * `attachments`. Use `''` to skip one.
+     */
+    attachmentBlurhash?: string[];
 }
 
 /**
@@ -608,6 +618,17 @@ export interface SendMessageOptions {
      * Without this flag, sending to self only sends a sync message to linked devices.
      */
     notifySelf?: boolean;
+    /**
+     * v0.14.9 — Displayed dimensions (after rotation) of each attachment, positional
+     * against `attachments`. Use `'WIDTHxHEIGHT'`, or `''` to let signal-cli detect them.
+     * Clients render the matching placeholder before the download completes.
+     */
+    attachmentDimensions?: string[];
+    /**
+     * v0.14.9 — BlurHash (https://blurha.sh) of each attachment, positional against
+     * `attachments`. Use `''` to skip one. Clients show the hash while downloading.
+     */
+    attachmentBlurhash?: string[];
 }
 
 /**

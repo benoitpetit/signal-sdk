@@ -2,13 +2,14 @@
 
 This document compares the `signal-sdk` TypeScript facade with the commands and
 JSON-RPC methods exposed by signal-cli. The reference is the upstream
-`AsamK/signal-cli` repository and its manuals, checked on September 21, 2026.
+`AsamK/signal-cli` repository and its manuals, checked on October 7, 2026,
+against v0.14.9.
 
 ## Supported Features
 
 | signal-cli domain | SDK API | Status |
 | --- | --- | --- |
-| Message sending, attachments, quotes, mentions, styles, stickers and expiring messages | `sendMessage`, `sendMessageWithProgress` | Covered |
+| Message sending, attachments, quotes, mentions, styles, stickers and expiring messages | `sendMessage`, `sendMessageWithProgress` | Covered; attachment dimensions and BlurHashes supported (v0.14.9+) |
 | Reactions, typing indicators, remote deletion and receipts | `sendReaction`, `sendTyping`, `remoteDeleteMessage`, `sendReceipt` | Covered |
 | Receiving and polling | `receive`, `connect`, `message`, `typing`, `receipt`, `story` events | Covered |
 | Stories, deletion and pinned-message management | `sendStory`, `deleteStory`, `pinMessage`, `unpinMessage` | Covered |
@@ -29,19 +30,27 @@ the public SDK interfaces, keeping version differences out of application code.
 
 `listAccounts()` uses the ACI when a local account has no phone number.
 `listAccountsDetailed()` preserves `number: null` and exposes `aci`, matching
-signal-cli.
+signal-cli. Numberless accounts (v0.14.9+) are selected by their ACI, which
+signal-cli accepts as a UUID or 32 hexadecimal characters. `finishLink()` maps
+directly onto upstream and returns `number: null` plus the `aci` for a numberless
+account.
 
 `register()` and `verify()` run the signal-cli commands directly because the
 upstream JSON-RPC manual excludes those commands. `link()` follows the same
 direct CLI path, while `startLink()` and `finishLink()` use the documented
-multi-account JSON-RPC flow.
+multi-account JSON-RPC flow. `registerWithRecoveryKey()` (v0.14.9+) recovers an
+existing account from its Account Key and Recovery Key over the direct CLI path
+for the same reason, including the TOTP second step.
 
 ## Known Gaps
 
 - The SDK provides JSON-RPC over stdin/stdout, Unix sockets, TCP and HTTP. The
   native D-Bus transport is not exposed as a dedicated transport. HTTP mode
   consumes signal-cli's `/api/v1/events` SSE stream automatically and retries
-  the stream when `autoReconnect` is enabled.
+  the stream when `autoReconnect` is enabled. Reconnects resume with the
+  `Last-Event-ID` of the last received event (supported since v0.14.9), so only
+  events missed while disconnected are replayed; the keep-alive interval is a
+  daemon-side `--sse-keepalive-interval` option and the SDK does not change it.
 - `sendMessageWithProgress()` reports simulated progress because JSON-RPC does
   not provide real-time attachment upload progress.
 - Upstream payment notifications accept an individual recipient. The SDK

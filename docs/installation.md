@@ -69,7 +69,7 @@ The Signal SDK includes signal-cli binaries and handles the setup automatically.
 
 **What's included:**
 
-- signal-cli v0.14.8 binaries (located in `bin/` directory)
+- signal-cli v0.14.9 binaries (located in `bin/` directory)
 - All required Java libraries
 - Cross-platform compatibility (Windows, macOS, Linux)
 

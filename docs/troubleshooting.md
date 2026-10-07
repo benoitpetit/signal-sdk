@@ -316,6 +316,56 @@ Error: User +XXXXXXXXXXX is not registered.
 3. **Group message settings**:
     - For groups, ensure you haven't muted the conversation.
 
+### Duplicate Messages After a Reconnect (HTTP mode)
+
+**Problem**: The same messages reappear after an HTTP reconnect
+
+**Cause**: With signal-cli v0.14.9 the `/api/v1/events` endpoint buffers the last
+1000 events and replays whatever the client has not acknowledged. The SDK sends
+the `Last-Event-ID` of the last received event when reconnecting, so only events
+missed while the stream was down are replayed. Upgrading the SDK fixes the
+behaviour when a v0.14.9 daemon is running; against an older daemon there are no
+ids and the header is simply omitted.
+
+**Solutions**:
+
+1. **Verify the daemon version** — the `id:` frames only exist from v0.14.9:
+    ```bash
+    signal-cli --version
+    ```
+
+2. **Keep `autoReconnect` enabled** — the SDK tracks event ids itself; no extra
+   configuration is required.
+
+3. **Daemon restarts** — a restart changes the id prefix, so the first reconnect
+   after a restart replays the fresh (small) buffer. This is upstream behaviour.
+
+### Attachment metadata rejected before sending
+
+**Problem**: `sendMessage` throws a validation error mentioning dimensions or
+BlurHash
+
+**Cause**: The `attachmentDimensions` and `attachmentBlurhash` arrays (v0.14.9+)
+are positional: `''` skips an attachment, dimensions must be `WIDTHxHEIGHT` with
+both values strictly positive, and neither array may be longer than the
+`attachments` list. Invalid values are rejected client-side before anything is
+sent.
+
+**Solutions**:
+
+1. **Match the attachment order** — for two attachments send
+   `attachmentDimensions: ['1080x1920', '']`.
+
+2. **Skip unknown values with `''`**, never `null` or `undefined`.
+
+3. **Check the BlurHash** with a decoder at [blurha.sh](https://blurha.sh); the
+   first character fixes the expected length.
+
+4. **Disk failures surface as `AttachmentError`** — when signal-cli cannot
+   prepare or upload an attachment, the send aborts before delivery since
+   v0.14.9, and the SDK throws `AttachmentError` naming the failing attachment
+   (for example `inline attachment #1` for a data URI).
+
 ### Attachments Not Working
 
 **Problem**: File attachments fail to send

@@ -58,7 +58,7 @@ Dive deeper into the SDK capabilities:
 
 ### Current Features
 
-The current release is aligned with signal-cli v0.14.8. Run `npm test` for the current test-suite result rather than relying on a documentation snapshot.
+The current release is aligned with signal-cli v0.14.9. Run `npm test` for the current test-suite result rather than relying on a documentation snapshot.
 
 #### Advanced Messaging
 

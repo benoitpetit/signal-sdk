@@ -43,6 +43,7 @@ providing JSON-RPC communication and a powerful bot framework.
 **Core**
 
 - JSON-RPC communication with signal-cli daemon
+- SSE resume — the `/api/v1/events` stream reconnects with `Last-Event-ID` so only events missed while disconnected are replayed (v0.14.9+)
 - Complete TypeScript support with strict type definitions
 - Event-driven architecture for real-time message handling
 - Exponential backoff retry mechanism with configurable policies
@@ -65,6 +66,7 @@ providing JSON-RPC communication and a powerful bot framework.
 - Payment notifications (MobileCoin)
 - Note-to-self messages
 - Story replies
+- Attachment placeholders (v0.14.9+) — per-attachment displayed dimensions and BlurHashes shown while attachments download
 
 **Groups**
 
@@ -86,6 +88,8 @@ providing JSON-RPC communication and a powerful bot framework.
 **Account & Devices**
 
 - Register, verify, and unregister accounts
+- Recover an existing account from its Account Key and Recovery Key (v0.14.9+)
+- Numberless accounts — identified by their ACI (v0.14.9+)
 - Update account settings — username, privacy, phone number sharing
 - Set and remove registration lock PIN
 - List and manage linked devices
@@ -868,6 +872,7 @@ Run `npm run test:coverage` to generate the current suite and coverage report. T
 | `SignalCli.v0140.test.ts`              | signal-cli v0.14.0 compatibility                                                                                    |
 | `SignalCli.v0142.test.ts`              | signal-cli v0.14.2 compatibility                                                                                    |
 | `SignalCli.v0148.test.ts`              | signal-cli v0.14.8 compatibility                                                                                    |
+| `SignalCli.v0149.test.ts`              | signal-cli v0.14.9 compatibility                                                                                    |
 | `signal-cli-upstream-contracts.test.ts` | Current upstream response contracts                                                                                |
 | `signal-cli-v0141-compatibility.test.ts` | signal-cli v0.14.1 compatibility and regressions                                                                    |
 | `DeviceManager.test.ts`                | Device listing, linking and renaming                                                                                |

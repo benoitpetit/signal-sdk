@@ -7,7 +7,8 @@ import {
     SendResponse,
     RateLimitChallengeResult,
 } from '../interfaces';
-import { validatePhoneNumber, validateRecipient } from '../validators';
+import { validatePhoneNumber, validateRecipient, validateRecoveryKey, validateTotpToken } from '../validators';
+import { SignalError, ValidationError } from '../errors';
 
 export class AccountManager extends BaseManager {
     constructor(
@@ -34,6 +35,47 @@ export class AccountManager extends BaseManager {
         const params: Record<string, unknown> = { account: number, voice, captcha };
         if (reregister) params.reregister = true;
         await this.sendRequest('register', params);
+    }
+
+    /**
+     * Recovers an existing account with the Account Key and Recovery Key shown by
+     * Signal Android (signal-cli v0.14.9+).
+     *
+     * Runs the signal-cli CLI directly because the upstream JSON-RPC manual excludes the
+     * `register` command. Recovery requires `-a` to be the account's ACI (Account Key),
+     * accepted as 32 hexadecimal characters or as a UUID with dashes; `-a` must not be a
+     * phone number. `--reregister` is required when the local account is still marked as
+     * registered, and `--totp` is needed if upstream reports that a TOTP token is required.
+     *
+     * @param aci Account Key (ACI) of the account to recover
+     * @param recoveryKey 64-character Recovery Key from Signal Android
+     * @param options Optional flags: totp (six-digit token), reregister (default true, mirrors --reregister)
+     */
+    async registerWithRecoveryKey(
+        aci: string,
+        recoveryKey: string,
+        options: { totp?: string; reregister?: boolean } = {},
+    ): Promise<void> {
+        if (
+            typeof aci !== 'string' ||
+            !/^(?:[0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.test(aci)
+        ) {
+            throw new ValidationError('ACI must be a Signal UUID', 'aci');
+        }
+        validateRecoveryKey(recoveryKey);
+        if (options.totp) {
+            validateTotpToken(options.totp);
+        }
+
+        if (!this.runCliCommand) {
+            throw new SignalError('Recovery registration requires a configured signal-cli binary');
+        }
+
+        const args = ['-a', aci, 'register', '--recovery-key', recoveryKey];
+        // Required only when the local account is still marked as registered.
+        if (options.reregister) args.push('--reregister');
+        if (options.totp) args.push('--totp', options.totp);
+        await this.runCliCommand(args);
     }
 
     async verify(number: string, verificationCode: string, pin?: string): Promise<void> {

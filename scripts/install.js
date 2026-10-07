@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const tar = require('tar');
 
-const VERSION = '0.14.8';
+const VERSION = '0.14.9';
 const BASE_URL = `https://github.com/AsamK/signal-cli/releases/download/v${VERSION}`;
 
 const platform = process.platform;

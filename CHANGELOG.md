@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.8] - 2026-10-07
+
+### Added - signal-cli v0.14.9 Compatibility
+
+- Added `attachmentDimensions` and `attachmentBlurhash` to `SendMessageOptions`:
+  positional per-attachment displayed dimensions (`'WIDTHxHEIGHT'`) and BlurHashes,
+  with `''` to skip one. Both are validated client-side and forwarded under the
+  exact upstream JSON-RPC parameter names.
+- Added `registerWithRecoveryKey(aci, recoveryKey, options)` to recover an existing
+  account with the Account Key and Recovery Key shown by Signal Android, including
+  optional `--totp` and `--reregister` flags. Accepts the ACI as a UUID or 32
+  hexadecimal characters; runs the signal-cli CLI directly, as upstream excludes
+  `register` from the JSON-RPC interface.
+- Added `AttachmentError`, thrown when signal-cli cannot prepare or upload one of a
+  message's attachments. Since v0.14.9 such failures abort the send before anything
+  is delivered.
+
+### Changed
+
+- Updated the bundled installer to signal-cli v0.14.9.
+- HTTP event streams now send `Last-Event-ID` when resuming: signal-cli v0.14.9 tags
+  each `/api/v1/events` event with an id and buffers the last 1000, so a reconnect
+  without the header replays the whole buffer as duplicate messages. `id:` frames are
+  captured, keep-alive comment frames stay ignored, and an explicit `disconnect()`
+  clears the remembered id.
+
 ## [0.2.7] - 2026-09-22
 
 ### Added

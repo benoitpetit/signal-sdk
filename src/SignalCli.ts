@@ -88,6 +88,12 @@ export class SignalCli extends EventEmitter {
     private httpEventRequest: http.ClientRequest | null = null;
     private httpEventResponse: http.IncomingMessage | null = null;
     private httpEventBuffer = '';
+    /**
+     * Id of the last SSE event received from signal-cli's events endpoint
+     * (v0.14.9+). Sent back as `Last-Event-ID` when the stream is re-established so
+     * signal-cli replays only what was missed instead of its whole buffer.
+     */
+    private httpEventLastId: string | undefined;
     private circuitBreaker: CircuitBreaker | null = null;
     private metrics = {
         requestsSent: 0,
@@ -411,6 +417,9 @@ export class SignalCli extends EventEmitter {
                     method: 'GET',
                     headers: {
                         Accept: 'text/event-stream',
+                        // v0.14.9 — resume the events stream; without it signal-cli replays
+                        // its whole 1000-event buffer on every reconnect.
+                        ...(this.httpEventLastId ? { 'Last-Event-ID': this.httpEventLastId } : {}),
                     },
                 },
                 (res: http.IncomingMessage) => {
@@ -496,6 +505,15 @@ export class SignalCli extends EventEmitter {
             if (line === '') {
                 this.processSseEvent(eventData);
                 eventData = [];
+                continue;
+            }
+            // v0.14.9 — signal-cli sends `id: {start time}-{sequence}` before each event;
+            // the keep-alive frames are `:` comments and stay ignored.
+            if (line.startsWith('id:')) {
+                const id = line.slice(3).trim();
+                if (id) {
+                    this.httpEventLastId = id;
+                }
                 continue;
             }
             if (line.startsWith('data:')) {
@@ -591,6 +609,9 @@ export class SignalCli extends EventEmitter {
         if (daemonMode === 'http') {
             this.closeHttpEvents();
         }
+
+        // A new HTTP session must not resume a stream that is being torn down.
+        this.httpEventLastId = undefined;
 
         this.emit('disconnected');
 
@@ -1169,6 +1190,18 @@ export class SignalCli extends EventEmitter {
 
     async register(number: string, voice?: boolean, captcha?: string, reregister?: boolean): Promise<void> {
         return this.accounts.register(number, voice, captcha, reregister);
+    }
+
+    /**
+     * Recovers an existing account with its Account Key and Recovery Key (v0.14.9+).
+     * Runs the signal-cli CLI directly, so a signal-cli binary path is required.
+     */
+    async registerWithRecoveryKey(
+        aci: string,
+        recoveryKey: string,
+        options: { totp?: string; reregister?: boolean } = {},
+    ): Promise<void> {
+        return this.accounts.registerWithRecoveryKey(aci, recoveryKey, options);
     }
 
     async verify(number: string, verificationCode: string, pin?: string): Promise<void> {

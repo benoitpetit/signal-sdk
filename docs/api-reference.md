@@ -143,6 +143,38 @@ Verifies a new account with the code received via SMS/voice.
 This method invokes the signal-cli command directly because the upstream
 JSON-RPC interface does not expose `verify`.
 
+#### `registerWithRecoveryKey(aci: string, recoveryKey: string, options?: { totp?: string; reregister?: boolean }): Promise<void>` (v0.14.9+)
+
+Recovers an existing account with the Account Key (ACI) and the 64-character
+Recovery Key shown by Signal Android. This method invokes the signal-cli command
+directly because the upstream JSON-RPC interface does not expose `register`.
+
+**Parameters:**
+
+- `aci`: Account Key of the account to recover, as a UUID or 32 hexadecimal
+  characters. Must not be a phone number.
+- `recoveryKey`: 64-character Recovery Key from Signal Android.
+- `options.totp`: Six-digit TOTP token, required when signal-cli reports that
+  account recovery needs one. Re-run the registration with this option.
+- `options.reregister`: Pass `--reregister`, required when the local account is
+  still marked as registered.
+
+**Example:**
+
+```typescript
+try {
+    await signal.registerWithRecoveryKey(
+        '11111111-1111-4111-8111-111111111111',
+        '64-hex-character-recovery-key-from-android',
+    );
+} catch (error) {
+    if (/TOTP/i.test(error.message)) {
+        // second step: re-run with the current six-digit token
+        await signal.registerWithRecoveryKey(aci, recoveryKey, { totp: '123456' });
+    }
+}
+```
+
 #### `deviceLink(options?: LinkingOptions): Promise<LinkingResult>`
 
 Links a new device to an existing Signal account with QR code support.
@@ -166,6 +198,10 @@ Starts JSON-RPC provisioning in multi-account mode and returns the device-link U
 #### `finishLink(deviceLinkUri: string, deviceName?: string): Promise<{ number?: string | null; aci?: string }>`
 
 Completes JSON-RPC provisioning started with `startLink()`.
+
+**Return:** The `number` of the newly linked account, or `null` for a numberless
+account (v0.14.9+), for which `aci` always contains the Account Key to use with
+account-scoped calls. The QR flow itself is unchanged.
 
 #### `listDevices(): Promise<Device[]>`
 
@@ -225,6 +261,8 @@ Sends a message to a recipient (user or group).
 | `endSession`         | `boolean`      | End the session                                                   |
 | `noUrgent`           | `boolean`      | Send without push notification (v0.14.0+)                         |
 | `voiceNote`          | `boolean`      | Mark attachments as voice notes (v0.14.2+)                        |
+| `attachmentDimensions` | `string[]`   | Displayed `WIDTHxHEIGHT` per attachment, `''` to skip (v0.14.9+)  |
+| `attachmentBlurhash` | `string[]`     | BlurHash per attachment, `''` to skip (v0.14.9+)                  |
 
 **Examples:**
 
@@ -248,7 +286,15 @@ await signal.sendMessage('+1234567890', 'Great point!', {
 await signal.sendMessage('+1234567890', 'Corrected text', {
     editTimestamp: 1705843200000,
 });
-```
+
+// Attachments with a displayed placeholder while they download (v0.14.9+).
+// Arrays are positional; '' skips an attachment. Rejects malformed values
+// before sending.
+await signal.sendMessage('+1234567890', 'Attachments', {
+    attachments: ['/tmp/photo.jpg', '/tmp/clip.mp4'],
+    attachmentDimensions: ['1080x1920', ''],
+    attachmentBlurhash: ['', 'LEHV6nWB2yk8pyo0adR*.7kCMdnj'],
+});
 
 #### `receive(options?: ReceiveOptions): Promise<Message[]>`
 

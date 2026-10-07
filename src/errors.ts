@@ -77,6 +77,20 @@ export class MessageError extends SignalError {
     }
 }
 
+/**
+ * Raised when signal-cli cannot prepare or upload one of a message's attachments.
+ *
+ * Since signal-cli v0.14.9 these failures are reported before anything is sent, so
+ * catching this error guarantees that no partial message reached any recipient.
+ */
+export class AttachmentError extends SignalError {
+    constructor(message: string) {
+        super(message, 'ATTACHMENT_INVALID');
+        this.name = 'AttachmentError';
+        Object.setPrototypeOf(this, AttachmentError.prototype);
+    }
+}
+
 export class CaptchaRejectedError extends SignalError {
     constructor(message: string = 'CAPTCHA verification was rejected') {
         super(message, 'CAPTCHA_REJECTED');

@@ -13,8 +13,16 @@ import {
     UploadProgress,
 } from '../interfaces';
 // v0.14.0 — no additional imports needed, flags are part of existing interfaces
-import { validateAttachments, validateRecipient, validateMessage, validateTimestamp, validateGroupId } from '../validators';
-import { MessageError } from '../errors';
+import {
+    validateAttachments,
+    validateAttachmentBlurhash,
+    validateAttachmentDimensions,
+    validateRecipient,
+    validateMessage,
+    validateTimestamp,
+    validateGroupId,
+} from '../validators';
+import { AttachmentError, MessageError } from '../errors';
 import { withRetry } from '../retry';
 
 export class MessageManager extends BaseManager {
@@ -49,6 +57,17 @@ export class MessageManager extends BaseManager {
                 validateMessage(message);
                 if (options.attachments) {
                     validateAttachments(options.attachments);
+                }
+
+                // v0.14.9 — positional per-attachment metadata; '' skips one attachment.
+                // A non-empty array longer than the attachment list (including a list
+                // with no attachments at all) is rejected by the validators.
+                const attachmentCount = options.attachments?.length ?? 0;
+                if (options.attachmentDimensions) {
+                    validateAttachmentDimensions(options.attachmentDimensions, attachmentCount);
+                }
+                if (options.attachmentBlurhash) {
+                    validateAttachmentBlurhash(options.attachmentBlurhash, attachmentCount);
                 }
 
                 const params: Record<string, unknown> = {
@@ -157,7 +176,20 @@ export class MessageManager extends BaseManager {
                     params.notifySelf = true;
                 }
 
-                return this.sendRequest('send', params);
+                // v0.14.9 — per-attachment dimensions and BlurHashes, positionally aligned
+                // with `attachments`. Empty strings skip an attachment and are forwarded as-is.
+                if (options.attachmentDimensions && options.attachmentDimensions.length > 0) {
+                    params.attachmentDimensions = options.attachmentDimensions;
+                }
+                if (options.attachmentBlurhash && options.attachmentBlurhash.length > 0) {
+                    params.attachmentBlurhash = options.attachmentBlurhash;
+                }
+
+                try {
+                    return await this.sendRequest('send', params);
+                } catch (error) {
+                    throw toAttachmentError(error);
+                }
             },
             {
                 maxAttempts: this.config.maxRetries,
@@ -465,4 +497,33 @@ export class MessageManager extends BaseManager {
 
         return this.sendMessage(recipient, message, sendOptions);
     }
+}
+
+/**
+ * Since signal-cli v0.14.9, an attachment that cannot be prepared or uploaded aborts the
+ * whole send and is reported as `AttachmentInvalidException`. signal-cli surfaces it as an
+ * internal JSON-RPC error, so the SDK recognises it here and rethrows a typed error whose
+ * message is upstream's label, for example `inline attachment #1: Invalid data URI`.
+ */
+const ATTACHMENT_FAILURE_MARKER = '(AttachmentInvalidException)';
+const SEND_FAILURE_PREFIX = 'Failed to send message: ';
+
+function toAttachmentError(error: unknown): unknown {
+    if (!(error instanceof Error)) {
+        return error;
+    }
+
+    const message = error.message;
+    const markerIndex = message.lastIndexOf(ATTACHMENT_FAILURE_MARKER);
+    if (markerIndex === -1) {
+        return error;
+    }
+
+    const prefixIndex = message.indexOf(SEND_FAILURE_PREFIX);
+    const detail =
+        prefixIndex === -1
+            ? message.slice(0, markerIndex).trim()
+            : message.slice(prefixIndex + SEND_FAILURE_PREFIX.length, markerIndex).trim();
+
+    return new AttachmentError(detail || 'Attachment upload failed');
 }
