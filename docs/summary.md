@@ -4,7 +4,7 @@ This documentation is organized around the lifecycle of a Signal SDK integration
 
 ## Start Here
 
-1. [Installation & Setup](./installation.md) — install the SDK, signal-cli v0.14.8, and the required Java runtime.
+1. [Installation & Setup](./installation.md) — install the SDK, signal-cli v0.14.10, and the required Java runtime.
 2. [Device Linking](./device-linking.md) — link a Signal account before sending or receiving messages.
 3. [Getting Started](./getting-started.md) — create a client and send a first message.
 4. [Examples Guide](./examples-guide.md) — run the included SDK and bot examples.
@@ -20,7 +20,7 @@ This documentation is organized around the lifecycle of a Signal SDK integration
 
 ## Current Compatibility
 
-SDK v0.2.6 is aligned with signal-cli v0.14.8. On macOS and Windows, the bundled JVM distribution requires Java 25 or later. Linux uses the native signal-cli binary installed by the package post-install script.
+SDK v0.2.9 is aligned with signal-cli v0.14.10. On macOS and Windows, the bundled JVM distribution requires Java 25 or later. Linux uses the native signal-cli binary installed by the package post-install script.
 
 ## Keeping Documentation Accurate
 

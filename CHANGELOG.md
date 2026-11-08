@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.9] - 2026-11-08
+
 ### Added
 
 - Add custom timestamps to JSON-RPC message sends, TLS-proxy configuration for SDK-started signal-cli processes,
