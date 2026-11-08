@@ -244,6 +244,9 @@ export class SignalCli extends EventEmitter {
         if (this.config.dataPath) {
             baseArgs.push('--config', this.config.dataPath);
         }
+        if (this.config.tlsProxy) {
+            baseArgs.push('--tls-proxy', this.config.tlsProxy);
+        }
         if (this.account) {
             baseArgs.push('-a', this.account);
         }
@@ -1141,7 +1144,11 @@ export class SignalCli extends EventEmitter {
     }
 
     private async executeCliCommand(args: string[]): Promise<string> {
-        const fullArgs = this.config.dataPath ? ['--config', this.config.dataPath, ...args] : args;
+        const fullArgs = [
+            ...(this.config.dataPath ? ['--config', this.config.dataPath] : []),
+            ...(this.config.tlsProxy ? ['--tls-proxy', this.config.tlsProxy] : []),
+            ...args,
+        ];
 
         return new Promise((resolve, reject) => {
             const child = process.platform === 'win32'

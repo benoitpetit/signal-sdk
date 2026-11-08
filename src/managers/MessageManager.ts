@@ -22,7 +22,7 @@ import {
     validateTimestamp,
     validateGroupId,
 } from '../validators';
-import { AttachmentError, MessageError } from '../errors';
+import { AttachmentError, MessageError, ValidationError } from '../errors';
 import { withRetry } from '../retry';
 
 export class MessageManager extends BaseManager {
@@ -55,6 +55,15 @@ export class MessageManager extends BaseManager {
         return withRetry(
             async () => {
                 validateMessage(message);
+                if (options.timestamp !== undefined) {
+                    validateTimestamp(options.timestamp);
+                    if (!Number.isInteger(options.timestamp)) {
+                        throw new ValidationError('Timestamp must be an integer', 'timestamp');
+                    }
+                    if (options.editTimestamp !== undefined || options.endSession === true) {
+                        throw new MessageError('A custom timestamp cannot be combined with editTimestamp or endSession');
+                    }
+                }
                 if (options.attachments) {
                     validateAttachments(options.attachments);
                 }
@@ -74,6 +83,10 @@ export class MessageManager extends BaseManager {
                     message,
                     account: this.account,
                 };
+
+                if (options.timestamp !== undefined) {
+                    params.timestamp = options.timestamp;
+                }
 
                 if (this.isGroupId(recipient)) {
                     validateGroupId(recipient);

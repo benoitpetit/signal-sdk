@@ -105,6 +105,8 @@ export interface JsonRpcSendParams {
     groupId?: string;
     /** The message text to send */
     message?: string;
+    /** v0.14.10 — Optional message timestamp in milliseconds since epoch */
+    timestamp?: number;
     /** Array of attachment file paths */
     attachments?: string[];
     /** Array of mentions in the message */
@@ -477,6 +479,8 @@ export interface Contact {
     username?: string;
     /** Whether this contact is a registered Signal user */
     registered?: boolean;
+    /** Profile data returned by listContacts */
+    profile?: Profile;
 }
 
 /**
@@ -597,6 +601,8 @@ export interface SendMessageOptions {
     previewTitle?: string;
     previewDescription?: string;
     previewImage?: string;
+    /** v0.14.10 — Optional message timestamp in milliseconds since epoch */
+    timestamp?: number;
     editTimestamp?: number;
     storyTimestamp?: number;
     storyAuthor?: string;
@@ -635,15 +641,30 @@ export interface SendMessageOptions {
  * Represents a user profile.
  */
 export interface Profile {
+    /** Timestamp when the profile was last updated by signal-cli */
+    lastUpdateTimestamp?: number;
     name?: string;
     givenName?: string;
     familyName?: string;
     about?: string;
     aboutEmoji?: string;
     avatar?: string;
+    /** Whether this contact has a profile avatar, as reported by listContacts */
+    hasAvatar?: boolean;
     mobileCoinAddress?: string;
     visibleBadgeIds?: string[];
+    /** Badges returned by signal-cli v0.14.10 in contact profiles */
+    badges?: ProfileBadge[];
     color?: string;
+}
+
+/** Badge information included in a contact's Signal profile. */
+export interface ProfileBadge {
+    id: string;
+    category: string;
+    /** Milliseconds since epoch, or null when the badge does not expire. */
+    expirationTimestamp: number | null;
+    visible: boolean;
 }
 
 /**

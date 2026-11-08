@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Add custom timestamps to JSON-RPC message sends, TLS-proxy configuration for SDK-started signal-cli processes,
+  and typed profile badges from `listContacts`.
+
+### Changed
+
+- Bundle signal-cli v0.14.10, including upstream receive, synced-edit attachment,
+  PNI group-invitation, native-image, attachment-dimension, and sender-key fixes.
+
 ## [0.2.8] - 2026-10-07
 
 ### Added - signal-cli v0.14.9 Compatibility

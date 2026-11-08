@@ -59,6 +59,7 @@ providing JSON-RPC communication and a powerful bot framework.
 - Mentions, quotes, URL previews, message editing
 - View-once messages, end-session messages
 - Message reactions, typing indicators, read receipts
+- Custom message timestamps for JSON-RPC sends (v0.14.10+)
 - Remote delete and admin delete (group admins only)
 - **Pin / unpin messages** in conversations and groups
 - **Silent messages** — send without triggering a push notification (`noUrgent`)
@@ -259,6 +260,24 @@ const signal = new SignalCli('+33111111111', undefined, {
 });
 ```
 
+### Configure a TLS proxy for local signal-cli processes
+
+Configure `tlsProxy` for signal-cli processes started by the SDK. It applies to
+the local JSON-RPC process and one-shot account commands such as `register`,
+`verify`, and recovery. signal-cli accepts a proxy host, an optional `HOST:PORT`
+(port 443 by default), or a Signal proxy link such as
+`https://signal.tube/#HOST`. This setting does not configure an externally
+managed Unix socket, TCP, or HTTP daemon; configure that daemon separately.
+
+```javascript
+const signal = new SignalCli({
+    account: '+33111111111',
+    tlsProxy: 'https://signal.tube/#relay.example',
+});
+
+await signal.connect();
+```
+
 ---
 
 ## Common Use Cases
@@ -312,6 +331,17 @@ await signal.sendMessage('+33222222222', 'Corrected text', {
     editTimestamp: 1700000000000,
 });
 ```
+
+### Send with a custom timestamp
+
+```javascript
+await signal.sendMessage('+33222222222', 'Hello!', {
+    timestamp: Date.now() - 1000,
+});
+```
+
+The timestamp is milliseconds since epoch and must be in the past. signal-cli
+checks the time; the SDK rejects combinations with `editTimestamp` or `endSession`.
 
 ### Send files
 
@@ -696,6 +726,7 @@ The bot includes built-in `/help` and `/ping` commands automatically.
 | `previewImage`       | `string`       | Image path for link preview                                       |
 | `noteToSelf`         | `boolean`      | Send to own account                                               |
 | `endSession`         | `boolean`      | End the session                                                   |
+| `timestamp`          | `number`       | Custom positive integer send timestamp in milliseconds since epoch; daemon requires a past time (v0.14.10+) |
 | `noUrgent`           | `boolean`      | Send without push notification                                    |
 
 ### PollCreateOptions
@@ -813,6 +844,7 @@ The constructor uses smart parameter detection:
 | `verbose`               | `false`                   | Enable debug logging                                      |
 | `trustNewIdentities`    | `'on-first-use'`          | Trust new identities: `on-first-use`, `always`, `never`   |
 | `daemonMode`            | `'json-rpc'`              | Connection mode: `json-rpc`, `unix-socket`, `tcp`, `http` |
+| `tlsProxy`              | `''`                      | signal-cli TLS proxy for locally spawned processes; external daemons need separate configuration |
 | `socketPath`            | `undefined`               | Path to Unix socket (unix-socket mode)                    |
 | `tcpHost`               | `'localhost'`             | TCP host (tcp mode)                                       |
 | `tcpPort`               | `7583`                    | TCP port (tcp mode)                                       |

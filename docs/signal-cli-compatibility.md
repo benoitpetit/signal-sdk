@@ -2,19 +2,19 @@
 
 This document compares the `signal-sdk` TypeScript facade with the commands and
 JSON-RPC methods exposed by signal-cli. The reference is the upstream
-`AsamK/signal-cli` repository and its manuals, checked on October 7, 2026,
-against v0.14.9.
+`AsamK/signal-cli` repository and its manuals, checked on November 8, 2026,
+against v0.14.10.
 
 ## Supported Features
 
 | signal-cli domain | SDK API | Status |
 | --- | --- | --- |
-| Message sending, attachments, quotes, mentions, styles, stickers and expiring messages | `sendMessage`, `sendMessageWithProgress` | Covered; attachment dimensions and BlurHashes supported (v0.14.9+) |
+| Message sending, attachments, quotes, mentions, styles, stickers, expiring messages and custom timestamps | `sendMessage`, `sendMessageWithProgress` | Covered; custom timestamps supported (v0.14.10+), attachment dimensions and BlurHashes supported (v0.14.9+) |
 | Reactions, typing indicators, remote deletion and receipts | `sendReaction`, `sendTyping`, `remoteDeleteMessage`, `sendReceipt` | Covered |
 | Receiving and polling | `receive`, `connect`, `message`, `typing`, `receipt`, `story` events | Covered |
 | Stories, deletion and pinned-message management | `sendStory`, `deleteStory`, `pinMessage`, `unpinMessage` | Covered |
 | Groups: creation, updates, members, administrators, bans, links, expiration and leaving | `createGroup`, `updateGroup`, `listGroups`, `joinGroup`, `quitGroup`, `terminateGroup` | Covered |
-| Contacts, registration status, blocking, removal and identities | `listContacts`, `updateContact`, `getUserStatus`, `block`, `unblock`, `listIdentities`, `trustIdentity` | Covered |
+| Contacts, registration status, blocking, removal and identities | `listContacts`, `updateContact`, `getUserStatus`, `block`, `unblock`, `listIdentities`, `trustIdentity` | Covered; v0.14.10 profile badge payloads are typed on contacts |
 | Profiles and avatars | `updateProfile`, `getAvatar`, profile helpers | Covered |
 | Accounts, registration, verification, PIN, number changes and configuration | `register`, `verify`, `setPin`, `removePin`, `startChangeNumber`, `finishChangeNumber` | Covered |
 | Linked devices and QR-code linking | `listDevices`, `addDevice`, `removeDevice`, `updateDevice`, `deviceLink`, `link`, `startLink`, `finishLink` | Covered; `listDevices` has an upstream v0.14.8 regression |
@@ -23,6 +23,7 @@ against v0.14.9.
 | Payments and rate-limit challenges | `sendPaymentNotification`, `submitRateLimitChallenge` | Covered for individual recipients |
 | Calls | `startCall`, `acceptCall`, `hangUpCall`, `sendCallRelayCandidates`, `listCalls`, `rejectCall` | Covered |
 | HTTP daemon events | `daemonMode: 'http'`, automatic `/api/v1/events` consumption | Covered |
+| TLS proxy for SDK-spawned signal-cli processes | `SignalCliConfig.tlsProxy` | Covered; external daemons must be configured separately |
 
 Upstream responses that exist in multiple shapes are normalized by the
 managers. Account, status, identity, group and device lists are converted to

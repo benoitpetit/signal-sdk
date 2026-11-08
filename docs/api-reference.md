@@ -81,6 +81,7 @@ const configuredSignal = new SignalCli({
 | `autoReconnect`         | `boolean`                                        | `true`                    | Automatically reconnect on disconnect      |
 | `verbose`               | `boolean`                                        | `false`                   | Enable debug logging                       |
 | `daemonMode`            | `'json-rpc' \| 'unix-socket' \| 'tcp' \| 'http'` | `'json-rpc'`              | Connection mode                            |
+| `tlsProxy`              | `string`                                          | `''`                      | signal-cli TLS proxy for locally spawned processes (`HOST`, `HOST:PORT`, or `https://signal.tube/#HOST`) |
 | `socketPath`            | `string`                                         | `'/tmp/signal-cli.sock'`  | Unix socket path (unix-socket mode)        |
 | `tcpHost`               | `string`                                         | `'localhost'`             | TCP host (tcp mode)                        |
 | `tcpPort`               | `number`                                         | `7583`                    | TCP port (tcp mode)                        |
@@ -91,6 +92,12 @@ const configuredSignal = new SignalCli({
 #### `connect(options?: JsonRpcStartOptions): Promise<void>`
 
 Establishes the JSON-RPC connection with the `signal-cli` daemon.
+
+When `SignalCliConfig.tlsProxy` is set, the SDK passes it as the global
+`--tls-proxy` option to locally spawned signal-cli processes, including its
+`jsonRpc` process and one-shot account commands. The option does not configure
+an externally managed Unix socket, TCP, or HTTP daemon; configure that daemon
+separately.
 
 **Parameters:**
 
@@ -250,6 +257,7 @@ Sends a message to a recipient (user or group).
 | `quote`              | `QuoteOptions` | Reply to an existing message                                      |
 | `expiresInSeconds`   | `number`       | Message expiration timer                                          |
 | `isViewOnce`         | `boolean`      | View-once message                                                 |
+| `timestamp`          | `number`       | Custom send timestamp in milliseconds since epoch (v0.14.10+)    |
 | `editTimestamp`      | `number`       | Timestamp of the message to edit                                  |
 | `previewUrl`         | `string`       | URL for link preview                                              |
 | `previewTitle`       | `string`       | Title for link preview                                            |
@@ -263,6 +271,11 @@ Sends a message to a recipient (user or group).
 | `voiceNote`          | `boolean`      | Mark attachments as voice notes (v0.14.2+)                        |
 | `attachmentDimensions` | `string[]`   | Displayed `WIDTHxHEIGHT` per attachment, `''` to skip (v0.14.9+)  |
 | `attachmentBlurhash` | `string[]`     | BlurHash per attachment, `''` to skip (v0.14.9+)                  |
+
+The custom timestamp must be a positive integer in milliseconds and strictly
+in the past. The SDK checks the integer and positive-value requirements; the
+signal-cli daemon checks that it is in the past. It cannot be combined with
+`editTimestamp` or `endSession`.
 
 **Examples:**
 
@@ -1325,6 +1338,7 @@ interface Contact {
     name: string;
     uuid?: string;
     blocked: boolean;
+    profile?: Profile;
     givenName?: string;
     familyName?: string;
     username?: string;
@@ -1332,6 +1346,31 @@ interface Contact {
     // ... more fields
 }
 ```
+
+`Contact.profile` may include the badges returned by signal-cli v0.14.10:
+
+```typescript
+interface ProfileBadge {
+    id: string;
+    category: string;
+    expirationTimestamp: number | null;
+    visible: boolean;
+}
+
+interface Profile {
+    lastUpdateTimestamp?: number;
+    givenName?: string;
+    familyName?: string;
+    about?: string;
+    aboutEmoji?: string;
+    hasAvatar?: boolean;
+    mobileCoinAddress?: string;
+    badges?: ProfileBadge[];
+}
+```
+
+`expirationTimestamp` is milliseconds since the Unix epoch, or `null` when the
+badge does not expire.
 
 #### GroupInfo
 

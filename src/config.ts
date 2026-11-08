@@ -42,6 +42,8 @@ export interface SignalCliConfig {
     tcpPort?: number;
     /** HTTP base URL (for http mode) */
     httpBaseUrl?: string;
+    /** signal-cli TLS proxy for commands started by this SDK */
+    tlsProxy?: string;
     /** Enable circuit breaker for JSON-RPC requests (fail-fast on repeated failures) */
     circuitBreakerEnabled?: boolean;
     /** Consecutive failures before the circuit breaker opens */
@@ -56,6 +58,7 @@ export const DEFAULT_CONFIG: Required<
         tcpHost: string;
         tcpPort: number;
         httpBaseUrl: string;
+        tlsProxy: string;
         dataPath: string;
     }
 > = {
@@ -78,6 +81,7 @@ export const DEFAULT_CONFIG: Required<
     tcpHost: 'localhost',
     tcpPort: 7583,
     httpBaseUrl: 'http://localhost:8080',
+    tlsProxy: '',
     circuitBreakerEnabled: false,
     circuitBreakerFailureThreshold: 5,
     circuitBreakerResetTimeout: 30000,
@@ -91,6 +95,12 @@ export const DEFAULT_CONFIG: Required<
 export function validateConfig(userConfig: SignalCliConfig = {}): Required<SignalCliConfig> {
     const config = { ...DEFAULT_CONFIG, ...userConfig };
 
+    if (config.tlsProxy === undefined) {
+        config.tlsProxy = '';
+    }
+    if (typeof config.tlsProxy !== 'string') {
+        throw new Error('tlsProxy must be a string');
+    }
     const nonNegativeFields = [
         'connectionTimeout',
         'requestTimeout',
