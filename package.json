@@ -58,7 +58,7 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/benoitpetit/signal-sdk.git"
+        "url": "git+https://github.com/benoitpetit/signal-sdk.git"
     },
     "homepage": "https://github.com/benoitpetit/signal-sdk#readme",
     "bugs": {
